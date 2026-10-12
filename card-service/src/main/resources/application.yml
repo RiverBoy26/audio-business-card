@@ -1,0 +1,19 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: card-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/audio_card_db
+    username: postgres
+    password: admin
+    driverClassName: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        format_sql: true
