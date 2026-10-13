@@ -1,5 +1,6 @@
 package audio.business.card.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -8,6 +9,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,14 +25,19 @@ public class CardSettings {
     @Column(name = "card_id")
     private UUID cardId;
 
+    @JsonIgnore
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
     @JoinColumn(name = "card_id")
     private AudioCard audioCard;
 
+    @Min(0)
+    @Max(100)
     @Column(name = "voice_volume", nullable = false)
     private Integer voiceVolume = 100;
 
+    @Min(0)
+    @Max(100)
     @Column(name = "music_volume", nullable = false)
     private Integer musicVolume = 30;
 }
