@@ -1,6 +1,7 @@
 package audio.business.sound.voice;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.*;
@@ -14,12 +15,13 @@ public final class ProfileValidator {
     private static final Pattern MARKER = Pattern.compile(
             "(?iuU)(?<![\\p{L}])(?:"
                     + "(?:по\\s+)?(?:мо(?:я|й|ей|ю)\\s+)?(?:специальност(?:ь|и|ью)|специальн(?:ый|ая|ое)|с?пециализаци(?:я|и|ю|ей)|сфер(?:а|е|у|ой))"
+                    + "|(?:по\\s+)?(?:мо(?:я|ей)\\s+)?професси(?:я|и|ю|ей)"
                     + "|(?:(?:в\\s+)?мо(?:й|его|ему|им|[её]м)\\s+)?(?:стек(?:а|у|ом|е)?|технологи(?:и|й|ями|ях)|навык(?:и|ов|ами|ах)?)"
                     + "|использую|владею|работаю с"
                     + "|(?:мо(?:й|его|ему|им|[её]м)\\s+)(?:стаж(?:а|у|ем|е)?|сташ|опыт(?:а|у|ом|е)?(?: работы)?)"
                     + "|(?:стаж(?:а|у|ем|е)?|сташ|опыт(?: работы)?|опыте|опытом)"
                     + "|желаем(?:ая|ой|ую|ою)\\s+(?:должност(?:ь|и|ью)|позици(?:я|и|ю|ей|е))"
-                    + "|ищу|хочу работать)(?![\\p{L}])");
+                    + "|ищу(?:\\s+(?:работу|позицию|должность))?|хочу(?:\\s+(?:работать|стать))|рассматриваю(?:\\s+(?:позицию|должность))?)(?![\\p{L}])");
     private static final Pattern TRAILING_HALLUCINATION = Pattern.compile(
             "(?iuU)\\s*(?:[.!?]\\s*)?(?:с вами (?:был|была)|редактор субтитров|субтитры|корректор)\\b.*$");
     private static final Pattern TRAILING_SOUND_LABEL = Pattern.compile(
@@ -33,19 +35,21 @@ public final class ProfileValidator {
         String parsingTranscript = normalizeRecognitionErrors(cleanedTranscript);
         Map<String, String> sections = sections(parsingTranscript, issues);
         String roleText = sections.getOrDefault("role", "");
+        if (roleText.isBlank()) roleText = sections.getOrDefault("intro", "");
         List<Entry> matchedRoles = matches(roleText, roles);
         Entry role = matchedRoles.size() == 1 ? matchedRoles.get(0) : null;
         if (role == null)
             issues.add(matchedRoles.isEmpty() ? "SPECIALIZATION_MISSING_OR_UNKNOWN" : "SPECIALIZATION_AMBIGUOUS");
 
         String skillText = sections.getOrDefault("skills", "");
-        List<Entry> matchedSkills = matches(skillText, skills);
+        String positiveSkillText = removeNegatedSkills(skillText);
+        List<Entry> matchedSkills = matches(positiveSkillText, skills);
         List<String> unknown = new ArrayList<>();
-        String remaining = normalize(skillText);
+        String remaining = normalize(positiveSkillText);
         List<String> aliases = matchedSkills.stream().flatMap(e -> e.aliases.stream())
                 .sorted(Comparator.comparingInt(String::length).reversed()).toList();
         for (String alias : aliases) remaining = boundary(alias).matcher(remaining).replaceAll(" ");
-        remaining = remaining.replaceAll("(?iuU)\\b(?:и|также|ещё|еще|это|я|знаю|использую|владею|технологии|навыки|стек)\\b", " ");
+        remaining = remaining.replaceAll("(?iuU)\\b(?:и|а|не|также|ещё|еще|это|я|знаю|использую|владею|технологии|навыки|стек)\\b", " ");
         for (String fragment : remaining.split("[,;\\n]")) {
             String value = fragment.replaceAll("^[\\s:.\\-]+|[\\s:.\\-]+$", "").trim();
             if (!value.isBlank()) {
@@ -73,6 +77,7 @@ public final class ProfileValidator {
             position = null;
             issues.add("DESIRED_POSITION_MISSING");
         } else {
+            position = position.replaceFirst("(?iuU)^(?:будет|это|на\\s+(?:позицию|должность))\\s+", "").trim();
             position = canonicalizeTechnologies(position);
         }
         if (Pattern.compile("(?iuU)\\b(?:не|кроме|без)\\b").matcher(roleText + " " + skillText).find())
@@ -97,6 +102,16 @@ public final class ProfileValidator {
         return result;
     }
 
+    private String removeNegatedSkills(String text) {
+        String result = normalize(text);
+        List<String> aliases = skills.stream().flatMap(entry -> entry.aliases.stream())
+                .sorted(Comparator.comparingInt(String::length).reversed()).toList();
+        for (String alias : aliases)
+            result = Pattern.compile("(?<![\\p{L}\\p{N}+#])не\\s+" + Pattern.quote(alias)
+                    + "(?![\\p{L}\\p{N}+#])").matcher(result).replaceAll(" ");
+        return result;
+    }
+
     private static String cleanTranscript(String transcript, List<String> issues) {
         String cleaned = TRAILING_SOUND_LABEL.matcher(transcript).replaceFirst("").trim();
         Matcher hallucination = TRAILING_HALLUCINATION.matcher(cleaned);
@@ -112,7 +127,8 @@ public final class ProfileValidator {
     private static String normalizeRecognitionErrors(String transcript) {
         return transcript
                 .replaceAll("(?iuU)\\bб[еэ]к[-\\s]?[еэ]н[дт]р?\\b", "бэкенд")
-                .replaceAll("(?iuU)\\bфронт[-\\s]?[еэ]н[дт]р?\\b", "фронтенд");
+                .replaceAll("(?iuU)\\bфронт[-\\s]?[еэ]н[дт]р?\\b", "фронтенд")
+                .replaceAll("(?iuU)\\bбез окрутой\\b", "без опыта");
     }
 
     private static Map<String, String> sections(String text, List<String> issues) {
@@ -120,16 +136,24 @@ public final class ProfileValidator {
         Matcher matcher = MARKER.matcher(text);
         String key = null;
         int start = 0;
+        boolean found = false;
         while (matcher.find()) {
+            if (!found && matcher.start() > 0) put(result, "intro", text.substring(0, matcher.start()), issues);
+            found = true;
             if (key != null) put(result, key, text.substring(start, matcher.start()), issues);
             String marker = normalize(matcher.group());
-            key = marker.contains("должност") || marker.contains("позици") || marker.equals("ищу") || marker.equals("хочу работать") ? "position"
+            key = marker.contains("должност") || marker.contains("позици") || marker.startsWith("ищу")
+                    || marker.startsWith("хочу") || marker.startsWith("рассматриваю") ? "position"
                     : marker.contains("стаж") || marker.contains("сташ") || marker.contains("опыт") ? "experience"
-                    : marker.contains("специал") || marker.contains("пециал") || marker.contains("сфер") ? "role" : "skills";
+                    : marker.contains("специал") || marker.contains("пециал") || marker.contains("сфер")
+                    || marker.contains("професс") ? "role" : "skills";
             start = matcher.end();
         }
         if (key != null) put(result, key, text.substring(start), issues);
-        else issues.add("TEMPLATE_MARKERS_MISSING");
+        else {
+            put(result, "intro", text, issues);
+            issues.add("TEMPLATE_MARKERS_MISSING");
+        }
         return result;
     }
 
@@ -142,7 +166,7 @@ public final class ProfileValidator {
         String text = normalize(raw).replaceAll("^[\\s:—]+|[\\s.,;]+$", "").trim();
         if (text.matches(".*(?:без опыта|нет опыта|отсутствует|не имею опыта).*") )
             return new VoiceProfile.Experience(0, 0, raw.trim());
-        if (Pattern.compile("(?:^-\\s*\\d|\\d[.,]\\d)").matcher(text).find()) return null;
+        if (Pattern.compile("^-\\s*\\d").matcher(text).find()) return null;
         String[] words = {"ноль", "один", "два", "три", "четыре", "пять", "шесть", "семь", "восемь", "девять", "десять", "одиннадцать", "двенадцать"};
         text = text.replaceAll("(?U)\\bодного\\b|\\bодна\\b", "1")
                 .replaceAll("(?U)\\bдвух\\b|\\bдве\\b", "2")
@@ -151,6 +175,19 @@ public final class ProfileValidator {
         if (text.contains("полгода")) text = text.replace("полгода", "6 месяцев");
         for (int i = 0; i < words.length; i++)
             text = text.replaceAll("(?U)\\b" + words[i] + "(?U)\\b", String.valueOf(i));
+
+        Matcher decimalYears = Pattern.compile("(\\d+)[.,](\\d+)\\s*(лет|год(?:а)?)").matcher(text);
+        if (decimalYears.find()) {
+            BigDecimal months = new BigDecimal(decimalYears.group(1) + "." + decimalYears.group(2))
+                    .multiply(BigDecimal.valueOf(12));
+            try {
+                int value = months.intValueExact();
+                if (decimalYears.find() || value < 0 || value > 720) return null;
+                return new VoiceProfile.Experience(value, value, raw.trim());
+            } catch (ArithmeticException e) {
+                return null;
+            }
+        }
 
         Matcher range = Pattern.compile("(?:от\\s+)?(\\d+)\\s*(?:-|–|—|до)\\s*(\\d+)\\s*(лет|год(?:а)?|месяц(?:а|ев)?)").matcher(text);
         if (range.find()) {

@@ -63,7 +63,7 @@ public final class WhisperTranscriber implements SpeechTranscriber {
                 params.suppressNonSpeechTokens = true;
                 params.temperature = 0.0f;
                 params.noSpeechThold = 0.6f;
-                params.initialPrompt = "Моя специальность. Мой стек. Мой стаж. Желаемая должность.";
+                params.initialPrompt = "Я разработчик. Работаю с технологиями. Опыт работы два года. Хочу работать разработчиком.";
                 params.nThreads = Math.min(4, Runtime.getRuntime().availableProcessors());
                 int result = whisper.full(context, params, samples, samples.length);
                 if (result != 0) throw new IOException("Whisper failed with code " + result);

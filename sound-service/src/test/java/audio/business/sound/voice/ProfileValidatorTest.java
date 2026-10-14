@@ -56,15 +56,16 @@ class ProfileValidatorTest {
     }
 
     @Test void missingMarkersDoNotGuessFromNarrative() {
-        var result = validator.validate("Я работал с Java и хочу стать разработчиком");
+        var result = validator.validate("Я раньше писал разные программы");
         assertNull(result.specialization());
         assertTrue(result.skills().isEmpty());
         assertTrue(result.issues().contains("TEMPLATE_MARKERS_MISSING"));
     }
 
     @Test void doesNotAcceptNegativeDecimalOrHugeExperience() {
-        for (String value : List.of("-2 года", "1.5 года", "999999999999 лет", "2147483647 лет", "2 года 3 года"))
+        for (String value : List.of("-2 года", "1.3 года", "999999999999 лет", "2147483647 лет", "2 года 3 года"))
             assertNull(validator.validate("Стаж " + value).experience(), value);
+        assertEquals(18, validator.validate("Стаж 1,5 года").experience().minMonths());
     }
 
     @Test void flagsNegationAndRepeatedSections() {
@@ -158,5 +159,27 @@ class ProfileValidatorTest {
         assertEquals("Системный аналитик", result.specialization());
         assertEquals(List.of("BPMN", "UML"), result.skills());
         assertTrue(result.unknownSkills().isEmpty());
+    }
+
+    @Test void extractsNaturalSpeechWithOneSpecialization() {
+        var result = validator.validate("Я бэкенд-разработчик. Работаю с Java, Spring Boot, PostgreSQL и Docker. Опыт работы два года и шесть месяцев. Хочу работать Middle Java-разработчиком.");
+
+        assertEquals("Бэкенд-разработчик", result.specialization());
+        assertEquals(List.of("Java", "Spring Boot", "PostgreSQL", "Docker"), result.skills());
+        assertEquals(30, result.experience().minMonths());
+        assertEquals("Middle Java-разработчиком", result.desiredPosition());
+        assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
+        assertTrue(result.issues().isEmpty(), result.issues().toString());
+    }
+
+    @Test void excludesExplicitlyNegatedSkillAndUnderstandsRecentDistortions() {
+        var result = validator.validate("Я бэкенд-разработчик. Мой стек не Java, а Пайтон, Джанга, Спрингбуд, Постгрызг ол и Гид. Стаж 1,5 года. Ищу работу Python-разработчиком.");
+
+        assertEquals("Бэкенд-разработчик", result.specialization());
+        assertEquals(List.of("Python", "Django", "Spring Boot", "PostgreSQL", "Git"), result.skills());
+        assertEquals(18, result.experience().minMonths());
+        assertEquals("Python-разработчиком", result.desiredPosition());
+        assertTrue(result.issues().contains("NEGATION_REQUIRES_REVIEW"));
+        assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
     }
 }
