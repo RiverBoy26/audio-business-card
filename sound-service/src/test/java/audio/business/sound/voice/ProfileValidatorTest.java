@@ -230,4 +230,14 @@ class ProfileValidatorTest {
         assertTrue(result.issues().contains("NEGATION_REQUIRES_REVIEW"));
         assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
     }
+
+    @Test void handlesLongGigaAmTechnologyList() {
+        var result = validator.validate("я бэк энд разработчик работаю с джаво джаво скрипт тайпскрипт пайтон котлин си шарп си плюс плюс эскюэль спрингбуд фаст апи джанго реакт нейтив нот джей эс озгресс май эскюэль редис линукс баш докер");
+
+        assertEquals("Бэкенд-разработчик", result.specialization());
+        assertEquals(List.of("JavaScript", "TypeScript", "Python", "Java", "C#", "C++", "Kotlin", "SQL",
+                "FastAPI", "Django", "Spring Boot", "Node.js", "React Native", "PostgreSQL", "MySQL",
+                "Redis", "Linux", "Bash", "Docker"), result.skills());
+        assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
+    }
 }
