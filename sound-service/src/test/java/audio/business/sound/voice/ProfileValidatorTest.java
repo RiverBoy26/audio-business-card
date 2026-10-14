@@ -119,4 +119,44 @@ class ProfileValidatorTest {
         assertTrue(result.unknownSkills().isEmpty());
         assertTrue(result.issues().isEmpty(), result.issues().toString());
     }
+
+    @Test void handlesFrontendWhisperDistortions() {
+        var result = validator.validate("Мой специальный фронтенд разработчик. Мой стек. Жела скрипт. Тайп скрипт. Реакт. Реакт Нейтив. Гит. Гит хам. Гит лап.");
+
+        assertEquals("Фронтенд-разработчик", result.specialization());
+        assertEquals(List.of("JavaScript", "TypeScript", "React", "React Native", "Git", "GitHub", "GitLab"), result.skills());
+        assertTrue(result.unknownSkills().isEmpty());
+    }
+
+    @Test void handlesDevOpsWhisperDistortions() {
+        var result = validator.validate("Пециализация DevOps Engineer. Использую Linux, Bash, Docker, Abermetz.");
+
+        assertEquals("DevOps-инженер", result.specialization());
+        assertEquals(List.of("Linux", "Bash", "Docker", "Kubernetes"), result.skills());
+        assertTrue(result.unknownSkills().isEmpty());
+    }
+
+    @Test void handlesBackendAndFastApiWhisperDistortions() {
+        var result = validator.validate("ICA специальность бэкэнт разработчик. Мой навык. Python, FastAP, PostgreSQL и технология Super Framework.");
+
+        assertEquals("Бэкенд-разработчик", result.specialization());
+        assertEquals(List.of("Python", "FastAPI", "PostgreSQL"), result.skills());
+        assertTrue(result.unknownSkills().stream().anyMatch(value -> value.contains("super framework")));
+    }
+
+    @Test void keepsDistortedFrontendAndBackendAmbiguous() {
+        var result = validator.validate("Специальность фронт-энтр-зарабочек и бек-энтр-зарабочек. Мой стек. Жела-скрипт. Реакт. Жела и Spring Boot.");
+
+        assertNull(result.specialization());
+        assertTrue(result.issues().contains("SPECIALIZATION_AMBIGUOUS"));
+        assertEquals(List.of("JavaScript", "Java", "React", "Spring Boot"), result.skills());
+    }
+
+    @Test void recognizesBpmAsBpmn() {
+        var result = validator.validate("Моей специализации я системный аналитик. Моих навыков BPM, UML.");
+
+        assertEquals("Системный аналитик", result.specialization());
+        assertEquals(List.of("BPMN", "UML"), result.skills());
+        assertTrue(result.unknownSkills().isEmpty());
+    }
 }

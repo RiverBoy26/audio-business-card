@@ -40,16 +40,17 @@ java -cp 'sound-service/target/classes:sound-service/target/dependency/*' \
   audio.business.sound.voice.VoiceProfileCli \
   --audio /path/to/recording.webm --model /path/to/ggml-small.bin
 
-# Запись с системного микрофона, 20 секунд, затем распознавание
+# Запись с системного микрофона, максимум 30 секунд; Enter завершает запись раньше
 java -cp 'sound-service/target/classes:sound-service/target/dependency/*' \
   audio.business.sound.voice.VoiceProfileCli \
-  --record 20 --model /path/to/ggml-small.bin
+  --record 30 --model /path/to/ggml-small.bin
 ```
 
 JSON выводится в stdout, сообщения записи и ошибки — в stderr; код ошибки 1.
 Не сохраняйте JSON-вывод и записи с персональными данными в репозиторий.
 FFmpeg декодирует WebM/Opus, WAV, MP3 и другие поддерживаемые форматы в mono float PCM 16 kHz.
 Лимиты: файл до 25 MiB, запись до 120 секунд, декодирование до 30 секунд.
+Значение `--record` задаёт максимальную длительность; после окончания речи нажмите Enter.
 Временные записи/PCM удаляются. Скорость распознавания зависит от модели и процессора.
 Микрофон требует доступного устройства Java Sound; на сервере используйте готовый файл.
 Перед распознаванием FFmpeg удаляет тишину, а типичные хвостовые галлюцинации Whisper

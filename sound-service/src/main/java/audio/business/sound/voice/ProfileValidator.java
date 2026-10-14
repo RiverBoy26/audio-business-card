@@ -13,7 +13,7 @@ public final class ProfileValidator {
     private final List<Entry> skills = load("skills.tsv");
     private static final Pattern MARKER = Pattern.compile(
             "(?iuU)(?<![\\p{L}])(?:"
-                    + "(?:по\\s+)?(?:мо(?:я|ей|ю)\\s+)?(?:специальност(?:ь|и|ью)|специализаци(?:я|и|ю|ей)|сфер(?:а|е|у|ой))"
+                    + "(?:по\\s+)?(?:мо(?:я|й|ей|ю)\\s+)?(?:специальност(?:ь|и|ью)|специальн(?:ый|ая|ое)|с?пециализаци(?:я|и|ю|ей)|сфер(?:а|е|у|ой))"
                     + "|(?:(?:в\\s+)?мо(?:й|его|ему|им|[её]м)\\s+)?(?:стек(?:а|у|ом|е)?|технологи(?:и|й|ями|ях)|навык(?:и|ов|ами|ах)?)"
                     + "|использую|владею|работаю с"
                     + "|(?:мо(?:й|его|ему|им|[её]м)\\s+)(?:стаж(?:а|у|ем|е)?|сташ|опыт(?:а|у|ом|е)?(?: работы)?)"
@@ -30,7 +30,8 @@ public final class ProfileValidator {
             throw new IllegalArgumentException("Transcript must be non-null and at most 10000 characters");
         List<String> issues = new ArrayList<>();
         String cleanedTranscript = cleanTranscript(transcript, issues);
-        Map<String, String> sections = sections(cleanedTranscript, issues);
+        String parsingTranscript = normalizeRecognitionErrors(cleanedTranscript);
+        Map<String, String> sections = sections(parsingTranscript, issues);
         String roleText = sections.getOrDefault("role", "");
         List<Entry> matchedRoles = matches(roleText, roles);
         Entry role = matchedRoles.size() == 1 ? matchedRoles.get(0) : null;
@@ -108,6 +109,12 @@ public final class ProfileValidator {
         return cleaned;
     }
 
+    private static String normalizeRecognitionErrors(String transcript) {
+        return transcript
+                .replaceAll("(?iuU)\\bб[еэ]к[-\\s]?[еэ]н[дт]р?\\b", "бэкенд")
+                .replaceAll("(?iuU)\\bфронт[-\\s]?[еэ]н[дт]р?\\b", "фронтенд");
+    }
+
     private static Map<String, String> sections(String text, List<String> issues) {
         Map<String, String> result = new LinkedHashMap<>();
         Matcher matcher = MARKER.matcher(text);
@@ -118,7 +125,7 @@ public final class ProfileValidator {
             String marker = normalize(matcher.group());
             key = marker.contains("должност") || marker.contains("позици") || marker.equals("ищу") || marker.equals("хочу работать") ? "position"
                     : marker.contains("стаж") || marker.contains("сташ") || marker.contains("опыт") ? "experience"
-                    : marker.contains("специал") || marker.contains("сфер") ? "role" : "skills";
+                    : marker.contains("специал") || marker.contains("пециал") || marker.contains("сфер") ? "role" : "skills";
             start = matcher.end();
         }
         if (key != null) put(result, key, text.substring(start), issues);

@@ -22,7 +22,8 @@ public final class VoiceProfileCli {
                     throw new IllegalArgumentException("--record cannot be combined with --text or --audio");
                 if (!options.containsKey("--model")) throw new IllegalArgumentException("--model is required for recording");
                 recording = java.nio.file.Files.createTempFile("voice-recording-", ".wav");
-                System.err.println("Recording. Say: Моя специальность … Стек … Стаж … Желаемая должность …");
+                System.err.println("Recording (maximum " + options.get("--record") + " seconds). Press Enter when you finish speaking.");
+                System.err.println("Say: Моя специальность … Стек … Стаж … Желаемая должность …");
                 new MicrophoneRecorder().record(recording, Integer.parseInt(options.get("--record")));
                 options.put("--audio", recording.toString());
             }
