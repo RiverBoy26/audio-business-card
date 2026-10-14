@@ -1,9 +1,9 @@
 HTML		эйч ти эм эл
 CSS		си эс эс
-JavaScript		джаваскрипт|джава скрипт|жела скрипт|жела-скрипт|js
+JavaScript		джаваскрипт|джава скрипт|джаво скрипт|жела скрипт|жела-скрипт|js
 TypeScript		тайпскрипт|тайп скрипт|ts
-Python		питон|пайтон
-Java		джава|жела
+Python		питон|пайтон|пайтен
+Java		джава|джаво|жела|жало
 C#		си шарп|c sharp|csharp
 C++		си плюс плюс|c plus plus|cpp
 C		си
@@ -18,9 +18,9 @@ Vue.js		вью|vue
 Angular		
 Next.js		
 Tailwind CSS		
-FastAPI		фаст апи|фастап|fast api|fastap|fast and pee
+FastAPI		фаст апи|фаст афи|фастап|fast api|fastap|fast and pee
 Django		джанго|джанга
-Spring Boot		спринг бут|спрингбут|спрингбуд|сприн бут|спринбут|сприньбут
+Spring Boot		спринг бут|спрингбут|спрингбуд|сприн бут|спринбут|спринбуд|сприньбут
 ASP.NET Core		
 Node.js		нод джей эс|nodejs
 Express		
@@ -31,7 +31,7 @@ Jetpack Compose
 SwiftUI		
 UIKit		
 Flutter		флаттер
-React Native		реакт нейтив|реакт нэйтив|реакт нейтев
+React Native		реакт нейтив|реакт нэйтив|реакт нейтев|реактнейтив
 .NET		
 WPF		
 Qt		
@@ -59,7 +59,7 @@ Tableau
 pandas		
 NumPy		
 Jupyter		
-PostgreSQL		постгрес|постгре|постгрескьюэль|постгресс кл|постгресс-кл|постгры|позгры|позгре|постгрызг ол|постгрызг|postgres
+PostgreSQL		постгрес|постгре|постгрескьюэль|постгресс кл|постгресс-кл|постгры|позгры|позгре|постгрызг ол|постгрызг|посгресс кьюн|постгр эс кьюэль|postgres
 MySQL		май эс кью эл|mysql
 SQLite		
 Microsoft SQL Server		
@@ -74,15 +74,15 @@ PyTorch
 TensorFlow		
 MLflow		
 Linux		линукс|линокс
-Bash		
+Bash		баш
 Docker		докер
-Kubernetes		кубернетес|кубер|аберметц|abermetz|k8s
-Nginx		энжинкс|нжинкс|никс
-GitLab CI/CD		гитлаб си си ди|гитлаб си-си-ди
+Kubernetes		кубернетес|кубер|кабернатс|аберметц|abermetz|k8s
+Nginx		энжинкс|нжинкс|энгеингс|никс
+GitLab CI/CD		гитлаб си си ди|гитлаб си-си-ди|гитлаб сиайсиди
 GitHub Actions		
 Jenkins		
 Ansible		ансибл|ансайбл
-Terraform		терраформ|тэроформ
+Terraform		терраформ|тераформ|тэроформ
 Windows Server		
 PowerShell		
 Active Directory		

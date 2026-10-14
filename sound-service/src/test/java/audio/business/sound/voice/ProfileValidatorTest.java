@@ -189,4 +189,45 @@ class ProfileValidatorTest {
         assertTrue(result.issues().contains("NEGATION_REQUIRES_REVIEW"));
         assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
     }
+
+    @Test void handlesGigaAmBackendPhonetics() {
+        var result = validator.validate("я бэк энд разработчик я в работе использую джаво спринбуд посгресс кьюн редис докер и гид опыт работы два года и шесть месяцев хочу работать мидл джава разработчиком");
+
+        assertEquals("Бэкенд-разработчик", result.specialization());
+        assertEquals(List.of("Java", "Spring Boot", "PostgreSQL", "Redis", "Docker", "Git"), result.skills());
+        assertEquals(30, result.experience().minMonths());
+        assertEquals("Middle Java разработчиком", result.desiredPosition());
+        assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
+    }
+
+    @Test void handlesGigaAmFrontendPhoneticsAndVerboseRange() {
+        var result = validator.validate("я фронтенд разработчик работаю с джаво скрипт тайпскрипт реакт реактнейтив гитхаб и гит лаб мой опыт от одного года до трех лет ищу работу фронтенд разработчиком");
+
+        assertEquals("Фронтенд-разработчик", result.specialization());
+        assertEquals(List.of("JavaScript", "TypeScript", "React", "React Native", "GitHub", "GitLab"), result.skills());
+        assertEquals(12, result.experience().minMonths());
+        assertEquals(36, result.experience().maxMonths());
+        assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
+    }
+
+    @Test void handlesGigaAmDevOpsPhoneticsAndMarkerError() {
+        var result = validator.validate("я девопс инженер используй линукс баш докер кабернатс энгеингс гитлаб сиайсиди ансайбл и тераформ опыт работы три года и семь месяцев хочу работать в сеньор девопс инженером");
+
+        assertEquals("DevOps-инженер", result.specialization());
+        assertEquals(List.of("Linux", "Bash", "Docker", "Kubernetes", "Nginx", "GitLab CI/CD", "Ansible", "Terraform"), result.skills());
+        assertEquals(43, result.experience().minMonths());
+        assertEquals("Senior девопс инженером", result.desiredPosition());
+        assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
+    }
+
+    @Test void handlesGigaAmNegationAndBackendError() {
+        var result = validator.validate("я пекенд разработчик работаю не с жало а с пайтон джанго фаст афи и постгр эс кьюэль мой стаж полтора года хочу работать пайтен разработчиком");
+
+        assertEquals("Бэкенд-разработчик", result.specialization());
+        assertEquals(List.of("Python", "FastAPI", "Django", "PostgreSQL"), result.skills());
+        assertEquals(18, result.experience().minMonths());
+        assertEquals("Python разработчиком", result.desiredPosition());
+        assertTrue(result.issues().contains("NEGATION_REQUIRES_REVIEW"));
+        assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
+    }
 }
