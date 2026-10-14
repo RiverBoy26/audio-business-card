@@ -1,0 +1,186 @@
+package audio.business.sound.voice;
+
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.regex.*;
+
+/** Deterministic extraction: section markers, explicit aliases, conservative typo suggestions. */
+public final class ProfileValidator {
+    private record Entry(String name, String sphere, List<String> aliases) {}
+
+    private final List<Entry> roles = load("roles.tsv");
+    private final List<Entry> skills = load("skills.tsv");
+    private static final Pattern MARKER = Pattern.compile(
+            "(?iuU)(?<![\\p{L}])(?:(?:моя\\s+)?(?:специальность|специализация|сфера)|(?:мой\\s+)?(?:стек|технологии|навыки)|использую|владею|работаю с|(?:мой\\s+)?(?:стаж|опыт(?: работы)?)|желаемая должность|ищу|хочу работать)(?![\\p{L}])");
+
+    public VoiceProfile validate(String transcript) {
+        if (transcript == null || transcript.length() > 10000)
+            throw new IllegalArgumentException("Transcript must be non-null and at most 10000 characters");
+        List<String> issues = new ArrayList<>();
+        Map<String, String> sections = sections(transcript, issues);
+        String roleText = sections.getOrDefault("role", "");
+        List<Entry> matchedRoles = matches(roleText, roles);
+        Entry role = matchedRoles.size() == 1 ? matchedRoles.get(0) : null;
+        if (role == null)
+            issues.add(matchedRoles.isEmpty() ? "SPECIALIZATION_MISSING_OR_UNKNOWN" : "SPECIALIZATION_AMBIGUOUS");
+
+        String skillText = sections.getOrDefault("skills", "");
+        List<Entry> matchedSkills = matches(skillText, skills);
+        List<String> unknown = new ArrayList<>();
+        String remaining = normalize(skillText);
+        List<String> aliases = matchedSkills.stream().flatMap(e -> e.aliases.stream())
+                .sorted(Comparator.comparingInt(String::length).reversed()).toList();
+        for (String alias : aliases) remaining = boundary(alias).matcher(remaining).replaceAll(" ");
+        remaining = remaining.replaceAll("(?iuU)\\b(?:и|также|ещё|еще|это|я|знаю|использую|владею|технологии|навыки|стек)\\b", " ");
+        for (String fragment : remaining.split("[,;\\n]")) {
+            String value = fragment.replaceAll("^[\\s:.\\-]+|[\\s:.\\-]+$", "").trim();
+            if (!value.isBlank()) {
+                unknown.add(value);
+                if (value.length() >= 5 && !value.contains(" ")) {
+                    List<String> candidates = skills.stream().filter(e -> e.aliases.stream()
+                            .anyMatch(a -> a.length() >= 5 && distance(value, a) == 1))
+                            .map(Entry::name).distinct().toList();
+                    if (!candidates.isEmpty())
+                        issues.add("SKILL_SUGGESTION: " + value + " -> " + String.join(", ", candidates));
+                }
+            }
+        }
+        if (!unknown.isEmpty()) issues.add("UNKNOWN_SKILLS");
+        if (matchedSkills.isEmpty()) issues.add("SKILLS_MISSING_OR_UNKNOWN");
+
+        String experienceText = sections.getOrDefault("experience", "");
+        VoiceProfile.Experience experience;
+        try { experience = experience(experienceText); }
+        catch (NumberFormatException | ArithmeticException e) { experience = null; }
+        if (experience == null) issues.add("EXPERIENCE_MISSING_OR_INVALID");
+
+        String position = sections.getOrDefault("position", "").replaceAll("^[\\s:—-]+|[\\s.,;]+$", "").trim();
+        if (position.isBlank()) {
+            position = null;
+            issues.add("DESIRED_POSITION_MISSING");
+        }
+        if (Pattern.compile("(?iuU)\\b(?:не|кроме|без)\\b").matcher(roleText + " " + skillText).find())
+            issues.add("NEGATION_REQUIRES_REVIEW");
+
+        return new VoiceProfile(transcript, role == null ? null : role.sphere, role == null ? null : role.name,
+                matchedSkills.stream().map(Entry::name).toList(), experience, position,
+                List.copyOf(unknown), List.copyOf(issues), true);
+    }
+
+    private static Map<String, String> sections(String text, List<String> issues) {
+        Map<String, String> result = new LinkedHashMap<>();
+        Matcher matcher = MARKER.matcher(text);
+        String key = null;
+        int start = 0;
+        while (matcher.find()) {
+            if (key != null) put(result, key, text.substring(start, matcher.start()), issues);
+            String marker = normalize(matcher.group());
+            key = marker.contains("должность") || marker.equals("ищу") || marker.equals("хочу работать") ? "position"
+                    : marker.contains("стаж") || marker.contains("опыт") ? "experience"
+                    : marker.contains("специал") || marker.equals("сфера") ? "role" : "skills";
+            start = matcher.end();
+        }
+        if (key != null) put(result, key, text.substring(start), issues);
+        else issues.add("TEMPLATE_MARKERS_MISSING");
+        return result;
+    }
+
+    private static void put(Map<String, String> result, String key, String value, List<String> issues) {
+        if (result.containsKey(key)) issues.add("REPEATED_SECTION: " + key);
+        result.merge(key, value, (a, b) -> a + ", " + b);
+    }
+
+    private static VoiceProfile.Experience experience(String raw) {
+        String text = normalize(raw).replaceAll("^[\\s:—]+|[\\s.,;]+$", "").trim();
+        if (text.matches(".*(?:без опыта|нет опыта|отсутствует|не имею опыта).*") )
+            return new VoiceProfile.Experience(0, 0, raw.trim());
+        if (Pattern.compile("(?:^-\\s*\\d|\\d[.,]\\d)").matcher(text).find()) return null;
+        String[] words = {"ноль", "один", "два", "три", "четыре", "пять", "шесть", "семь", "восемь", "девять", "десять", "одиннадцать", "двенадцать"};
+        text = text.replaceAll("(?U)\\bодного\\b|\\bодна\\b", "1")
+                .replaceAll("(?U)\\bдвух\\b|\\bдве\\b", "2")
+                .replaceAll("(?U)\\bтрех\\b", "3");
+        if (text.contains("полтора года")) text = text.replace("полтора года", "18 месяцев");
+        if (text.contains("полгода")) text = text.replace("полгода", "6 месяцев");
+        for (int i = 0; i < words.length; i++)
+            text = text.replaceAll("(?U)\\b" + words[i] + "(?U)\\b", String.valueOf(i));
+
+        Matcher range = Pattern.compile("(?:от\\s+)?(\\d+)\\s*(?:-|–|—|до)\\s*(\\d+)\\s*(лет|год(?:а)?|месяц(?:а|ев)?)").matcher(text);
+        if (range.find()) {
+            int multiplier = range.group(3).startsWith("месяц") ? 1 : 12;
+            int min = Math.multiplyExact(Integer.parseInt(range.group(1)), multiplier);
+            int max = Math.multiplyExact(Integer.parseInt(range.group(2)), multiplier);
+            if (range.find() || min > max || max > 720) return null;
+            return new VoiceProfile.Experience(min, max, raw.trim());
+        }
+
+        Matcher units = Pattern.compile("(\\d+)\\s*(лет|год(?:а)?|месяц(?:а|ев)?)").matcher(text);
+        int months = 0, count = 0;
+        while (units.find()) {
+            if (++count > 2) return null;
+            months = Math.addExact(months, Math.multiplyExact(Integer.parseInt(units.group(1)),
+                    units.group(2).startsWith("месяц") ? 1 : 12));
+        }
+        if (count == 2 && Pattern.compile("(?iuU)(?:лет|года?|месяц(?:а|ев)?)").matcher(text)
+                .results().map(m -> m.group().startsWith("месяц")).distinct().count() < 2) return null;
+        if (text.matches(".*(?:\\d+\\s*\\+|минус|от\\s+\\d+).*")) return null;
+        if (count == 0 && text.matches("(?U).*\\bгод\\b.*")) { months = 12; count = 1; }
+        if (count == 0 || months > 720 || text.matches(".*(?:более|меньше|около|примерно|свыше).*")) return null;
+        return new VoiceProfile.Experience(months, months, raw.trim());
+    }
+
+    private static List<Entry> matches(String text, List<Entry> catalog) {
+        String normalized = normalize(text);
+        record Hit(Entry entry, int start, int end) {}
+        List<Hit> hits = new ArrayList<>();
+        for (Entry entry : catalog) for (String alias : entry.aliases) {
+            Matcher matcher = boundary(alias).matcher(normalized);
+            while (matcher.find()) hits.add(new Hit(entry, matcher.start(), matcher.end()));
+        }
+        hits.sort(Comparator.<Hit>comparingInt(h -> h.end - h.start).reversed());
+        List<Hit> accepted = new ArrayList<>();
+        for (Hit hit : hits) {
+            if (accepted.stream().noneMatch(a -> hit.start < a.end && a.start < hit.end)) accepted.add(hit);
+        }
+        return catalog.stream().filter(e -> accepted.stream().anyMatch(h -> h.entry.equals(e))).toList();
+    }
+
+    private static Pattern boundary(String alias) {
+        return Pattern.compile("(?<![\\p{L}\\p{N}+#])" + Pattern.quote(alias) + "(?![\\p{L}\\p{N}+#])");
+    }
+
+    private static String normalize(String text) {
+        return text.toLowerCase(Locale.ROOT).replace('ё', 'е').replaceAll("\\s+", " ").trim();
+    }
+
+    private static List<Entry> load(String file) {
+        try (InputStream stream = ProfileValidator.class.getResourceAsStream("/voice/" + file)) {
+            if (stream == null) throw new IllegalStateException("Missing voice catalog: " + file);
+            return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines()
+                    .filter(s -> !s.isBlank() && !s.startsWith("#")).map(s -> {
+                        String[] columns = s.split("\\t", -1);
+                        List<String> aliases = new ArrayList<>();
+                        aliases.add(normalize(columns[0]));
+                        for (String alias : columns[2].split("\\|"))
+                            if (!alias.isBlank()) aliases.add(normalize(alias));
+                        return new Entry(columns[0], columns[1], List.copyOf(aliases));
+                    }).toList();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static int distance(String a, String b) {
+        int[] previous = new int[b.length() + 1];
+        for (int j = 0; j <= b.length(); j++) previous[j] = j;
+        for (int i = 1; i <= a.length(); i++) {
+            int[] current = new int[b.length() + 1];
+            current[0] = i;
+            for (int j = 1; j <= b.length(); j++)
+                current[j] = Math.min(Math.min(current[j - 1] + 1, previous[j] + 1),
+                        previous[j - 1] + (a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1));
+            previous = current;
+        }
+        return previous[b.length()];
+    }
+}
