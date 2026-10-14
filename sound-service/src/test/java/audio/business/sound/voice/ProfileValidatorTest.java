@@ -107,4 +107,16 @@ class ProfileValidatorTest {
         assertEquals("Java-разработчика", result.desiredPosition());
         assertTrue(result.unknownSkills().isEmpty());
     }
+
+    @Test void handlesRealWhisperTechnologyDistortions() {
+        var result = validator.validate("Специальность бек-энд разработчик. Мой стек. Джава, Пайтон, Спринбут, Котлин, Позгры, Эсквилл, Докер и Гит. Мой стаж. Два года. Желаемая должность, Джава разработчик");
+
+        assertEquals("Веб-разработка", result.sphere());
+        assertEquals("Бэкенд-разработчик", result.specialization());
+        assertEquals(List.of("Python", "Java", "Kotlin", "SQL", "Spring Boot", "PostgreSQL", "Docker", "Git"), result.skills());
+        assertEquals(24, result.experience().minMonths());
+        assertEquals("Java разработчик", result.desiredPosition());
+        assertTrue(result.unknownSkills().isEmpty());
+        assertTrue(result.issues().isEmpty(), result.issues().toString());
+    }
 }

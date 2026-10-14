@@ -67,10 +67,12 @@ public final class ProfileValidator {
         catch (NumberFormatException | ArithmeticException e) { experience = null; }
         if (experience == null) issues.add("EXPERIENCE_MISSING_OR_INVALID");
 
-        String position = sections.getOrDefault("position", "").replaceAll("^[\\s:—-]+|[\\s.,;]+$", "").trim();
+        String position = sections.getOrDefault("position", "").replaceAll("^[\\s:—,.;-]+|[\\s.,;]+$", "").trim();
         if (position.isBlank()) {
             position = null;
             issues.add("DESIRED_POSITION_MISSING");
+        } else {
+            position = canonicalizeTechnologies(position);
         }
         if (Pattern.compile("(?iuU)\\b(?:не|кроме|без)\\b").matcher(roleText + " " + skillText).find())
             issues.add("NEGATION_REQUIRES_REVIEW");
@@ -78,6 +80,20 @@ public final class ProfileValidator {
         return new VoiceProfile(cleanedTranscript, role == null ? null : role.sphere, role == null ? null : role.name,
                 matchedSkills.stream().map(Entry::name).toList(), experience, position,
                 List.copyOf(unknown), List.copyOf(issues), true);
+    }
+
+    private String canonicalizeTechnologies(String text) {
+        String result = text;
+        List<Map.Entry<String, String>> aliases = skills.stream()
+                .flatMap(entry -> entry.aliases.stream().map(alias -> Map.entry(alias, entry.name)))
+                .sorted(Map.Entry.<String, String>comparingByKey(Comparator.comparingInt(String::length).reversed()))
+                .toList();
+        for (Map.Entry<String, String> alias : aliases) {
+            Pattern pattern = Pattern.compile("(?iuU)(?<![\\p{L}\\p{N}+#])" + Pattern.quote(alias.getKey())
+                    + "(?![\\p{L}\\p{N}+#])");
+            result = pattern.matcher(result).replaceAll(Matcher.quoteReplacement(alias.getValue()));
+        }
+        return result;
     }
 
     private static String cleanTranscript(String transcript, List<String> issues) {
