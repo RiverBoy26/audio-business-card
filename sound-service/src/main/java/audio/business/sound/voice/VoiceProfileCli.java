@@ -35,8 +35,12 @@ public final class VoiceProfileCli {
             if (options.containsKey("--text")) result = new ProfileValidator().validate(options.get("--text"));
             else {
                 if (!options.containsKey("--model")) throw new IllegalArgumentException("--model is required for audio");
-                result = new VoiceProfileService(new WhisperTranscriber(Path.of(options.get("--model")),
-                        options.getOrDefault("--ffmpeg", "ffmpeg"), 120), new ProfileValidator()).extract(Path.of(options.get("--audio")));
+                long started = System.nanoTime();
+                try (var transcriber = new SherpaOnnxTranscriber(Path.of(options.get("--model")),
+                        options.getOrDefault("--ffmpeg", "ffmpeg"), 120)) {
+                    System.err.printf("GigaAM loaded in %.2f s; recognizing...%n", (System.nanoTime() - started) / 1_000_000_000.0);
+                    result = new VoiceProfileService(transcriber, new ProfileValidator()).extract(Path.of(options.get("--audio")));
+                }
             }
             System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(result));
         } catch (Exception | LinkageError e) {

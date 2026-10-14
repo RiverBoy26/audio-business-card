@@ -24,10 +24,11 @@ Java-разработчиком».
 
 ## Запуск для разработчика
 
-Нужны JDK 21, Maven, FFmpeg в PATH (или `--ffmpeg /path/to/ffmpeg`) и локальная
-многоязычная GGML-модель Whisper `ggml-medium.bin` (**не `.en`**).
-JNI 1.7.1 уже содержит native-библиотеки для поддерживаемых ОС.
-Модель скачивается отдельно из официального проекта whisper.cpp; она не хранится в Git.
+Нужны JDK 21, Maven и локальная русская модель GigaAM v2 RNNT int8 для sherpa-onnx.
+Для WAV от встроенной записи FFmpeg не нужен; для WebM/Opus, MP3 и других контейнеров
+FFmpeg должен быть в PATH (либо передайте `--ffmpeg /path/to/ffmpeg`). Модель хранится
+локально в `models/gigaam-v2` и исключена из Git. Maven автоматически подключает native
+библиотеку sherpa-onnx для Windows x64 или Linux x64.
 
 Из корня репозитория:
 
@@ -46,12 +47,12 @@ java -cp 'sound-service/target/classes:sound-service/target/dependency/*' \
 
 java -cp 'sound-service/target/classes:sound-service/target/dependency/*' \
   audio.business.sound.voice.VoiceProfileCli \
-  --audio /path/to/recording.webm --model /path/to/ggml-medium.bin
+  --audio /path/to/recording.webm --model /path/to/models/gigaam-v2
 
 # Запись с системного микрофона, максимум 30 секунд; Enter завершает запись раньше
 java -cp 'sound-service/target/classes:sound-service/target/dependency/*' \
   audio.business.sound.voice.VoiceProfileCli \
-  --record 30 --model /path/to/ggml-medium.bin
+  --record 30 --model /path/to/models/gigaam-v2
 ```
 
 JSON выводится в stdout, сообщения записи и ошибки — в stderr; код ошибки 1.
@@ -59,10 +60,21 @@ JSON выводится в stdout, сообщения записи и ошибк
 FFmpeg декодирует WebM/Opus, WAV, MP3 и другие поддерживаемые форматы в mono float PCM 16 kHz.
 Лимиты: файл до 25 MiB, запись до 120 секунд, декодирование до 30 секунд.
 Значение `--record` задаёт максимальную длительность; после окончания речи нажмите Enter.
-Временные записи/PCM удаляются. Скорость распознавания зависит от модели и процессора.
+Временные записи/PCM удаляются. При запуске CLI модель загружается один раз перед
+распознаванием. В Spring-приложении `SherpaOnnxTranscriber` создаётся singleton-компонентом
+и переиспользуется между запросами, если задано свойство `voice.model-directory`.
 Микрофон требует доступного устройства Java Sound; на сервере используйте готовый файл.
-Перед распознаванием FFmpeg удаляет тишину, а типичные хвостовые галлюцинации Whisper
+При декодировании через FFmpeg удаляется тишина, а типичные хвостовые галлюцинации ASR
 вроде «С вами был…», подписей музыки и субтитров исключаются из результата с замечанием.
+
+Пример настройки сервиса без запуска консольного режима:
+
+```yaml
+voice:
+  model-directory: models/gigaam-v2
+  ffmpeg: ffmpeg
+  max-seconds: 120
+```
 
 ## Формат результата
 
@@ -103,7 +115,7 @@ FFmpeg декодирует WebM/Opus, WAV, MP3 и другие поддержи
    с отрицанием всё равно требует ручной проверки.
 
 Основной вариант сейчас — словарь алиасов + смысловые маркеры + проверки. Фонетические и нечёткие
-совпадения лучше расширять по реальным ошибкам Whisper, сохраняя подтверждение. LLM-парсер
+совпадения лучше расширять по реальным ошибкам распознавания, сохраняя подтверждение. LLM-парсер
 можно рассмотреть отдельно для свободного рассказа; в текущем варианте его нет.
 Не вводите вероятность распознавания на основе расстояния строк: это не confidence Whisper.
 
@@ -116,13 +128,15 @@ FFmpeg декодирует WebM/Opus, WAV, MP3 и другие поддержи
 и возвращает `VoiceProfile` как JSON. После редактирования/подтверждения фронт отправляет
 данные в сервис визиток. Не сохраняйте распознанные поля автоматически.
 Владение загруженным файлом и его удаление обеспечивает вызывающий код.
-Веб-запросы с JNI нужно ограничить очередью/числом задач, размером и длительностью;
-не создавать неограниченное число контекстов модели на публичном endpoint.
+Веб-запросы к локальной модели нужно ограничить очередью/числом задач, размером и длительностью.
+Один recognizer переиспользуется и синхронизирует декодирование; для параллельной обработки
+потребуется ограниченный пул отдельных recognizer-экземпляров.
 
 ## Первичные источники
 
-- Whisper JNI: https://github.com/GiviMAD/whisper-jni/tree/whisper_jni_1.7.1
-- Модели и whisper.cpp: https://github.com/ggml-org/whisper.cpp/tree/master/models
+- Java API sherpa-onnx: https://k2-fsa.github.io/sherpa/onnx/java-api/non-android-java.html
+- GigaAM v2 RNNT для sherpa-onnx: https://k2-fsa.github.io/sherpa/onnx/pretrained_models/offline-transducer/nemo-transducer-models.html#sherpa-onnx-nemo-transducer-giga-am-v2-russian-2025-04-19
+- GigaAM: https://github.com/salute-developers/GigaAM
 
 Unit-тесты проверяют извлечение текста и нормализацию без модели.
-Они не оценивают качество Whisper на реальной речи; это нужно проверить на записях команды.
+Они не оценивают качество GigaAM на реальной речи; это нужно проверить на записях команды.

@@ -29,3 +29,4 @@ replay_pid*
 
 # Local speech recognition models
 ggml-*.bin
+/models/

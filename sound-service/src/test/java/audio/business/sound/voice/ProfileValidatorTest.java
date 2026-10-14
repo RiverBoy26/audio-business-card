@@ -121,6 +121,13 @@ class ProfileValidatorTest {
         assertTrue(result.issues().isEmpty(), result.issues().toString());
     }
 
+    @Test void recoversSpecializationFromJoinedPronounAndNoise() {
+        var result = validator.validate("Да, я ябекенд baggage разработчик. В работе использую Java. Опыт работы два года. Хочу работать Java-разработчиком.");
+
+        assertEquals("Бэкенд-разработчик", result.specialization());
+        assertEquals(List.of("Java"), result.skills());
+    }
+
     @Test void handlesFrontendWhisperDistortions() {
         var result = validator.validate("Мой специальный фронтенд разработчик. Мой стек. Жела скрипт. Тайп скрипт. Реакт. Реакт Нейтив. Гит. Гит хам. Гит лап.");
 

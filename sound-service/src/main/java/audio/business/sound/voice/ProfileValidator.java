@@ -126,7 +126,7 @@ public final class ProfileValidator {
 
     private static String normalizeRecognitionErrors(String transcript) {
         return transcript
-                .replaceAll("(?iuU)\\bб[еэ]к[-\\s]?[еэ]н[дт]р?\\b", "бэкенд")
+                .replaceAll("(?iuU)\\bя?б[еэ]к[-\\s]?[еэ]н[дт]р?\\b", "бэкенд")
                 .replaceAll("(?iuU)\\bфронт[-\\s]?[еэ]н[дт]р?\\b", "фронтенд")
                 .replaceAll("(?iuU)\\bбез окрутой\\b", "без опыта");
     }
