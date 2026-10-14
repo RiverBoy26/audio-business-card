@@ -269,4 +269,25 @@ class ProfileValidatorTest {
                 "PyTorch", "Jenkins", "PowerShell", "RabbitMQ"), result.skills());
         assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
     }
+
+    @Test void handlesLatestGigaAmBackendOutput() {
+        var result = validator.validate("я бэкэнд разработчик в работе использую джао спрингбуд постгрес кюэль редис докер и гид опыт работы два года и шесть месяцев хочу работать мидл джао разработчиком");
+
+        assertEquals("Бэкенд-разработчик", result.specialization());
+        assertEquals(List.of("Java", "Spring Boot", "PostgreSQL", "Redis", "Docker", "Git"), result.skills());
+        assertEquals(30, result.experience().minMonths());
+        assertEquals("Middle Java разработчиком", result.desiredPosition());
+        assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
+        assertTrue(result.issues().isEmpty(), result.issues().toString());
+    }
+
+    @Test void extractsAvailableDataFromTruncatedGigaAmOutput() {
+        var result = validator.validate("я бык энд разработчик в работе использую джава джава джава скрип джава");
+
+        assertEquals("Бэкенд-разработчик", result.specialization());
+        assertEquals(List.of("JavaScript", "Java"), result.skills());
+        assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
+        assertTrue(result.issues().contains("EXPERIENCE_MISSING_OR_INVALID"));
+        assertTrue(result.issues().contains("DESIRED_POSITION_MISSING"));
+    }
 }
