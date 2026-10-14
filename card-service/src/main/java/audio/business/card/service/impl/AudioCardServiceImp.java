@@ -1,8 +1,12 @@
-package audio.business.card.service;
+package audio.business.card.service.impl;
 
+import audio.business.card.dto.request.AudioCardRequest;
+import audio.business.card.dto.response.AudioCardResponse;
 import audio.business.card.entity.AudioCard;
 import audio.business.card.entity.CardSettings;
+import audio.business.card.mapper.AudioCardMapper;
 import audio.business.card.repository.AudioCardRepository;
+import audio.business.card.service.interfaces.AudioCardService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -11,35 +15,46 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class AudioCardService {
+public class AudioCardServiceImp implements AudioCardService {
     private final AudioCardRepository audioCardRepository;
 
-    public AudioCardService(AudioCardRepository audioCardRepository) {
+    public AudioCardServiceImp(AudioCardRepository audioCardRepository) {
         this.audioCardRepository = audioCardRepository;
     }
 
-    public List<AudioCard> findAllByUserId(UUID userId) {
-        return audioCardRepository.findAllByUserId(userId);
+    @Override
+    public List<AudioCardResponse> findAllByUserId(UUID userId) {
+        return audioCardRepository.findAllByUserId(userId)
+                .stream()
+                .map(AudioCardMapper::toResponse)
+                .toList();
     }
 
-    public AudioCard findById(UUID audioCardId) {
-        return audioCardRepository.findById(audioCardId).
+    @Override
+    public AudioCardResponse findById(UUID audioCardId) {
+        AudioCard audioCard = audioCardRepository.findById(audioCardId).
                 orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Аудиовизитка не найдена!"));
+
+        return AudioCardMapper.toResponse(audioCard);
     }
 
-    public UUID create(UUID userId, AudioCard audioCard) {
-        audioCard.setUserId(userId);
+    @Override
+    public AudioCardResponse create(UUID userId, AudioCardRequest audioCard) {
+        AudioCard card = AudioCardMapper.toEntity(audioCard);
+        card.setUserId(userId);
 
         CardSettings settings = new CardSettings();
-        settings.setAudioCard(audioCard);
+        settings.setAudioCard(card);
+        card.setSettings(settings);
 
-        audioCard.setSettings(settings);
+        AudioCard saveCard = audioCardRepository.save(card);
 
-        return audioCardRepository.save(audioCard).getId();
+        return AudioCardMapper.toResponse(saveCard);
     }
 
-    public UUID update(UUID userId, UUID audioCardId, AudioCard newAudioCard) {
+    @Override
+    public AudioCardResponse update(UUID userId, UUID audioCardId, AudioCardRequest newAudioCard) {
         AudioCard card = audioCardRepository.findByIdAndUserId(audioCardId, userId).
                 orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Аудиовизитка не найдена!"));
@@ -58,10 +73,13 @@ public class AudioCardService {
 
 
 
-        return audioCardRepository.save(card).getId();
+        AudioCard updateCard = audioCardRepository.save(card);
+
+        return AudioCardMapper.toResponse(updateCard);
     }
 
-    public UUID delete(UUID userId, UUID audioCardId) {
+    @Override
+    public void delete(UUID userId, UUID audioCardId) {
         AudioCard card = audioCardRepository
                 .findByIdAndUserId(audioCardId, userId)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -70,7 +88,5 @@ public class AudioCardService {
                 ));
 
         audioCardRepository.delete(card);
-
-        return audioCardId;
     }
 }
