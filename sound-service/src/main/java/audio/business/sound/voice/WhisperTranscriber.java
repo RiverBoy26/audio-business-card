@@ -33,7 +33,9 @@ public final class WhisperTranscriber implements SpeechTranscriber {
         try {
             Process process = new ProcessBuilder(ffmpeg, "-nostdin", "-v", "error", "-y", "-i",
                     audio.toAbsolutePath().toString(), "-t", String.valueOf(maxSeconds + 1),
-                    "-vn", "-ar", "16000", "-ac", "1", "-f", "f32le", pcm.toString())
+                    "-vn", "-af",
+                    "silenceremove=start_periods=1:start_duration=0.10:start_threshold=-45dB:stop_periods=-1:stop_duration=0.60:stop_threshold=-45dB",
+                    "-ar", "16000", "-ac", "1", "-f", "f32le", pcm.toString())
                     .redirectError(log.toFile()).redirectOutput(ProcessBuilder.Redirect.DISCARD).start();
             try {
                 if (!process.waitFor(30, TimeUnit.SECONDS)) throw new IOException("FFmpeg timed out");
@@ -53,9 +55,15 @@ public final class WhisperTranscriber implements SpeechTranscriber {
                 var params = new WhisperFullParams();
                 params.language = "ru";
                 params.translate = false;
+                params.noContext = true;
                 params.printProgress = false;
                 params.printRealtime = false;
                 params.printTimestamps = false;
+                params.suppressBlank = true;
+                params.suppressNonSpeechTokens = true;
+                params.temperature = 0.0f;
+                params.noSpeechThold = 0.6f;
+                params.initialPrompt = "Моя специальность. Мой стек. Мой стаж. Желаемая должность.";
                 params.nThreads = Math.min(4, Runtime.getRuntime().availableProcessors());
                 int result = whisper.full(context, params, samples, samples.length);
                 if (result != 0) throw new IOException("Whisper failed with code " + result);

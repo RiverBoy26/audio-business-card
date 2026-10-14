@@ -83,4 +83,28 @@ class ProfileValidatorTest {
         assertEquals(List.of("Node.js", "React Native", "GitLab CI/CD"), result.skills());
         assertTrue(result.unknownSkills().isEmpty());
     }
+
+    @Test void handlesWhisperMarkerErrorsAndRemovesTrailingHallucination() {
+        var result = validator.validate("моя специальность backend разработчик мой стек Java, Python, Spring Boot, PostgreSQL, Docker и Git мой сташ два года желаемой должности Java разработчи С вами был Игорь Негода.");
+
+        assertEquals("Веб-разработка", result.sphere());
+        assertEquals("Бэкенд-разработчик", result.specialization());
+        assertEquals(List.of("Python", "Java", "Spring Boot", "PostgreSQL", "Docker", "Git"), result.skills());
+        assertEquals(24, result.experience().minMonths());
+        assertEquals(24, result.experience().maxMonths());
+        assertEquals("Java разработчи", result.desiredPosition());
+        assertTrue(result.unknownSkills().isEmpty());
+        assertFalse(result.transcript().contains("Игорь Негода"));
+        assertTrue(result.issues().contains("TRAILING_HALLUCINATION_REMOVED"));
+    }
+
+    @Test void acceptsDeclinedSectionMarkers() {
+        var result = validator.validate("По моей специальности бэкенд. В моём стеке Java. Моего стажа два года. О желаемой позиции Java-разработчика.");
+
+        assertEquals("Бэкенд-разработчик", result.specialization());
+        assertEquals(List.of("Java"), result.skills());
+        assertEquals(24, result.experience().minMonths());
+        assertEquals("Java-разработчика", result.desiredPosition());
+        assertTrue(result.unknownSkills().isEmpty());
+    }
 }

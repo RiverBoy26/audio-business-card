@@ -12,13 +12,25 @@ public final class ProfileValidator {
     private final List<Entry> roles = load("roles.tsv");
     private final List<Entry> skills = load("skills.tsv");
     private static final Pattern MARKER = Pattern.compile(
-            "(?iuU)(?<![\\p{L}])(?:(?:моя\\s+)?(?:специальность|специализация|сфера)|(?:мой\\s+)?(?:стек|технологии|навыки)|использую|владею|работаю с|(?:мой\\s+)?(?:стаж|опыт(?: работы)?)|желаемая должность|ищу|хочу работать)(?![\\p{L}])");
+            "(?iuU)(?<![\\p{L}])(?:"
+                    + "(?:по\\s+)?(?:мо(?:я|ей|ю)\\s+)?(?:специальност(?:ь|и|ью)|специализаци(?:я|и|ю|ей)|сфер(?:а|е|у|ой))"
+                    + "|(?:(?:в\\s+)?мо(?:й|его|ему|им|[её]м)\\s+)?(?:стек(?:а|у|ом|е)?|технологи(?:и|й|ями|ях)|навык(?:и|ов|ами|ах)?)"
+                    + "|использую|владею|работаю с"
+                    + "|(?:мо(?:й|его|ему|им|[её]м)\\s+)(?:стаж(?:а|у|ем|е)?|сташ|опыт(?:а|у|ом|е)?(?: работы)?)"
+                    + "|(?:стаж(?:а|у|ем|е)?|сташ|опыт(?: работы)?|опыте|опытом)"
+                    + "|желаем(?:ая|ой|ую|ою)\\s+(?:должност(?:ь|и|ью)|позици(?:я|и|ю|ей|е))"
+                    + "|ищу|хочу работать)(?![\\p{L}])");
+    private static final Pattern TRAILING_HALLUCINATION = Pattern.compile(
+            "(?iuU)\\s*(?:[.!?]\\s*)?(?:с вами (?:был|была)|редактор субтитров|субтитры|корректор)\\b.*$");
+    private static final Pattern TRAILING_SOUND_LABEL = Pattern.compile(
+            "(?iuU)\\s*\\[(?:музыка|аплодисменты|шум)]\\s*$");
 
     public VoiceProfile validate(String transcript) {
         if (transcript == null || transcript.length() > 10000)
             throw new IllegalArgumentException("Transcript must be non-null and at most 10000 characters");
         List<String> issues = new ArrayList<>();
-        Map<String, String> sections = sections(transcript, issues);
+        String cleanedTranscript = cleanTranscript(transcript, issues);
+        Map<String, String> sections = sections(cleanedTranscript, issues);
         String roleText = sections.getOrDefault("role", "");
         List<Entry> matchedRoles = matches(roleText, roles);
         Entry role = matchedRoles.size() == 1 ? matchedRoles.get(0) : null;
@@ -63,9 +75,21 @@ public final class ProfileValidator {
         if (Pattern.compile("(?iuU)\\b(?:не|кроме|без)\\b").matcher(roleText + " " + skillText).find())
             issues.add("NEGATION_REQUIRES_REVIEW");
 
-        return new VoiceProfile(transcript, role == null ? null : role.sphere, role == null ? null : role.name,
+        return new VoiceProfile(cleanedTranscript, role == null ? null : role.sphere, role == null ? null : role.name,
                 matchedSkills.stream().map(Entry::name).toList(), experience, position,
                 List.copyOf(unknown), List.copyOf(issues), true);
+    }
+
+    private static String cleanTranscript(String transcript, List<String> issues) {
+        String cleaned = TRAILING_SOUND_LABEL.matcher(transcript).replaceFirst("").trim();
+        Matcher hallucination = TRAILING_HALLUCINATION.matcher(cleaned);
+        if (hallucination.find()) {
+            cleaned = cleaned.substring(0, hallucination.start()).trim();
+            issues.add("TRAILING_HALLUCINATION_REMOVED");
+        } else if (!cleaned.equals(transcript.trim())) {
+            issues.add("TRAILING_NON_SPEECH_REMOVED");
+        }
+        return cleaned;
     }
 
     private static Map<String, String> sections(String text, List<String> issues) {
@@ -76,9 +100,9 @@ public final class ProfileValidator {
         while (matcher.find()) {
             if (key != null) put(result, key, text.substring(start, matcher.start()), issues);
             String marker = normalize(matcher.group());
-            key = marker.contains("должность") || marker.equals("ищу") || marker.equals("хочу работать") ? "position"
-                    : marker.contains("стаж") || marker.contains("опыт") ? "experience"
-                    : marker.contains("специал") || marker.equals("сфера") ? "role" : "skills";
+            key = marker.contains("должност") || marker.contains("позици") || marker.equals("ищу") || marker.equals("хочу работать") ? "position"
+                    : marker.contains("стаж") || marker.contains("сташ") || marker.contains("опыт") ? "experience"
+                    : marker.contains("специал") || marker.contains("сфер") ? "role" : "skills";
             start = matcher.end();
         }
         if (key != null) put(result, key, text.substring(start), issues);
