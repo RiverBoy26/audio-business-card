@@ -240,4 +240,33 @@ class ProfileValidatorTest {
                 "Redis", "Linux", "Bash", "Docker"), result.skills());
         assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
     }
+
+    @Test void generatesConservativePhoneticSkillVariants() {
+        var result = validator.validate("Я бэкенд-разработчик. Работаю с жаво, спринг-бут, посткрес и редиз. Стаж год. Ищу Java-разработчика.");
+
+        assertEquals(List.of("Java", "Spring Boot", "PostgreSQL", "Redis"), result.skills());
+        assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
+    }
+
+    @Test void understandsJoinedAndHyphenatedPronunciations() {
+        var result = validator.validate("Специальность фронтенд. Стек тайп-скрипт, реакт-нейтив и гит-хаб. Стаж год. Ищу фронтенд-разработчика.");
+
+        assertEquals(List.of("TypeScript", "React Native", "GitHub"), result.skills());
+        assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
+    }
+
+    @Test void phoneticExpansionDoesNotTurnUnrelatedWordsIntoSkills() {
+        var result = validator.validate("Специальность бэкенд. Стек суперлиба и редактор. Стаж год. Ищу разработчика.");
+
+        assertTrue(result.skills().isEmpty(), result.skills().toString());
+        assertFalse(result.unknownSkills().isEmpty());
+    }
+
+    @Test void recognizesRussianPronunciationsAcrossTheSupportedCatalog() {
+        var result = validator.validate("Специальность девопс. Стек ангуляр, некст джей эс, дотнет, плейрайт, монго ди би, кликхаус, пайторч, дженкинс, пауэршелл и рэббит эм кью. Стаж два года. Ищу разработчика.");
+
+        assertEquals(List.of("Angular", "Next.js", ".NET", "Playwright", "MongoDB", "ClickHouse",
+                "PyTorch", "Jenkins", "PowerShell", "RabbitMQ"), result.skills());
+        assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
+    }
 }

@@ -252,7 +252,7 @@ public final class ProfileValidator {
     private static List<Entry> load(String file) {
         try (InputStream stream = ProfileValidator.class.getResourceAsStream("/voice/" + file)) {
             if (stream == null) throw new IllegalStateException("Missing voice catalog: " + file);
-            return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines()
+            List<Entry> explicitEntries = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines()
                     .filter(s -> !s.isBlank() && !s.startsWith("#")).map(s -> {
                         String[] columns = s.split("\\t", -1);
                         List<String> aliases = new ArrayList<>();
@@ -261,9 +261,39 @@ public final class ProfileValidator {
                             if (!alias.isBlank()) aliases.add(normalize(alias));
                         return new Entry(columns[0], columns[1], List.copyOf(aliases));
                     }).toList();
+            if (!file.equals("skills.tsv")) return explicitEntries;
+            return addUnambiguousPhoneticAliases(explicitEntries);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private static List<Entry> addUnambiguousPhoneticAliases(List<Entry> entries) {
+        Map<String, Set<String>> explicitOwners = new HashMap<>();
+        for (Entry entry : entries) for (String alias : entry.aliases)
+            explicitOwners.computeIfAbsent(alias, ignored -> new HashSet<>()).add(entry.name);
+
+        Map<String, Set<String>> generatedOwners = new HashMap<>();
+        Map<String, LinkedHashSet<String>> generatedByEntry = new LinkedHashMap<>();
+        for (Entry entry : entries) {
+            LinkedHashSet<String> generated = new LinkedHashSet<>();
+            for (String alias : entry.aliases) generated.addAll(PhoneticAliasGenerator.variants(alias));
+            generated.removeAll(entry.aliases);
+            generatedByEntry.put(entry.name, generated);
+            for (String alias : generated)
+                generatedOwners.computeIfAbsent(alias, ignored -> new HashSet<>()).add(entry.name);
+        }
+
+        return entries.stream().map(entry -> {
+            LinkedHashSet<String> aliases = new LinkedHashSet<>(entry.aliases);
+            for (String generated : generatedByEntry.get(entry.name)) {
+                Set<String> explicit = explicitOwners.getOrDefault(generated, Set.of());
+                Set<String> owners = generatedOwners.getOrDefault(generated, Set.of());
+                if ((explicit.isEmpty() || explicit.equals(Set.of(entry.name)))
+                        && owners.equals(Set.of(entry.name))) aliases.add(generated);
+            }
+            return new Entry(entry.name, entry.sphere, List.copyOf(aliases));
+        }).toList();
     }
 
     private static int distance(String a, String b) {
