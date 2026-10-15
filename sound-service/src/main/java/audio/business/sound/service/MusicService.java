@@ -76,17 +76,35 @@ public class MusicService {
                         HttpStatus.NOT_FOUND, "Музыкальный файл не найден"));
     }
 
-    public Resource getFile(UUID id) throws IOException {
-        MusicFile music = getById(id);
-        return storageService.load(music.getStoredFilename());
+    public Resource getFile(UUID id, UUID userId) throws IOException {
+
+        MusicFile music = getOwnedById(id, userId);
+
+        return storageService.load(
+                music.getStoredFilename()
+        );
     }
 
     @Transactional
-    public void delete(UUID id) throws IOException {
-        MusicFile music = getById(id);
+    public void delete(UUID id, UUID userId) throws IOException {
+
+        MusicFile music = getOwnedById(id, userId);
 
         storageService.delete(music.getStoredFilename());
         musicRepository.delete(music);
+    }
+
+    public MusicFile getOwnedById(UUID id, UUID userId) {
+        MusicFile music = getById(id);
+
+        if (!userId.equals(music.getUserId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Музыкальный файл не найден"
+            );
+        }
+
+        return music;
     }
 
     private String detectContentType(String filename) {

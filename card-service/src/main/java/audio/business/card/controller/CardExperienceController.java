@@ -23,7 +23,7 @@ public class CardExperienceController {
 
     @GetMapping
     public CardExperienceResponse findByAudioCardId(
-            @RequestParam UUID userId,
+            @RequestHeader("X-Authenticated-User-Id") UUID userId,
             @PathVariable UUID audioCardId
     ) {
         return cardExperienceService.findByAudioCardId(userId, audioCardId);
@@ -31,7 +31,7 @@ public class CardExperienceController {
 
     @PutMapping
     public CardExperienceResponse update(
-            @RequestParam UUID userId,
+            @RequestHeader("X-Authenticated-User-Id") UUID userId,
             @PathVariable UUID audioCardId,
             @Valid @RequestBody CardExperienceRequest request
     ) {

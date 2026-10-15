@@ -19,29 +19,29 @@ public class AudioCardController {
     }
 
     @GetMapping
-    public List<AudioCardResponse> findAll(@RequestParam UUID userId) {
+    public List<AudioCardResponse> findAll(@RequestHeader("X-Authenticated-User-Id") UUID userId) {
         return audioCardService.findAllByUserId(userId);
     }
 
     @GetMapping("/{audioCardId}")
-    public AudioCardResponse findById(@PathVariable UUID audioCardId) {
-        return audioCardService.findById(audioCardId);
+    public AudioCardResponse findById(@RequestHeader("X-Authenticated-User-Id") UUID userId, @PathVariable UUID audioCardId) {
+        return audioCardService.findById(userId, audioCardId);
     }
 
     @PostMapping()
-    public AudioCardResponse create(@RequestParam UUID userId, @RequestBody AudioCardRequest audioCard) {
+    public AudioCardResponse create(@RequestHeader("X-Authenticated-User-Id") UUID userId, @RequestBody AudioCardRequest audioCard) {
         return audioCardService.create(userId, audioCard);
     }
 
     @PatchMapping("/{audioCardId}")
-    public AudioCardResponse update(@RequestParam UUID userId,
+    public AudioCardResponse update(@RequestHeader("X-Authenticated-User-Id") UUID userId,
                        @PathVariable UUID audioCardId,
                        @RequestBody AudioCardRequest newAudioCard) {
         return audioCardService.update(userId, audioCardId, newAudioCard);
     }
 
     @DeleteMapping("/{audioCardId}")
-    public void delete(@RequestParam UUID userId, @PathVariable UUID audioCardId) {
+    public void delete(@RequestHeader("X-Authenticated-User-Id") UUID userId, @PathVariable UUID audioCardId) {
         audioCardService.delete(userId, audioCardId);
     }
 }
