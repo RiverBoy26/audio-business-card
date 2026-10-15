@@ -1,0 +1,107 @@
+# Explicit aliases are curated pronunciations or real ASR observations.
+# Conservative one-sound and spacing variants are generated at load time.
+HTML		эйч ти эм эл
+CSS		си эс эс
+JavaScript		джаваскрипт|джава скрипт|джава скрип|джаво скрипт|жела скрипт|жела-скрипт|js
+TypeScript		тайпскрипт|тайп скрипт|ts
+Python		питон|пайтон|пайтен
+Java		джава|джаво|джао|жела|жало
+C#		си шарп|c sharp|csharp
+C++		си плюс плюс|c plus plus|cpp
+C		си
+Go		голанг|golang
+PHP		пхп|пи эйч пи
+Kotlin		котлин
+Swift		свифт
+Dart		дарт
+SQL		эс кью эл|эскьюэл|эскюэль|эсквилл|эсквил|сиквел
+React		реакт|react.js
+Vue.js		вью|vue
+Angular		ангуляр|ангулар
+Next.js		некст джей эс|некст джи эс
+Tailwind CSS		тейлвинд си эс эс|тэйлвинд си эс эс
+FastAPI		фаст апи|фаст афи|фастап|fast api|fastap|fast and pee
+Django		джанго|джанга
+Spring Boot		спринг бут|спрингбут|спрингбуд|сприн бут|спринбут|спринбуд|сприньбут
+ASP.NET Core		эй эс пи дот нет кор|эй эс пи нет кор|асп нет кор
+Node.js		нод джей эс|нот джей эс|nodejs
+Express		экспресс|экспрес
+NestJS		нест джей эс|нест джи эс
+Laravel		ларавел|ларавель
+Android SDK		андроид эс ди кей|андроид эс дэ ка
+Jetpack Compose		джетпак компоуз|джетпэк компоуз
+SwiftUI		свифт ю ай
+UIKit		ю ай кит|юайкит
+Flutter		флаттер
+React Native		реакт нейтив|реакт нэйтив|реакт нейтев|реактнейтив
+.NET		дот нет|дотнет
+WPF		дабл ю пи эф|вэ пэ эф
+Qt		кьют|кью ти
+JavaFX		джава эф экс|джаваэфэкс
+Electron		электрон
+Unity		юнити
+Unreal Engine		анрил энджин|анриал энджин|анрил энжин
+Godot		годо|годот
+Blender		блендер
+1С:Предприятие		1с предприятие|один эс предприятие
+встроенный язык 1С		встроенный язык один эс
+язык запросов 1С		язык запросов один эс
+Postman		постман|пост мэн
+OpenAPI		swagger|сваггер
+DevTools		девтулс|дев тулс
+Jira		джира|jiva
+Selenium		селениум
+Playwright		плейрайт|плей райт
+Cypress		сайпресс|сайпрес
+pytest		пайтест|пай тест
+JUnit		джей юнит|джи юнит
+Excel		эксель|эксел
+Power BI		пауэр би ай|пауэр би
+Tableau		табло
+pandas		пандас|пэндэс
+NumPy		нампай|нам пай|нумпай
+Jupyter		джупитер|юпитер
+PostgreSQL		постгрес|постгре|постгрес кюэль|постгрес кьюэль|постгрескьюэль|постгресс кл|постгресс-кл|постгры|позгры|позгре|постгрызг ол|постгрызг|посгресс кьюн|постгр эс кьюэль|озгресс|postgres
+MySQL		май эс кью эл|май эскюэль|mysql
+SQLite		эс кью эл лайт|сиквел лайт|эскюэллайт
+Microsoft SQL Server		майкрософт эс кью эл сервер|майкрософт сиквел сервер
+MongoDB		монго ди би|монгодиби
+Redis		редис|реддиц|редиц
+ClickHouse		кликхаус|клик хаус
+Apache Airflow		airflow|эйрфлоу
+Apache Spark		spark|спарк
+Apache Kafka		kafka|кафка
+scikit-learn		сайкит лерн|скит лерн
+PyTorch		пайторч|пай торч
+TensorFlow		тензорфлоу|тензор флоу
+MLflow		эм эл флоу|мл флоу
+Linux		линукс|линокс
+Bash		баш
+Docker		докер
+Kubernetes		кубернетес|кубер|кабернатс|аберметц|abermetz|k8s
+Nginx		энжинкс|нжинкс|энгеингс|никс
+GitLab CI/CD		гитлаб си си ди|гитлаб си-си-ди|гитлаб сиайсиди
+GitHub Actions		гитхаб экшенс|гит хаб экшенс
+Jenkins		дженкинс
+Ansible		ансибл|ансайбл
+Terraform		терраформ|тераформ|тэроформ
+Windows Server		виндоус сервер|виндовс сервер
+PowerShell		пауэршелл|пауэр шелл
+Active Directory		актив директори|эктив директори
+Wireshark		вайршарк|вайр шарк
+Nmap		эн мап|энмап
+Burp Suite		берп сьют|бурп сьют
+Figma		фигма
+Adobe Photoshop		эдоби фотошоп|адоб фотошоп
+Adobe Illustrator		эдоби иллюстратор|адоб иллюстратор
+BPMN		bpm|бпм
+UML		ю эм эл|юэмэл
+Confluence		конфлюэнс|конфлуенс
+Git		гит|гид
+GitHub		гитхаб|гит хам|гит хаб|гидхап
+GitLab		гитлаб|гит лап|гит лаб|гидлап
+RabbitMQ		рэббит эм кью|раббит эм кью
+REST API		рест апи|rest
+HTTP		эйч ти ти пи|аш тэ тэ пэ
+WebSocket		вебсокет|веб сокет
+gRPC		джи ар пи си|джиарписи
