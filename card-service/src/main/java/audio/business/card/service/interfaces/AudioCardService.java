@@ -9,7 +9,7 @@ import java.util.UUID;
 public interface AudioCardService {
     List<AudioCardResponse> findAllByUserId(UUID userId);
 
-    AudioCardResponse findById(UUID audioCardId);
+    AudioCardResponse findById(UUID userId, UUID audioCardId);
 
     AudioCardResponse create(UUID userId, AudioCardRequest audioCard);
 

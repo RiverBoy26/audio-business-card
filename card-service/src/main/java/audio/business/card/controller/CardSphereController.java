@@ -22,7 +22,7 @@ public class CardSphereController {
 
     @GetMapping
     public List<CardSphereResponse> findAll(
-            @RequestParam UUID userId,
+            @RequestHeader("X-Authenticated-User-Id") UUID userId,
             @PathVariable UUID audioCardId
     ) {
         return cardSphereService.findAll(userId, audioCardId);
@@ -31,7 +31,7 @@ public class CardSphereController {
 
     @PostMapping
     public List<CardSphereResponse> add(
-            @RequestParam UUID userId,
+            @RequestHeader("X-Authenticated-User-Id") UUID userId,
             @PathVariable UUID audioCardId,
             @Valid @RequestBody CardSphereRequest request
     ) {
@@ -41,7 +41,7 @@ public class CardSphereController {
 
     @DeleteMapping("/{sphereId}")
     public void delete(
-            @RequestParam UUID userId,
+            @RequestHeader("X-Authenticated-User-Id") UUID userId,
             @PathVariable UUID audioCardId,
             @PathVariable UUID sphereId
     ) {

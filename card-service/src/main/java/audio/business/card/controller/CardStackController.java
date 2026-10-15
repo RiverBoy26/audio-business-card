@@ -21,7 +21,7 @@ public class CardStackController {
 
     @GetMapping
     public List<CardStackResponse> findAll(
-            @RequestParam UUID userId,
+            @RequestHeader("X-Authenticated-User-Id") UUID userId,
             @PathVariable UUID audioCardId
     ) {
         return cardStackService.findAll(userId, audioCardId);
@@ -30,7 +30,7 @@ public class CardStackController {
 
     @PostMapping
     public List<CardStackResponse> add(
-            @RequestParam UUID userId,
+            @RequestHeader("X-Authenticated-User-Id") UUID userId,
             @PathVariable UUID audioCardId,
             @Valid @RequestBody CardStackRequest request
     ) {
@@ -40,7 +40,7 @@ public class CardStackController {
 
     @DeleteMapping("/{stackId}")
     public void delete(
-            @RequestParam UUID userId,
+            @RequestHeader("X-Authenticated-User-Id") UUID userId,
             @PathVariable UUID audioCardId,
             @PathVariable UUID stackId
     ) {

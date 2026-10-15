@@ -30,7 +30,7 @@ public class MusicController {
     @PostMapping("/upload")
     public ResponseEntity<MusicResponse> upload(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("userId") UUID userId)
+            @RequestHeader("X-Authenticated-User-Id") UUID userId)
             throws IOException {
 
         return ResponseEntity
@@ -39,27 +39,35 @@ public class MusicController {
     }
 
     @GetMapping
-    public List<MusicResponse> getAll() {
-        return musicService.getAll();
+    public List<MusicResponse> getAll(@RequestHeader("X-Authenticated-User-Id") UUID userId) {
+        return musicService.getByUserId(userId);
     }
 
     @GetMapping("/user/{userId}")
     public List<MusicResponse> getByUserId(
-            @PathVariable UUID userId) {
+            @PathVariable UUID userId,
+            @RequestHeader("X-Authenticated-User-Id") UUID currentUserId) {
+        if (!userId.equals(currentUserId)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Доступ к чужой музыке запрещён"
+            );
+        }
+
         return musicService.getByUserId(userId);
     }
 
     @GetMapping("/{id}")
-    public MusicResponse getById(@PathVariable UUID id) {
-        return MusicResponse.from(musicService.getById(id));
+    public MusicResponse getById(@PathVariable UUID id, @RequestHeader("X-Authenticated-User-Id") UUID userId) {
+        return MusicResponse.from(musicService.getOwnedById(id, userId));
     }
 
     @GetMapping("/{id}/file")
     public ResponseEntity<Resource> getFile(
-            @PathVariable UUID id) throws IOException {
+            @PathVariable UUID id, @RequestHeader("X-Authenticated-User-Id") UUID userId) throws IOException {
 
-        MusicFile music = musicService.getById(id);
-        Resource resource = musicService.getFile(id);
+        MusicFile music = musicService.getOwnedById(id, userId);
+        Resource resource = musicService.getFile(id, userId);
 
         ContentDisposition disposition =
                 ContentDisposition.inline()
@@ -79,9 +87,9 @@ public class MusicController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
-            @PathVariable UUID id) throws IOException {
+            @PathVariable UUID id, @RequestHeader("X-Authenticated-User-Id") UUID userId) throws IOException {
 
-        musicService.delete(id);
+        musicService.delete(id, userId);
         return ResponseEntity.noContent().build();
     }
 

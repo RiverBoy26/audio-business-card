@@ -21,4 +21,8 @@ spring:
         - id: sound-service
           uri: ${SOUND_SERVICE_URL:http://localhost:8083}
           predicates:
-            - Path=/api/v1/sound/**,/api/v1/music/**,/api/v1/voice-recordings/**
+            - Path=/api/music/**,/api/music
+
+jwt:
+  secret: ${JWT_SECRET}
+  issuer: audio-business-card-auth

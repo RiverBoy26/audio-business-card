@@ -17,13 +17,13 @@ public class CardSettingController {
     }
 
     @GetMapping
-    public CardSettingResponse findByAudioCardId(@RequestParam UUID userId,
+    public CardSettingResponse findByAudioCardId(@RequestHeader("X-Authenticated-User-Id") UUID userId,
                                                  @PathVariable UUID audioCardId) {
         return cardSettingsService.findByAudioCardId(userId, audioCardId);
     }
 
     @PatchMapping
-    public CardSettingResponse update(@RequestParam UUID userId,
+    public CardSettingResponse update(@RequestHeader("X-Authenticated-User-Id") UUID userId,
                                @PathVariable UUID audioCardId,
                                @RequestBody CardSettingsRequest newCardSettings) {
         return cardSettingsService.update(userId, audioCardId, newCardSettings);
