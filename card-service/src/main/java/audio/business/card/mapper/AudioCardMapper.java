@@ -1,3 +1,4 @@
+
 package audio.business.card.mapper;
 
 import audio.business.card.dto.request.AudioCardRequest;
@@ -5,6 +6,7 @@ import audio.business.card.dto.response.AudioCardResponse;
 import audio.business.card.entity.AudioCard;
 
 public class AudioCardMapper {
+
     public static AudioCardResponse toResponse(AudioCard card) {
         AudioCardResponse response = new AudioCardResponse();
 
@@ -22,6 +24,8 @@ public class AudioCardMapper {
         response.setPublished(card.isPublished());
         response.setPublishedAt(card.getPublishedAt());
         response.setPublicCode(card.getPublicCode());
+        response.setDesiredPosition(card.getDesiredPosition());
+
 
         return response;
     }
@@ -39,6 +43,7 @@ public class AudioCardMapper {
         if (request.getSkills() != null) {
             card.setSkills(request.getSkills());
         }
+        card.setDesiredPosition(request.getDesiredPosition());
 
         return card;
     }

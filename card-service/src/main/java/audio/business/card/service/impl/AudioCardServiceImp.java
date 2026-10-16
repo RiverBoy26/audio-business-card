@@ -82,6 +82,8 @@ public class AudioCardServiceImp implements AudioCardService {
         AudioCard card = AudioCardMapper.toEntity(audioCard);
         card.setUserId(userId);
         card.setSkills(normalizeSkills(audioCard.getSkills()));
+        card.setMusicId(audioCard.getMusicId());
+
 
         CardSettings settings = new CardSettings();
         settings.setAudioCard(card);
@@ -127,6 +129,12 @@ public class AudioCardServiceImp implements AudioCardService {
         }
         if (newAudioCard.isVoiceRecordingIdProvided()) {
             card.setVoiceRecordingId(newAudioCard.getVoiceRecordingId());
+        if (newAudioCard.getMusicId() != null) {
+            card.setMusicId(newAudioCard.getMusicId());
+        }
+
+        if (newAudioCard.getDesiredPosition() != null) {
+            card.setDesiredPosition(newAudioCard.getDesiredPosition());
         }
 
         AudioCard updateCard = audioCardRepository.save(card);

@@ -33,4 +33,6 @@ public class AudioCardRequest {
         this.voiceRecordingId = voiceRecordingId;
         this.voiceRecordingIdProvided = true;
     }
+    private String desiredPosition;
+
 }

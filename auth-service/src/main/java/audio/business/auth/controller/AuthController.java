@@ -53,6 +53,7 @@ public class AuthController {
         return ResponseEntity.ok(authService.getCurrentUser(userId));
     }
 
+
     @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserResponse> uploadAvatar(
             @AuthenticationPrincipal Jwt jwt,
@@ -67,5 +68,13 @@ public class AuthController {
                 .cacheControl(CacheControl.noStore())
                 .contentType(MediaType.parseMediaType(avatar.contentType()))
                 .body(avatar.resource());
+
+    @PutMapping("/me")
+    public ResponseEntity<UserResponse> updateCurrentUser(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody UpdateProfileRequest request
+    ) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+
     }
 }

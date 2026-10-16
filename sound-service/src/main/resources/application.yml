@@ -5,8 +5,13 @@ server:
 app:
   music:
     storage-dir: uploads/music
+
   voice:
     storage-dir: uploads/voice
+  ffmpeg:
+    path: ffmpeg
+  audio:
+    output-dir: uploads/mixed
 
 spring:
   application:
