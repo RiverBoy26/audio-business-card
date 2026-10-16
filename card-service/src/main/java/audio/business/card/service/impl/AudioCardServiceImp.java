@@ -108,6 +108,14 @@ public class AudioCardServiceImp implements AudioCardService {
             card.setFullName(newAudioCard.getFullName());
         }
 
+        if (newAudioCard.getContactEmail() != null) {
+            card.setContactEmail(newAudioCard.getContactEmail());
+        }
+
+        if (newAudioCard.getContactPhone() != null) {
+            card.setContactPhone(newAudioCard.getContactPhone());
+        }
+
         if (newAudioCard.getDescription() != null) {
             card.setDescription(newAudioCard.getDescription());
         }
@@ -184,6 +192,8 @@ public class AudioCardServiceImp implements AudioCardService {
         PublicAudioCardResponse response = new PublicAudioCardResponse();
         response.setId(card.getId());
         response.setFullName(card.getFullName());
+        response.setContactEmail(card.getContactEmail());
+        response.setContactPhone(card.getContactPhone());
         response.setTitle(card.getTitle());
         response.setDescription(card.getDescription());
         response.setPhotoUrl(card.getPhotoFilename() == null

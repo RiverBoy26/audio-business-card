@@ -1,5 +1,5 @@
 import { ImagePlus, Mic, Pencil, UserRound, X } from 'lucide-react'
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type Dispatch, type SetStateAction } from 'react'
 
 import type { CardDraft } from '@/entities/audio-card/model/types'
 import { CardImage } from '@/entities/audio-card/ui/card-image'
@@ -10,14 +10,14 @@ import { VoiceProfileRecorder } from '@/features/card-editor/ui/voice-profile-re
 type ProfileDataFormProps = {
   avatarUrl: string | null
   draft: CardDraft
-  onChange: (draft: CardDraft) => void
+  onChange: Dispatch<SetStateAction<CardDraft>>
 }
 
-type InputMode = 'profile' | 'manual' | 'voice'
+type InputMode = 'manual' | 'voice'
 
 export function ProfileDataForm({ avatarUrl, draft, onChange }: ProfileDataFormProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [inputMode, setInputMode] = useState<InputMode>('profile')
+  const [inputMode, setInputMode] = useState<InputMode>('manual')
   const [isAddingSkill, setIsAddingSkill] = useState(false)
   const [newSkill, setNewSkill] = useState('')
   const [skillError, setSkillError] = useState<string | null>(null)
@@ -73,16 +73,15 @@ export function ProfileDataForm({ avatarUrl, draft, onChange }: ProfileDataFormP
           <h2 className="text-lg font-semibold">Данные визитки</h2>
           <p className="mt-1 text-xs text-muted-foreground">Выберите, как заполнить основную информацию.</p>
         </div>
-        <span className="rounded-full bg-accent px-3 py-1 text-[11px] font-medium text-primary">Синхронизировано</span>
+        <span className="rounded-lg bg-accent px-3 py-1 text-[11px] font-medium text-primary">ФИО из профиля</span>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-lg border border-border">
-        <button aria-pressed={inputMode === 'profile'} className={`flex h-10 items-center justify-center gap-2 border-r border-border text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${inputMode === 'profile' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('profile')} type="button"><UserRound className="size-4" /> Из профиля</button>
+      <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-lg border border-border">
         <button aria-pressed={inputMode === 'manual'} className={`flex h-10 items-center justify-center gap-2 border-r border-border text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${inputMode === 'manual' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('manual')} type="button"><Pencil className="size-4" /> Вручную</button>
         <button aria-pressed={inputMode === 'voice'} className={`flex h-10 items-center justify-center gap-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${inputMode === 'voice' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('voice')} type="button"><Mic className="size-4" /> Голосом</button>
       </div>
 
-      {inputMode === 'voice' ? <VoiceProfileRecorder draft={draft} onChange={onChange} /> : null}
+      {inputMode === 'voice' ? <VoiceProfileRecorder onChange={onChange} /> : null}
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <Field disabled id="card-full-name" label="ФИО (из профиля)" placeholder="Заполните имя в профиле" value={draft.fullName} />

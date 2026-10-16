@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { Check, Download, FileText, Link2, Pause, Play, QrCode, Save, Send, Trash2, Upload, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Check, Download, FileText, Link2, Pause, Play, QrCode, Save, Send, Trash2, Upload, Volume2, X } from 'lucide-react'
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 
 import type { CardDraft } from '@/entities/audio-card/model/types'
@@ -20,6 +20,7 @@ type CardPreviewProps = {
   isDocumentDeleting: boolean
   onDocumentDelete: () => void
   onDocumentSelect: (file: File) => void
+  onDraftChange: Dispatch<SetStateAction<CardDraft>>
   onPublish: () => void
   onSave: () => void
   onUnpublish: () => void
@@ -35,7 +36,7 @@ function formatDuration(seconds: number) {
   return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
 }
 
-function CardAudioPreview({ draft }: { draft: CardDraft }) {
+function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dispatch<SetStateAction<CardDraft>> }) {
   const musicQuery = useQuery({ queryKey: ['music'], queryFn: getMusicFiles })
   const voiceQuery = useQuery({ queryKey: ['voice-recordings'], queryFn: getVoiceRecordings })
   const playersRef = useRef<{ key: string; items: HTMLAudioElement[]; urls: string[] } | null>(null)
@@ -132,14 +133,23 @@ function CardAudioPreview({ draft }: { draft: CardDraft }) {
         <AudioWaveform className="h-11" progress={duration ? current / duration : 0} />
         <span className="shrink-0 text-[10px] text-muted-foreground">{formatDuration(current)} / {formatDuration(duration)}</span>
       </div>
-      <input aria-label="Позиция аудио" className="mt-1 w-full" disabled={!duration} max={100} min={0} onChange={(event) => seek(Number(event.target.value))} type="range" value={duration ? Math.round(current / duration * 100) : 0} />
-      <p className="mt-1 text-[11px] text-muted-foreground">{recording && music ? 'Предпрослушивание голоса с музыкой' : recording ? 'Голосовая заметка' : music ? 'Фоновая музыка' : 'Выберите музыку или добавьте голосовую заметку'}</p>
+      <label className="mt-2 block text-[11px] text-muted-foreground">
+        <span>Позиция воспроизведения</span>
+        <input aria-label="Позиция воспроизведения" className="mt-1 w-full" disabled={!duration} max={100} min={0} onChange={(event) => seek(Number(event.target.value))} type="range" value={duration ? Math.round(current / duration * 100) : 0} />
+      </label>
+      <p className="mt-1 text-[11px] text-muted-foreground">{recording && music ? 'Голос и музыка воспроизводятся вместе' : recording ? 'Только голос' : music ? 'Только фоновая музыка' : 'Выберите музыку или добавьте голос'}</p>
+      {recording || music ? (
+        <div className="mt-3 grid gap-2 rounded-lg bg-muted/60 p-3">
+          {recording ? <label className="grid grid-cols-[70px_1fr_34px] items-center gap-2 text-[11px]"><span className="inline-flex items-center gap-1"><Volume2 className="size-3.5" />Голос</span><input aria-label="Громкость голоса в предпросмотре" max={100} min={0} onChange={(event) => onChange((currentDraft) => ({ ...currentDraft, voiceVolume: Number(event.target.value) }))} type="range" value={draft.voiceVolume} /><span className="text-right tabular-nums text-muted-foreground">{draft.voiceVolume}%</span></label> : null}
+          {music ? <label className="grid grid-cols-[70px_1fr_34px] items-center gap-2 text-[11px]"><span className="inline-flex items-center gap-1"><Volume2 className="size-3.5" />Музыка</span><input aria-label="Громкость музыки в предпросмотре" max={100} min={0} onChange={(event) => onChange((currentDraft) => ({ ...currentDraft, musicVolume: Number(event.target.value) }))} type="range" value={draft.musicVolume} /><span className="text-right tabular-nums text-muted-foreground">{draft.musicVolume}%</span></label> : null}
+        </div>
+      ) : null}
       {error ? <p className="mt-1 text-xs text-destructive">{error}</p> : null}
     </div>
   )
 }
 
-export function CardPreview({ cardId, draft, error, isDocumentDeleting, isPublishing, isSaving, onDocumentDelete, onDocumentSelect, onPublish, onSave, onUnpublish, saved }: CardPreviewProps) {
+export function CardPreview({ cardId, draft, error, isDocumentDeleting, isPublishing, isSaving, onDocumentDelete, onDocumentSelect, onDraftChange, onPublish, onSave, onUnpublish, saved }: CardPreviewProps) {
   const [linkCopied, setLinkCopied] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)
   const [documentError, setDocumentError] = useState<string | null>(null)
@@ -229,7 +239,7 @@ export function CardPreview({ cardId, draft, error, isDocumentDeleting, isPublis
           {draft.skills.length ? draft.skills.map((skill) => <span className="rounded-lg bg-accent px-2.5 py-1.5 text-xs" key={skill}>{skill}</span>) : <span className="text-xs text-muted-foreground">Стек не указан</span>}
         </div>
 
-        <CardAudioPreview draft={draft} />
+        <CardAudioPreview draft={draft} onChange={onDraftChange} />
 
         <input
           accept="application/pdf,.pdf"

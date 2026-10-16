@@ -10,6 +10,8 @@ import { apiRequest } from '@/shared/api/api-client'
 const audioCardSchema = z.object({
   id: z.string().uuid(),
   fullName: z.string().nullable(),
+  contactEmail: z.string().nullable(),
+  contactPhone: z.string().nullable(),
   published: z.boolean(),
   publishedAt: z.string().nullable(),
   publicCode: z.string().regex(/^[A-Z0-9]{6}$/).nullable(),
@@ -27,6 +29,8 @@ const audioCardSchema = z.object({
 const publicAudioCardSchema = z.object({
   id: z.string().uuid(),
   fullName: z.string().nullable(),
+  contactEmail: z.string().nullable(),
+  contactPhone: z.string().nullable(),
   title: z.string(),
   description: z.string().nullable(),
   documentName: z.string().nullable(),
@@ -72,6 +76,8 @@ export function createAudioCard(draft: CardDraft) {
     json: {
       title: draft.title,
       fullName: draft.fullName || null,
+      contactEmail: draft.contactEmail || null,
+      contactPhone: draft.contactPhone || null,
       description: draft.description || null,
       photoUrl: draft.photoFile ? null : draft.photoUrl || null,
       skills: draft.skills,
@@ -89,6 +95,8 @@ export function updateAudioCard(id: string, draft: CardDraft) {
     json: {
       title: draft.title,
       fullName: draft.fullName || null,
+      contactEmail: draft.contactEmail || null,
+      contactPhone: draft.contactPhone || null,
       description: draft.description,
       photoUrl: draft.photoFile ? undefined : draft.photoUrl,
       skills: draft.skills,
@@ -161,6 +169,8 @@ export async function getCardDraft(id: string): Promise<CardDraft> {
     documentName: card.documentName,
     documentUrl: card.documentUrl,
     fullName: card.fullName ?? '',
+    contactEmail: card.contactEmail ?? '',
+    contactPhone: card.contactPhone ?? '',
     published: card.published,
     publicCode: card.publicCode,
     photoUrl: card.photoUrl ?? '',

@@ -40,7 +40,7 @@ export function AudioCardItem({ card, deleting, onDelete }: AudioCardItemProps) 
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <Button asChild variant="outline">
-          <Link to={`/create?id=${card.id}`}>
+          <Link to={`/cards/${card.id}/edit`}>
             <Pencil aria-hidden="true" className="size-4" />
             Изменить
           </Link>

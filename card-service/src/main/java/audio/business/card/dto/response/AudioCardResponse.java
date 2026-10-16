@@ -13,6 +13,8 @@ public class AudioCardResponse {
     private UUID id;
     private String title;
     private String fullName;
+    private String contactEmail;
+    private String contactPhone;
     private String description;
     private String photoUrl;
     private String documentName;

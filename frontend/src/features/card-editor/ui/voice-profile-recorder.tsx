@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { Mic, RotateCcw, Square, WandSparkles } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 
 import type { CardDraft } from '@/entities/audio-card/model/types'
 import { processVoiceProfile, type VoiceProfile } from '@/entities/voice-profile/api/voice-profile-api'
@@ -16,8 +16,7 @@ type RecorderSession = {
 }
 
 type VoiceProfileRecorderProps = {
-  draft: CardDraft
-  onChange: (draft: CardDraft) => void
+  onChange: Dispatch<SetStateAction<CardDraft>>
 }
 
 function encodeWav(chunks: Float32Array[], sampleRate: number) {
@@ -58,7 +57,7 @@ function experienceYears(profile: VoiceProfile) {
   return Math.min(80, Math.max(1, Math.round(months / 12)))
 }
 
-export function VoiceProfileRecorder({ draft, onChange }: VoiceProfileRecorderProps) {
+export function VoiceProfileRecorder({ onChange }: VoiceProfileRecorderProps) {
   const sessionRef = useRef<RecorderSession | null>(null)
   const chunksRef = useRef<Float32Array[]>([])
   const sampleRateRef = useRef(48000)
@@ -73,13 +72,13 @@ export function VoiceProfileRecorder({ draft, onChange }: VoiceProfileRecorderPr
     mutationFn: processVoiceProfile,
     onSuccess: (profile) => {
       const years = experienceYears(profile)
-      onChange({
-        ...draft,
-        description: profile.specialization ?? draft.description,
-        experienceYears: years ?? draft.experienceYears,
-        skills: profile.skills.length ? profile.skills : draft.skills,
-        title: profile.desiredPosition ?? draft.title,
-      })
+      onChange((current) => ({
+        ...current,
+        description: profile.specialization ?? current.description,
+        experienceYears: years ?? current.experienceYears,
+        skills: profile.skills.length ? profile.skills : current.skills,
+        title: profile.desiredPosition ?? current.title,
+      }))
       setResult(profile)
     },
   })

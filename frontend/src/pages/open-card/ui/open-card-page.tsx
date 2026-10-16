@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Download, FileText, Pause, Play } from 'lucide-react'
+import { Download, FileText, Mail, Pause, Phone, Play } from 'lucide-react'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -177,7 +177,23 @@ export function PublicCardPage() {
 
           <section>
             <h2 className="text-xl font-semibold sm:text-2xl">Контакты</h2>
-            <div aria-label="Контакты будут добавлены позже" className="mt-3 min-h-40 rounded-2xl border border-border bg-card" />
+            <div className="mt-3 grid gap-2 rounded-xl border border-border p-4">
+              {card.contactEmail ? (
+                <a className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-2 text-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={`mailto:${card.contactEmail}`}>
+                  <Mail aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                  <span className="truncate">{card.contactEmail}</span>
+                </a>
+              ) : null}
+              {card.contactPhone ? (
+                <a className="flex items-center gap-3 rounded-lg px-2 py-2 text-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={`tel:${card.contactPhone.replace(/[^+\d]/g, '')}`}>
+                  <Phone aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                  <span>{card.contactPhone}</span>
+                </a>
+              ) : null}
+              {!card.contactEmail && !card.contactPhone ? (
+                <p className="px-2 py-3 text-sm text-muted-foreground">Автор не указал контактные данные.</p>
+              ) : null}
+            </div>
           </section>
         </div>
       </article>

@@ -28,6 +28,12 @@ public class AudioCard {
     @Column(name = "full_name", length = 200)
     private String fullName;
 
+    @Column(name = "contact_email", length = 255)
+    private String contactEmail;
+
+    @Column(name = "contact_phone", length = 40)
+    private String contactPhone;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 

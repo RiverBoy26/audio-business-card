@@ -13,6 +13,8 @@ import java.util.UUID;
 public class PublicAudioCardResponse {
     private UUID id;
     private String fullName;
+    private String contactEmail;
+    private String contactPhone;
     private String title;
     private String description;
     private String photoUrl;
