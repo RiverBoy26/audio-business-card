@@ -46,4 +46,15 @@ public class AuthController {
 
         return ResponseEntity.ok(authService.getCurrentUser(userId));
     }
+
+
+    @PutMapping("/me")
+    public ResponseEntity<UserResponse> updateCurrentUser(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody UpdateProfileRequest request
+    ) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        return ResponseEntity.ok(authService.updateCurrentUser(userId, request));
+    }
 }

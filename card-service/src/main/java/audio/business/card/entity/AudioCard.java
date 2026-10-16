@@ -54,6 +54,9 @@ public class AudioCard {
     @Column(name = "card_type", nullable = false)
     private CardType cardType;
 
+    @Column(length = 150)
+    private String desiredPosition;
+
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();

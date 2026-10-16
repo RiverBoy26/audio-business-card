@@ -43,6 +43,7 @@ public class AudioCardServiceImp implements AudioCardService {
     public AudioCardResponse create(UUID userId, AudioCardRequest audioCard) {
         AudioCard card = AudioCardMapper.toEntity(audioCard);
         card.setUserId(userId);
+        card.setMusicId(audioCard.getMusicId());
 
         CardSettings settings = new CardSettings();
         settings.setAudioCard(card);
@@ -73,6 +74,14 @@ public class AudioCardServiceImp implements AudioCardService {
 
         if (newAudioCard.getCardType() != null) {
             card.setCardType(newAudioCard.getCardType());
+        }
+
+        if (newAudioCard.getMusicId() != null) {
+            card.setMusicId(newAudioCard.getMusicId());
+        }
+
+        if (newAudioCard.getDesiredPosition() != null) {
+            card.setDesiredPosition(newAudioCard.getDesiredPosition());
         }
 
         AudioCard updateCard = audioCardRepository.save(card);
