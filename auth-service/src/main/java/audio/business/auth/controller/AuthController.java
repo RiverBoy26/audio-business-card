@@ -68,6 +68,7 @@ public class AuthController {
                 .cacheControl(CacheControl.noStore())
                 .contentType(MediaType.parseMediaType(avatar.contentType()))
                 .body(avatar.resource());
+    }
 
     @PutMapping("/me")
     public ResponseEntity<UserResponse> updateCurrentUser(
@@ -76,5 +77,6 @@ public class AuthController {
     ) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
+        return ResponseEntity.ok(authService.updateCurrentUser(userId, request));
     }
 }

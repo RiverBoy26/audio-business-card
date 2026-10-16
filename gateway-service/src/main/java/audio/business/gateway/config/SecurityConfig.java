@@ -41,6 +41,7 @@ public class SecurityConfig {
                         ).authenticated()
 
                         .pathMatchers(HttpMethod.POST, "/api/v1/auth/me/avatar").authenticated()
+                        .pathMatchers(HttpMethod.PUT, "/api/v1/auth/me").authenticated()
 
                         .pathMatchers(
                                 "/audio-cards",
