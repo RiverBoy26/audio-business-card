@@ -150,7 +150,14 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
       return false
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          autoGainControl: true,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      })
       const preferredType = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/webm'].find((type) => MediaRecorder.isTypeSupported(type))
       const recorder = new MediaRecorder(stream, preferredType ? { mimeType: preferredType } : undefined)
       streamRef.current = stream

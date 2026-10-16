@@ -46,11 +46,18 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
         documentFile: null,
         documentName: card.documentName,
         documentUrl: card.documentUrl,
+        photoFile: null,
+        photoUrl: card.photoUrl ?? '',
+        published: card.published,
+        publicCode: card.publicCode,
       }))
       setSaved(true)
       window.setTimeout(() => setSaved(false), 2500)
       await queryClient.invalidateQueries({ queryKey: ['audio-cards'] })
-      if (!cardId) navigate(`/cards/${card.id}/edit`, { replace: true })
+      if (card.published) {
+        await queryClient.invalidateQueries({ queryKey: ['public-audio-card', card.id] })
+      }
+      if (!cardId) navigate(`/create?id=${card.id}`, { replace: true })
     },
   })
   const publishMutation = useMutation({

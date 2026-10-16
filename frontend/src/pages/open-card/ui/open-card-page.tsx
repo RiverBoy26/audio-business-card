@@ -19,20 +19,40 @@ function duration(value: number) {
   return `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`
 }
 
+function moveAudioTo(player: HTMLAudioElement, seconds: number) {
+  player.currentTime = seconds
+}
+
 function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
-  const playersRef = useRef<{ players: HTMLAudioElement[]; urls: string[] } | null>(null)
-  const requestRef = useRef(0)
-  const playbackOwnerRef = useRef(createPlaybackOwner())
+  const playersRef = useRef<{
+    music: HTMLAudioElement | null
+    primary: HTMLAudioElement
+    urls: string[]
+    voice: HTMLAudioElement | null
+  } | null>(null)
   const [playing, setPlaying] = useState(false)
   const [position, setPosition] = useState({ current: 0, duration: 0 })
   const [error, setError] = useState<string | null>(null)
   const canPlay = Boolean(card.voiceUrl || card.musicUrl)
 
   useEffect(() => () => {
-    playersRef.current?.players.forEach((player) => player.pause())
-    playersRef.current?.urls.forEach(URL.revokeObjectURL)
+    const players = playersRef.current
+    players?.voice?.pause()
+    players?.music?.pause()
+    players?.urls.forEach(URL.revokeObjectURL)
+    playersRef.current = null
   }, [])
 
+  useEffect(() => {
+    const players = playersRef.current
+    if (players?.voice) players.voice.volume = card.voiceVolume / 100
+    if (players?.music) players.music.volume = card.musicVolume / 100
+  }, [card.musicVolume, card.voiceVolume])
+
+  async function toggle() {
+    if (playing) {
+      playersRef.current?.voice?.pause()
+      playersRef.current?.music?.pause()
   useEffect(() => onOtherPlayback(playbackOwnerRef.current, () => {
     requestRef.current += 1
     playersRef.current?.players.forEach((player) => player.pause())
@@ -55,33 +75,57 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
           card.voiceUrl ? getPublicCardMedia(card.voiceUrl) : Promise.resolve(null),
           card.musicUrl ? getPublicCardMedia(card.musicUrl) : Promise.resolve(null),
         ])
-        if (request !== requestRef.current) return
-        const urls = [voice, music].filter((blob): blob is Blob => blob !== null).map(URL.createObjectURL)
-        const players = urls.map((url) => new Audio(url))
-        if (voice) players[0].volume = card.voiceVolume / 100
-        if (music) players[players.length - 1].volume = card.musicVolume / 100
-        if (voice && music) players[1].loop = true
-        const primary = players[0]
-        const musicPlayer = music ? players[players.length - 1] : null
-        const setMusicTime = (voiceTime: number) => {
-          if (!musicPlayer || !Number.isFinite(musicPlayer.duration) || musicPlayer.duration <= 0) return
-          musicPlayer.currentTime = (card.musicStartSeconds + voiceTime) % musicPlayer.duration
+        const voiceUrl = voice ? URL.createObjectURL(voice) : null
+        const musicUrl = music ? URL.createObjectURL(music) : null
+        const voicePlayer = voiceUrl ? new Audio(voiceUrl) : null
+        const musicPlayer = musicUrl ? new Audio(musicUrl) : null
+        const primary = voicePlayer ?? musicPlayer
+        if (!primary) return
+        if (voicePlayer) voicePlayer.volume = card.voiceVolume / 100
+        if (musicPlayer) {
+          musicPlayer.volume = card.musicVolume / 100
+          musicPlayer.loop = Boolean(voicePlayer)
         }
+        
+        const setMusicTime = (voiceTime: number) => {
+          if (!musicPlayer || !Number.isFinite(musicPlayer.duration) || musicPlayer.duration <= 0) { return }
+          musicPlayer.currentTime = (card.musicStartSeconds + voiceTime) % musicPlayer.duration}
         primary.ontimeupdate = () => setPosition({ current: primary.currentTime, duration: primary.duration || 0 })
         primary.onloadedmetadata = primary.ontimeupdate
         if (musicPlayer) musicPlayer.onloadedmetadata = () => setMusicTime(primary.currentTime)
         primary.onended = () => {
-          players.forEach((player) => player.pause())
+          voicePlayer?.pause()
+          musicPlayer?.pause()
+          if (voicePlayer && musicPlayer) moveAudioTo(musicPlayer, 0)
           setPlaying(false)
         }
-        state = { players, urls }
+        state = {
+          music: musicPlayer,
+          primary,
+          urls: [voiceUrl, musicUrl].filter((url): url is string => url !== null),
+          voice: voicePlayer,
+        }
         playersRef.current = state
       }
+      if (state.primary.ended || (Number.isFinite(state.primary.duration) && state.primary.currentTime >= state.primary.duration)) {
+        moveAudioTo(state.primary, 0)
+        if (state.music) moveAudioTo(state.music, 0)
+        setPosition({ current: 0, duration: state.primary.duration || 0 })
+      }
+      if (state.voice && state.music && state.voice.currentTime === 0) {
+        moveAudioTo(state.music, 0)
+      }
+      await Promise.all([
+        ...(state.music ? [state.music.play()] : []),
+        ...(state.voice ? [state.voice.play()] : []),
+      ])
       if (request !== requestRef.current) return
       announcePlayback(playbackOwnerRef.current)
       await Promise.all(state.players.map((player) => player.play()))
       setPlaying(true)
     } catch {
+      playersRef.current?.voice?.pause()
+      playersRef.current?.music?.pause()
       setPlaying(false)
       setError('Не удалось воспроизвести аудио.')
     }
@@ -91,8 +135,11 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
     const state = playersRef.current
     if (!state || !position.duration) return
     const next = position.duration * percent / 100
-    state.players[0].currentTime = next
-    if (state.players.length > 1 && state.players[1].duration) state.players[1].currentTime = (card.musicStartSeconds + next) % state.players[1].duration
+    moveAudioTo(state.primary, next)
+
+    if (state.voice && state.music && Number.isFinite(state.music.duration) && state.music.duration > 0) {
+      moveAudioTo(state.music,(card.musicStartSeconds + next) % state.music.duration,)
+    }
     setPosition((current) => ({ ...current, current: next }))
   }
 
@@ -189,7 +236,7 @@ export function PublicCardPage() {
           <div>
             <section>
               <h2 className="text-xl font-semibold sm:text-2xl">Аудиовизитка</h2>
-              <PublicAudioPlayer card={card} />
+              <PublicAudioPlayer card={card} key={`${card.voiceUrl ?? ''}|${card.musicUrl ?? ''}`} />
             </section>
 
             <PublicDocument card={card} />

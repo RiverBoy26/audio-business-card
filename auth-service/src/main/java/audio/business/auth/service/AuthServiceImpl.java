@@ -3,6 +3,7 @@ package audio.business.auth.service;
 
 import audio.business.auth.dto.*;
 import audio.business.auth.entity.*;
+import audio.business.auth.exception.FieldConflictException;
 import audio.business.auth.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,9 +43,13 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse register(RegisterRequest request) {
 
         String email = normalizeEmail(request.email());
+        String phone = request.phone().trim();
 
         if (userRepository.existsByEmailIgnoreCase(email)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email уже зарегистрирован");
+            throw new FieldConflictException("email", "Этот email уже зарегистрирован");
+        }
+        if (userRepository.existsByPhone(phone)) {
+            throw new FieldConflictException("phone", "Этот номер телефона уже зарегистрирован");
         }
 
         User user = new User();
@@ -58,7 +63,7 @@ public class AuthServiceImpl implements AuthService {
         );
         user.setBirthDate(request.birthDate());
         user.setEmail(email);
-        user.setPhone(request.phone());
+        user.setPhone(phone);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setRole(Role.USER);
 
@@ -66,7 +71,7 @@ public class AuthServiceImpl implements AuthService {
             userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException ex) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Пользователь не может быть зарегистрирован", ex);
+                    "Email или номер телефона уже зарегистрированы", ex);
         }
 
         return createTokenPair(user);
@@ -199,10 +204,12 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.existsByEmailIgnoreCaseAndIdNot(
                 email, userId
         )) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "Этот email уже используется"
-            );
+            throw new FieldConflictException("email", "Этот email уже используется");
+        }
+
+        String phone = request.phone().trim();
+        if (userRepository.existsByPhoneAndIdNot(phone, userId)) {
+            throw new FieldConflictException("phone", "Этот номер телефона уже используется");
         }
 
         user.setFirstName(request.firstName().trim());
@@ -215,8 +222,16 @@ public class AuthServiceImpl implements AuthService {
         );
         user.setBirthDate(request.birthDate());
         user.setEmail(email);
-        user.setPhone(request.phone().trim());
+        user.setPhone(phone);
 
-        return UserResponse.from(user);
+        try {
+            return UserResponse.from(userRepository.saveAndFlush(user));
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Email или номер телефона уже используются",
+                    ex
+            );
+        }
     }
 }

@@ -9,15 +9,22 @@ import {
 import { env } from '@/shared/config/env'
 
 const errorPayloadSchema = z.object({
+  fieldErrors: z.record(z.string(), z.string()).optional(),
   message: z.string().optional(),
 })
 
 export class ApiError extends Error {
+  readonly fieldErrors: Record<string, string>
   readonly status: number
 
-  constructor(message: string, status: number) {
+  constructor(
+    message: string,
+    status: number,
+    fieldErrors: Record<string, string> = {},
+  ) {
     super(message)
     this.name = 'ApiError'
+    this.fieldErrors = fieldErrors
     this.status = status
   }
 }
@@ -46,16 +53,19 @@ async function readError(response: Response) {
 
   try {
     if (!contentType.includes('application/json')) {
-      return (await response.text()).trim() || fallback
+      return { fieldErrors: {}, message: (await response.text()).trim() || fallback }
     }
 
     const payload = errorPayloadSchema.safeParse(await response.json())
 
-    return payload.success && payload.data.message
-      ? payload.data.message
-      : fallback
+    return {
+      fieldErrors: payload.success ? (payload.data.fieldErrors ?? {}) : {},
+      message: payload.success && payload.data.message
+        ? payload.data.message
+        : fallback,
+    }
   } catch {
-    return fallback
+    return { fieldErrors: {}, message: fallback }
   }
 }
 
@@ -82,7 +92,8 @@ async function refreshAccessToken() {
 
   if (!response.ok) {
     clearTokens()
-    throw new ApiError(await readError(response), response.status)
+    const error = await readError(response)
+    throw new ApiError(error.message, response.status, error.fieldErrors)
   }
 
   const tokens = refreshResponseSchema.parse(await response.json())
@@ -142,7 +153,8 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok) {
-    throw new ApiError(await readError(response), response.status)
+    const error = await readError(response)
+    throw new ApiError(error.message, response.status, error.fieldErrors)
   }
 
   return parseResponse(response, responseType, schema)

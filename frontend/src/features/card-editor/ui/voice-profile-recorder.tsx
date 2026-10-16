@@ -174,7 +174,14 @@ export function VoiceProfileRecorder({ onChange }: VoiceProfileRecorderProps) {
       return
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          autoGainControl: true,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      })
       const context = new AudioContext()
       const source = context.createMediaStreamSource(stream)
       const processor = context.createScriptProcessor(4096, 1, 1)

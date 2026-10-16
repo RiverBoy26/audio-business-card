@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { CurrentUser } from '@/features/auth/model/auth-api'
+import { ApiError } from '@/shared/api/api-client'
 import { ProfileForm } from '@/features/profile-editor/ui/profile-form'
 
 afterEach(cleanup)
@@ -15,7 +16,7 @@ const user: CurrentUser = {
   id: '78b7801d-3fdb-4070-8a57-7817b57ecb89',
   lastName: 'Соколов',
   middleName: 'Андреевич',
-  phone: '+7-900-123-45-67',
+  phone: '+79001234567',
   role: 'USER',
 }
 
@@ -40,7 +41,7 @@ describe('ProfileForm', () => {
         firstName: 'Маркел',
         lastName: 'Соколов',
         middleName: 'Андреевич',
-        phone: '+7-900-123-45-67',
+        phone: '+79001234567',
       }),
     )
     expect(await screen.findByText('Изменения сохранены')).toBeInTheDocument()
@@ -62,5 +63,22 @@ describe('ProfileForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Отменить' }))
     expect(lastName).toHaveValue('Соколов')
     expect(lastName).toBeDisabled()
+  })
+
+  it('shows a backend field error next to the invalid profile field', async () => {
+    const onSave = vi.fn().mockRejectedValue(
+      new ApiError('Этот номер телефона уже используется', 409, {
+        phone: 'Этот номер телефона уже используется',
+      }),
+    )
+    render(<ProfileForm onSave={onSave} user={user} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Редактировать' }))
+    const phone = screen.getByLabelText('Телефон')
+    fireEvent.change(phone, { target: { value: '+79999999999' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить изменения' }))
+
+    expect(await screen.findByText('Этот номер телефона уже используется')).toBeInTheDocument()
+    expect(phone).toHaveAttribute('aria-invalid', 'true')
   })
 })

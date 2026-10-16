@@ -30,20 +30,20 @@ public class PublicAudioCardController {
     }
 
     @GetMapping("/{audioCardId}")
-    public PublicAudioCardResponse findById(@PathVariable UUID audioCardId) {
-        return audioCardService.findPublishedById(audioCardId);
+    public ResponseEntity<PublicAudioCardResponse> findById(@PathVariable UUID audioCardId) {
+        return publicCardResponse(audioCardService.findPublishedById(audioCardId));
     }
 
     @GetMapping("/code/{publicCode}")
-    public PublicAudioCardResponse findByCode(@PathVariable String publicCode) {
-        return audioCardService.findPublishedByCode(publicCode);
+    public ResponseEntity<PublicAudioCardResponse> findByCode(@PathVariable String publicCode) {
+        return publicCardResponse(audioCardService.findPublishedByCode(publicCode));
     }
 
     @GetMapping("/{audioCardId}/photo")
     public ResponseEntity<Resource> getPhoto(@PathVariable UUID audioCardId) throws IOException {
         CardPhotoResponse photo = audioCardService.getPublishedPhoto(audioCardId);
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(java.time.Duration.ofHours(1)))
+                .cacheControl(CacheControl.noStore())
                 .contentType(MediaType.parseMediaType(photo.contentType()))
                 .body(photo.resource());
     }
@@ -52,7 +52,7 @@ public class PublicAudioCardController {
     public ResponseEntity<Resource> getDocument(@PathVariable UUID audioCardId) throws IOException {
         CardDocumentResponse document = audioCardService.getPublishedDocument(audioCardId);
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(java.time.Duration.ofHours(1)))
+                .cacheControl(CacheControl.noStore())
                 .contentType(MediaType.parseMediaType(document.contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename(document.originalFilename(), StandardCharsets.UTF_8)
@@ -72,8 +72,14 @@ public class PublicAudioCardController {
 
     private ResponseEntity<byte[]> mediaResponse(PublicMediaResponse media) {
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(java.time.Duration.ofHours(1)))
+                .cacheControl(CacheControl.noStore())
                 .contentType(MediaType.parseMediaType(media.contentType()))
                 .body(media.content());
+    }
+
+    private ResponseEntity<PublicAudioCardResponse> publicCardResponse(PublicAudioCardResponse card) {
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(card);
     }
 }

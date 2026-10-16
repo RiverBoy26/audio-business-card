@@ -5,6 +5,7 @@ import type {
   CurrentUser,
   UpdateProfilePayload,
 } from '@/features/auth/model/auth-api'
+import { ApiError } from '@/shared/api/api-client'
 import { Button } from '@/shared/ui/button'
 import { Field } from '@/shared/ui/field'
 
@@ -16,6 +17,8 @@ type ProfileFormProps = {
 type ProfileDraft = Omit<UpdateProfilePayload, 'middleName'> & {
   middleName: string
 }
+
+const maxBirthDate = new Date().toISOString().slice(0, 10)
 
 function createDraft(user: CurrentUser): ProfileDraft {
   return {
@@ -44,12 +47,19 @@ export function ProfileForm({ onSave, user }: ProfileFormProps) {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [saved, setSaved] = useState(false)
   const isDirty = !draftsMatch(draft, user)
 
   function update(field: keyof ProfileDraft) {
     return (event: ChangeEvent<HTMLInputElement>) => {
       setDraft((current) => ({ ...current, [field]: event.target.value }))
+      setFieldErrors((current) => {
+        if (!current[field]) return current
+        const next = { ...current }
+        delete next[field]
+        return next
+      })
       setError(null)
       setSaved(false)
     }
@@ -58,6 +68,7 @@ export function ProfileForm({ onSave, user }: ProfileFormProps) {
   function startEditing() {
     setDraft(createDraft(user))
     setError(null)
+    setFieldErrors({})
     setSaved(false)
     setEditing(true)
   }
@@ -65,6 +76,7 @@ export function ProfileForm({ onSave, user }: ProfileFormProps) {
   function cancelEditing() {
     setDraft(createDraft(user))
     setError(null)
+    setFieldErrors({})
     setEditing(false)
   }
 
@@ -74,6 +86,7 @@ export function ProfileForm({ onSave, user }: ProfileFormProps) {
 
     setSaving(true)
     setError(null)
+    setFieldErrors({})
     setSaved(false)
 
     try {
@@ -90,11 +103,13 @@ export function ProfileForm({ onSave, user }: ProfileFormProps) {
       setEditing(false)
       setSaved(true)
     } catch (caught) {
-      setError(
-        caught instanceof Error
+      const nextFieldErrors = caught instanceof ApiError ? caught.fieldErrors : {}
+      setFieldErrors(nextFieldErrors)
+      setError(Object.keys(nextFieldErrors).length === 0
+        ? caught instanceof Error
           ? caught.message
-          : 'Не удалось сохранить изменения',
-      )
+          : 'Не удалось сохранить изменения'
+        : null)
     } finally {
       setSaving(false)
     }
@@ -120,12 +135,12 @@ export function ProfileForm({ onSave, user }: ProfileFormProps) {
       <form className="mt-5" onSubmit={submit}>
         <fieldset disabled={!editing || saving}>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field autoComplete="given-name" id="first-name" label="Имя" maxLength={100} onChange={update('firstName')} required value={draft.firstName} />
-            <Field autoComplete="additional-name" id="middle-name" label="Отчество" maxLength={100} onChange={update('middleName')} value={draft.middleName} />
-            <Field autoComplete="family-name" id="last-name" label="Фамилия" maxLength={100} onChange={update('lastName')} required value={draft.lastName} />
-            <Field autoComplete="bday" id="birth-date" label="Дата рождения" onChange={update('birthDate')} required type="date" value={draft.birthDate} />
-            <Field autoComplete="email" id="email" label="Электронная почта" maxLength={255} onChange={update('email')} required type="email" value={draft.email} />
-            <Field autoComplete="tel" id="phone" label="Телефон" onChange={update('phone')} pattern="^\+([0-9-]?){9,11}[0-9]$" required title="Введите номер в международном формате, например +7-900-123-45-67" value={draft.phone} />
+            <Field autoComplete="given-name" error={fieldErrors.firstName} id="first-name" label="Имя" maxLength={100} onChange={update('firstName')} required value={draft.firstName} />
+            <Field autoComplete="additional-name" error={fieldErrors.middleName} id="middle-name" label="Отчество" maxLength={100} onChange={update('middleName')} value={draft.middleName} />
+            <Field autoComplete="family-name" error={fieldErrors.lastName} id="last-name" label="Фамилия" maxLength={100} onChange={update('lastName')} required value={draft.lastName} />
+            <Field autoComplete="bday" error={fieldErrors.birthDate} id="birth-date" label="Дата рождения" max={maxBirthDate} onChange={update('birthDate')} required type="date" value={draft.birthDate} />
+            <Field autoComplete="email" error={fieldErrors.email} id="email" label="Электронная почта" maxLength={255} onChange={update('email')} required type="email" value={draft.email} />
+            <Field autoComplete="tel" error={fieldErrors.phone} id="phone" label="Телефон" onChange={update('phone')} pattern="^\+[0-9]{10,11}$" required title="Введите номер в формате +79991234567" value={draft.phone} />
           </div>
         </fieldset>
 
