@@ -12,6 +12,7 @@ public class AudioCardMapper {
         response.setTitle(card.getTitle());
         response.setDescription(card.getDescription());
         response.setPhotoUrl(card.getPhotoUrl());
+        response.setCardType(card.getCardType());
 
         return response;
     }
@@ -22,6 +23,7 @@ public class AudioCardMapper {
         card.setTitle(request.getTitle());
         card.setDescription(request.getDescription());
         card.setPhotoUrl(request.getPhotoUrl());
+        card.setCardType(request.getCardType());
 
         return card;
     }

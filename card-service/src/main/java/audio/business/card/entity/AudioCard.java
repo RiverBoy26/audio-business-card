@@ -1,5 +1,6 @@
 package audio.business.card.entity;
 
+import audio.business.card.enums.CardType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -48,6 +49,10 @@ public class AudioCard {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "card_type", nullable = false)
+    private CardType cardType;
 
     @PrePersist
     protected void onCreate() {

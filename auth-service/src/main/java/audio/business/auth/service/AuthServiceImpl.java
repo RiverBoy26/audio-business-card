@@ -51,6 +51,12 @@ public class AuthServiceImpl implements AuthService {
 
         user.setFirstName(request.firstName().trim());
         user.setLastName(request.lastName().trim());
+        user.setMiddleName(
+                request.middleName() == null || request.middleName().isBlank()
+                        ? null
+                        : request.middleName().trim()
+        );
+        user.setBirthDate(request.birthDate());
         user.setEmail(email);
         user.setPhone(request.phone());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
