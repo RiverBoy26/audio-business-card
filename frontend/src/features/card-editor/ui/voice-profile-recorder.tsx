@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { Mic, RotateCcw, Square, WandSparkles } from 'lucide-react'
+import { Mic, Pause, Play, RotateCcw, Square, WandSparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 
 import type { CardDraft } from '@/entities/audio-card/model/types'
@@ -7,6 +7,8 @@ import { processVoiceProfile, type VoiceProfile } from '@/entities/voice-profile
 import { BrandLogo } from '@/shared/ui/brand-logo'
 import { Button } from '@/shared/ui/button'
 import { Modal } from '@/shared/ui/modal'
+import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
+import { AudioWaveform } from '@/shared/ui/audio-waveform'
 
 type RecorderSession = {
   context: AudioContext
@@ -55,6 +57,68 @@ function experienceYears(profile: VoiceProfile) {
   const months = (profile.experience.minMonths + profile.experience.maxMonths) / 2
   if (months === 0) return 0
   return Math.min(80, Math.max(1, Math.round(months / 12)))
+}
+
+function formatDuration(value: number) {
+  return `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`
+}
+
+function VoicePreviewPlayer({ source }: { source: string }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const ownerRef = useRef(createPlaybackOwner())
+  const [playing, setPlaying] = useState(false)
+  const [position, setPosition] = useState({ current: 0, duration: 0 })
+
+  useEffect(() => {
+    const audio = new Audio(source)
+    audioRef.current = audio
+    audio.ontimeupdate = () => setPosition({ current: audio.currentTime, duration: audio.duration || 0 })
+    audio.onloadedmetadata = audio.ontimeupdate
+    audio.onended = () => setPlaying(false)
+    const unsubscribe = onOtherPlayback(ownerRef.current, () => {
+      audio.pause()
+      setPlaying(false)
+    })
+    return () => {
+      unsubscribe()
+      audio.pause()
+      audioRef.current = null
+    }
+  }, [source])
+
+  async function toggle() {
+    const audio = audioRef.current
+    if (!audio) return
+    if (!audio.paused) {
+      audio.pause()
+      setPlaying(false)
+      return
+    }
+    announcePlayback(ownerRef.current)
+    try {
+      await audio.play()
+      setPlaying(true)
+    } catch {
+      setPlaying(false)
+    }
+  }
+
+  function seek(progress: number) {
+    const audio = audioRef.current
+    if (!audio || !position.duration) return
+    audio.currentTime = position.duration * progress
+    setPosition((current) => ({ ...current, current: audio.currentTime }))
+  }
+
+  return (
+    <div className="mt-3 flex min-h-14 items-center gap-3 rounded-lg border border-border bg-card px-3 py-2">
+      <button aria-label={playing ? 'Поставить запись на паузу' : 'Прослушать запись'} className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" onClick={() => void toggle()} type="button">
+        {playing ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}
+      </button>
+      <AudioWaveform className="h-8 min-w-0" onSeek={position.duration ? seek : undefined} progress={position.duration ? position.current / position.duration : 0} />
+      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{formatDuration(position.current)} / {formatDuration(position.duration)}</span>
+    </div>
+  )
 }
 
 export function VoiceProfileRecorder({ onChange }: VoiceProfileRecorderProps) {
@@ -166,7 +230,7 @@ export function VoiceProfileRecorder({ onChange }: VoiceProfileRecorderProps) {
           {file ? <Button disabled={mutation.isPending} onClick={() => mutation.mutate(file)} size="sm" type="button"><WandSparkles className="size-4" />{mutation.isPending ? 'Распознаём…' : 'Распознать и заполнить'}</Button> : null}
           {file ? <Button disabled={mutation.isPending} onClick={reset} size="sm" type="button" variant="outline"><RotateCcw className="size-4" />Перезаписать</Button> : null}
         </div>
-        {previewUrl ? <audio className="mt-3 h-9 w-full" controls src={previewUrl} /> : null}
+        {previewUrl ? <VoicePreviewPlayer key={previewUrl} source={previewUrl} /> : null}
         {result ? <div className="mt-3 rounded-md border border-border bg-card p-3 text-xs"><p className="font-medium text-primary">Поля заполнены по записи</p><p className="mt-1 text-muted-foreground">Распознано: {result.transcript}</p>{result.unknownSkills.length ? <p className="mt-1 text-destructive">Не распознаны технологии: {result.unknownSkills.join(', ')}</p> : null}{result.issues.length ? <p className="mt-1 text-amber-700">Проверьте результат вручную: {result.issues.join(', ')}</p> : null}</div> : null}
         {error || mutation.isError ? <p className="mt-2 text-xs text-destructive">{error ?? (mutation.error instanceof Error ? mutation.error.message : 'Не удалось обработать запись.')}</p> : null}
       </div>
