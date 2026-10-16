@@ -13,4 +13,10 @@ public interface AudioCardRepository extends JpaRepository<AudioCard, UUID> {
     List<AudioCard> findAllByUserId(UUID userId);
 
     Optional<AudioCard> findByIdAndUserId(UUID audioCardId, UUID userId);
+
+    Optional<AudioCard> findByIdAndIsPublishedTrue(UUID audioCardId);
+
+    Optional<AudioCard> findByPublicCodeAndIsPublishedTrue(String publicCode);
+
+    boolean existsByPublicCode(String publicCode);
 }

@@ -53,4 +53,10 @@ public class User {
 
     @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
+
+    @Column(name = "avatar_filename")
+    private String avatarFilename;
+
+    @Column(name = "avatar_content_type")
+    private String avatarContentType;
 }

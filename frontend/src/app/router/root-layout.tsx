@@ -1,8 +1,9 @@
 import { ChevronDown, Menu, X } from 'lucide-react'
 import { useState } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { AuthDialog, type AuthMode } from '@/features/auth/ui/auth-dialog'
+import { useAuth } from '@/features/auth/model/use-auth'
 import { cn } from '@/shared/lib/cn'
 import { BrandLogo } from '@/shared/ui/brand-logo'
 import { Button } from '@/shared/ui/button'
@@ -21,11 +22,16 @@ const navigationLinkClass = ({ isActive }: { isActive: boolean }) =>
   )
 
 export function RootLayout() {
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
+  const navigate = useNavigate()
+  const { logout, user } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode | null>(null)
   const isLanding = pathname === '/'
+  const requestedAuthMode: AuthMode | null = new URLSearchParams(search).has('login')
+    ? 'login'
+    : null
 
   return (
     <div className="min-h-svh bg-background text-foreground">
@@ -33,7 +39,7 @@ export function RootLayout() {
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-6 px-4 sm:px-6 lg:px-8">
           <BrandLogo />
 
-          {isLanding ? (
+          {!user ? (
             <div className="ml-auto flex items-center gap-2">
               <Button className="hidden sm:inline-flex" onClick={() => setAuthMode('login')} variant="outline">
                 Войти
@@ -49,7 +55,7 @@ export function RootLayout() {
                 className="mx-auto hidden h-full items-center gap-7 lg:flex"
               >
                 {navigation.map((item) => (
-                  <NavLink className={navigationLinkClass} key={item.to} to={item.to}>
+                  <NavLink className={({ isActive }) => navigationLinkClass({ isActive: isActive || (item.to === '/open' && pathname.startsWith('/card/')) })} key={item.to} to={item.to}>
                     {item.label}
                   </NavLink>
                 ))}
@@ -64,13 +70,21 @@ export function RootLayout() {
                   type="button"
                 >
                   <span className="size-9 rounded-full bg-muted" />
-                  Марк
+                  {user?.firstName ?? 'Аккаунт'}
                   <ChevronDown aria-hidden="true" className={cn('size-4 transition', userMenuOpen && 'rotate-180')} />
                 </button>
                 {userMenuOpen ? (
                   <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-48 overflow-hidden rounded-xl border border-border bg-card py-1 shadow-lg" role="menu">
                     <Link className="block px-4 py-3 text-sm hover:bg-muted" onClick={() => setUserMenuOpen(false)} role="menuitem" to="/profile">Мой профиль</Link>
                     <Link className="block border-t border-border px-4 py-3 text-sm hover:bg-muted" onClick={() => setUserMenuOpen(false)} role="menuitem" to="/cards">Мои визитки</Link>
+                    <button
+                      className="block w-full border-t border-border px-4 py-3 text-left text-sm hover:bg-muted"
+                      onClick={() => void logout()}
+                      role="menuitem"
+                      type="button"
+                    >
+                      Выйти
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -104,7 +118,7 @@ export function RootLayout() {
                   className={({ isActive }) =>
                     cn(
                       'rounded-md px-3 py-3 text-sm font-medium',
-                      isActive ? 'bg-accent text-primary' : 'hover:bg-muted',
+                      isActive || (item.to === '/open' && pathname.startsWith('/card/')) ? 'bg-accent text-primary' : 'hover:bg-muted',
                     )
                   }
                   key={item.to}
@@ -116,12 +130,24 @@ export function RootLayout() {
               ))}
               <NavLink className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted" onClick={() => setMobileMenuOpen(false)} to="/profile">Мой профиль</NavLink>
               <NavLink className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted" onClick={() => setMobileMenuOpen(false)} to="/cards">Мои визитки</NavLink>
+              {user ? (
+                <button className="rounded-md px-3 py-3 text-left text-sm font-medium hover:bg-muted" onClick={() => void logout()} type="button">Выйти</button>
+              ) : (
+                <button className="rounded-md px-3 py-3 text-left text-sm font-medium hover:bg-muted" onClick={() => { setAuthMode('login'); setMobileMenuOpen(false) }} type="button">Войти</button>
+              )}
             </div>
           </nav>
         ) : null}
       </header>
       <Outlet />
-      <AuthDialog mode={authMode} onClose={() => setAuthMode(null)} onModeChange={setAuthMode} />
+      <AuthDialog
+        mode={authMode ?? requestedAuthMode}
+        onClose={() => {
+          setAuthMode(null)
+          if (requestedAuthMode) navigate('/', { replace: true })
+        }}
+        onModeChange={setAuthMode}
+      />
     </div>
   )
 }

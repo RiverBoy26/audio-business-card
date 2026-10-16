@@ -1,7 +1,7 @@
 package audio.business.sound.voice;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnResource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,7 +12,7 @@ import java.nio.file.Path;
 @Configuration(proxyBeanMethods = false)
 public class VoiceRecognitionConfiguration {
     @Bean(destroyMethod = "close")
-    @ConditionalOnProperty(name = "voice.model-directory")
+    @ConditionalOnResource(resources = "file:${voice.model-directory:models/gigaam-v2}/encoder.int8.onnx")
     SherpaOnnxTranscriber speechTranscriber(
             @Value("${voice.model-directory}") String modelDirectory,
             @Value("${voice.ffmpeg:ffmpeg}") String ffmpeg,
@@ -21,7 +21,7 @@ public class VoiceRecognitionConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "voice.model-directory")
+    @ConditionalOnResource(resources = "file:${voice.model-directory:models/gigaam-v2}/encoder.int8.onnx")
     VoiceProfileService voiceProfileService(SherpaOnnxTranscriber transcriber) {
         return new VoiceProfileService(transcriber, new ProfileValidator());
     }

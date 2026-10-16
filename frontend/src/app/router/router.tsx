@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom'
 
 import { RootLayout } from '@/app/router/root-layout'
 import { RouteLoading } from '@/app/router/route-loading'
+import { ProtectedRoute } from '@/features/auth/ui/protected-route'
 import { RouteErrorPage } from '@/pages/error/ui/route-error-page'
 
 export const router = createBrowserRouter([
@@ -19,15 +20,6 @@ export const router = createBrowserRouter([
         },
       },
       {
-        path: 'create',
-        lazy: async () => {
-          const { CreateCardPage } = await import(
-            '@/pages/create-card/ui/create-card-page'
-          )
-          return { Component: CreateCardPage }
-        },
-      },
-      {
         path: 'open',
         lazy: async () => {
           const { OpenCardPage } = await import('@/pages/open-card/ui/open-card-page')
@@ -35,20 +27,43 @@ export const router = createBrowserRouter([
         },
       },
       {
-        path: 'cards',
+        path: 'card/:cardId',
         lazy: async () => {
-          const { MyCardsPage } = await import(
-            '@/pages/my-cards/ui/my-cards-page'
-          )
-          return { Component: MyCardsPage }
+          const { PublicCardPage } = await import('@/pages/open-card/ui/open-card-page')
+          return { Component: PublicCardPage }
         },
       },
       {
-        path: 'profile',
-        lazy: async () => {
-          const { ProfilePage } = await import('@/pages/profile/ui/profile-page')
-          return { Component: ProfilePage }
-        },
+        Component: ProtectedRoute,
+        children: [
+          {
+            path: 'create',
+            lazy: async () => {
+              const { CreateCardPage } = await import(
+                '@/pages/create-card/ui/create-card-page'
+              )
+              return { Component: CreateCardPage }
+            },
+          },
+          {
+            path: 'cards',
+            lazy: async () => {
+              const { MyCardsPage } = await import(
+                '@/pages/my-cards/ui/my-cards-page'
+              )
+              return { Component: MyCardsPage }
+            },
+          },
+          {
+            path: 'profile',
+            lazy: async () => {
+              const { ProfilePage } = await import(
+                '@/pages/profile/ui/profile-page'
+              )
+              return { Component: ProfilePage }
+            },
+          },
+        ],
       },
       {
         path: '*',

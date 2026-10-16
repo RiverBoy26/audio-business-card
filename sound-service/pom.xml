@@ -33,6 +33,18 @@
             <version>${sherpa-onnx.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.github.k2-fsa.sherpa-onnx</groupId>
+            <artifactId>sherpa-onnx-native-lib-win-x64</artifactId>
+            <version>${sherpa-onnx.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.k2-fsa.sherpa-onnx</groupId>
+            <artifactId>sherpa-onnx-native-lib-linux-x64</artifactId>
+            <version>${sherpa-onnx.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
@@ -67,37 +79,6 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <profiles>
-        <profile>
-            <id>sherpa-windows-x64</id>
-            <activation>
-                <os><family>Windows</family><arch>amd64</arch></os>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.github.k2-fsa.sherpa-onnx</groupId>
-                    <artifactId>sherpa-onnx-native-lib-win-x64</artifactId>
-                    <version>${sherpa-onnx.version}</version>
-                    <scope>runtime</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>sherpa-linux-x64</id>
-            <activation>
-                <os><family>Unix</family><arch>amd64</arch></os>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.github.k2-fsa.sherpa-onnx</groupId>
-                    <artifactId>sherpa-onnx-native-lib-linux-x64</artifactId>
-                    <version>${sherpa-onnx.version}</version>
-                    <scope>runtime</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
 
     <build>
         <plugins>

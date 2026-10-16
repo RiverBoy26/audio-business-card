@@ -1,167 +1,118 @@
-import { Mic, Pencil, UserRound } from 'lucide-react'
-import { useState, type KeyboardEvent } from 'react'
+import { ImagePlus, Mic, Pencil, UserRound, X } from 'lucide-react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 
 import type { CardDraft } from '@/entities/audio-card/model/types'
-import { cn } from '@/shared/lib/cn'
+import { CardImage } from '@/entities/audio-card/ui/card-image'
 import { Button } from '@/shared/ui/button'
 import { Field, SelectField } from '@/shared/ui/field'
-import { Tag } from '@/shared/ui/tag'
-
-type DataSource = 'profile' | 'manual' | 'voice'
+import { VoiceProfileRecorder } from '@/features/card-editor/ui/voice-profile-recorder'
 
 type ProfileDataFormProps = {
+  avatarUrl: string | null
   draft: CardDraft
   onChange: (draft: CardDraft) => void
 }
 
-const sourceOptions = [
-  { icon: UserRound, id: 'profile' as const, label: 'Из профиля' },
-  { icon: Pencil, id: 'manual' as const, label: 'Вручную' },
-  { icon: Mic, id: 'voice' as const, label: 'Голосом' },
-]
+type InputMode = 'profile' | 'manual' | 'voice'
 
-export function ProfileDataForm({ draft, onChange }: ProfileDataFormProps) {
-  const [source, setSource] = useState<DataSource>('profile')
-  const [skillInput, setSkillInput] = useState('')
-  const profileLocked = source === 'profile'
+export function ProfileDataForm({ avatarUrl, draft, onChange }: ProfileDataFormProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [inputMode, setInputMode] = useState<InputMode>('profile')
+  const [isAddingSkill, setIsAddingSkill] = useState(false)
+  const [newSkill, setNewSkill] = useState('')
+  const [skillError, setSkillError] = useState<string | null>(null)
 
-  function updateField<Key extends keyof CardDraft>(
-    key: Key,
-    value: CardDraft[Key],
-  ) {
+  useEffect(() => {
+    const previewUrl = draft.photoFile ? draft.photoUrl : null
+    return () => {
+      if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl)
+    }
+  }, [draft.photoFile, draft.photoUrl])
+
+  function update<Key extends keyof CardDraft>(key: Key, value: CardDraft[Key]) {
     onChange({ ...draft, [key]: value })
   }
 
-  function addSkill(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key !== 'Enter') return
-    event.preventDefault()
+  function selectPhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    onChange({ ...draft, photoFile: file, photoUrl: URL.createObjectURL(file) })
+  }
 
-    const value = skillInput.trim()
-    if (!value || draft.skills.includes(value)) return
-
-    updateField('skills', [...draft.skills, value])
-    setSkillInput('')
+  function addSkill() {
+    const skill = newSkill.trim().replace(/\s+/g, ' ')
+    if (!skill) {
+      setSkillError('Введите название технологии.')
+      return
+    }
+    if (draft.skills.some((item) => item.toLocaleLowerCase() === skill.toLocaleLowerCase())) {
+      setSkillError('Эта технология уже добавлена.')
+      return
+    }
+    if (draft.skills.length >= 20) {
+      setSkillError('Можно добавить не более 20 технологий.')
+      return
+    }
+    update('skills', [...draft.skills, skill])
+    setNewSkill('')
+    setSkillError(null)
+    setIsAddingSkill(false)
   }
 
   return (
-    <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <section className="rounded-xl border border-border bg-card p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold">Данные визитки</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Выберите, как заполнить основную информацию.
-          </p>
+          <h2 className="text-lg font-semibold">Данные визитки</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Выберите, как заполнить основную информацию.</p>
         </div>
-        {source === 'profile' ? (
-          <span className="rounded-md bg-accent px-2 py-1 text-xs font-medium text-primary">
-            Синхронизировано
-          </span>
-        ) : null}
+        <span className="rounded-full bg-accent px-3 py-1 text-[11px] font-medium text-primary">Синхронизировано</span>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-md border border-border">
-        {sourceOptions.map((option) => {
-          const Icon = option.icon
-          const selected = option.id === source
-
-          return (
-            <button
-              aria-pressed={selected}
-              className={cn(
-                'flex h-9 items-center justify-center gap-1.5 border-r border-border px-2 text-xs font-medium transition last:border-r-0 hover:bg-muted focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
-                selected && 'bg-accent text-primary',
-              )}
-              key={option.id}
-              onClick={() => setSource(option.id)}
-              type="button"
-            >
-              <Icon aria-hidden="true" className="size-3.5" />
-              <span className="hidden sm:inline">{option.label}</span>
-            </button>
-          )
-        })}
+      <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-lg border border-border">
+        <button className={`flex h-10 items-center justify-center gap-2 border-r border-border text-xs transition ${inputMode === 'profile' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('profile')} type="button"><UserRound className="size-4" /> Из профиля</button>
+        <button className={`flex h-10 items-center justify-center gap-2 border-r border-border text-xs transition ${inputMode === 'manual' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('manual')} type="button"><Pencil className="size-4" /> Вручную</button>
+        <button className={`flex h-10 items-center justify-center gap-2 text-xs transition ${inputMode === 'voice' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('voice')} type="button"><Mic className="size-4" /> Голосом</button>
       </div>
 
-      {source === 'voice' ? (
-        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg bg-accent p-3">
-          <Button size="sm">
-            <Mic aria-hidden="true" className="size-4" />
-            Записать данные
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            Эта запись не попадёт в визитку.
-          </p>
-        </div>
-      ) : null}
+      {inputMode === 'voice' ? <VoiceProfileRecorder draft={draft} onChange={onChange} /> : null}
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <Field
-          disabled
-          id="full-name"
-          label="ФИО (из профиля)"
-          readOnly
-          value={draft.fullName}
-        />
-        <Field
-          disabled={profileLocked}
-          id="specialty"
-          label="Специальность"
-          onChange={(event) => updateField('specialty', event.target.value)}
-          value={draft.specialty}
-        />
-        <SelectField
-          disabled={profileLocked}
-          id="experience"
-          label="Опыт"
-          onChange={(event) => updateField('experience', event.target.value)}
-          value={draft.experience}
-        >
-          <option>Без опыта</option>
-          <option>До 1 года</option>
-          <option>1 год</option>
-          <option>2 года</option>
-          <option>3 года и больше</option>
+        <Field disabled={inputMode !== 'manual'} id="card-full-name" label="ФИО (из профиля)" onChange={(event) => update('fullName', event.target.value)} placeholder="Имя Фамилия" value={draft.fullName} />
+        <Field disabled={inputMode === 'profile'} id="card-specialty" label="Специальность" maxLength={5000} onChange={(event) => update('description', event.target.value)} placeholder="Бэкенд-разработчик" value={draft.description} />
+        <SelectField id="experience-years" label="Опыт" onChange={(event) => update('experienceYears', Number(event.target.value))} value={draft.experienceYears}>
+          <option value={0}>Без опыта</option>
+          {Array.from({ length: 10 }, (_, index) => index + 1).map((years) => <option key={years} value={years}>{years} {years === 1 ? 'год' : years < 5 ? 'года' : 'лет'}</option>)}
         </SelectField>
-        <Field
-          disabled={profileLocked}
-          id="desired-role"
-          label="Желаемая должность"
-          onChange={(event) => updateField('desiredRole', event.target.value)}
-          value={draft.desiredRole}
-        />
+        <Field id="desired-position" label="Желаемая должность" maxLength={150} onChange={(event) => update('title', event.target.value)} placeholder="Junior Python Developer" required value={draft.title} />
       </div>
 
-      <div className="mt-4">
-        <label className="text-xs font-medium" htmlFor="skill-input">
-          Стек
-        </label>
+      <div className="mt-5">
+        <p className="text-xs font-medium">Стек</p>
         <div className="mt-2 flex flex-wrap gap-2">
-          {draft.skills.map((skill) => (
-            <Tag
-              key={skill}
-              onRemove={
-                profileLocked
-                  ? undefined
-                  : () =>
-                      updateField(
-                        'skills',
-                        draft.skills.filter((item) => item !== skill),
-                      )
-              }
-            >
-              {skill}
-            </Tag>
-          ))}
-          {profileLocked ? null : (
-            <input
-              className="h-7 min-w-24 flex-1 rounded-md border border-dashed border-border bg-card px-2 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-              id="skill-input"
-              onChange={(event) => setSkillInput(event.target.value)}
-              onKeyDown={addSkill}
-              placeholder="Навык + Enter"
-              value={skillInput}
-            />
+          {draft.skills.map((skill) => <span className="inline-flex items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-xs" key={skill}>{skill}<button aria-label={`Убрать ${skill}`} className="text-muted-foreground hover:text-foreground" onClick={() => update('skills', draft.skills.filter((item) => item !== skill))} type="button"><X className="size-3" /></button></span>)}
+          {isAddingSkill ? (
+            <form className="flex h-8 overflow-hidden rounded-lg border border-primary/50 bg-card" onSubmit={(event) => { event.preventDefault(); addSkill() }}>
+              <input aria-label="Новая технология" autoFocus className="w-32 px-2.5 text-xs outline-none" maxLength={50} onChange={(event) => { setNewSkill(event.target.value); setSkillError(null) }} onKeyDown={(event) => { if (event.key === 'Escape') { setIsAddingSkill(false); setNewSkill(''); setSkillError(null) } }} placeholder="Например, Java" value={newSkill} />
+              <button className="border-l border-border px-2 text-xs font-medium text-primary hover:bg-accent" type="submit">Добавить</button>
+            </form>
+          ) : (
+            <button className="rounded-lg border border-dashed border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:border-primary hover:text-primary" onClick={() => setIsAddingSkill(true)} type="button">+ Добавить</button>
           )}
+        </div>
+        {skillError ? <p className="mt-2 text-xs text-destructive">{skillError}</p> : null}
+      </div>
+
+      <div className="mt-5 border-t border-border pt-4">
+        <div className="flex items-center gap-3">
+          {draft.photoUrl ? <CardImage alt="Выбранное фото" className="size-12 rounded-lg bg-muted object-cover" src={draft.photoUrl} /> : <div className="flex size-12 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">Фото</div>}
+          <div><p className="text-xs font-medium">Фотография карточки</p><p className="mt-1 text-[11px] text-muted-foreground">JPG, PNG или WEBP, до 5 МБ.</p></div>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <input accept="image/jpeg,image/png,image/webp" className="hidden" onChange={selectPhoto} ref={inputRef} type="file" />
+          <Button onClick={() => inputRef.current?.click()} size="sm" type="button" variant="outline"><ImagePlus className="size-4" />Загрузить с устройства</Button>
+          <Button disabled={!avatarUrl} onClick={() => avatarUrl && onChange({ ...draft, photoFile: null, photoUrl: avatarUrl })} size="sm" type="button" variant="outline"><UserRound className="size-4" />Взять аватар профиля</Button>
         </div>
       </div>
     </section>

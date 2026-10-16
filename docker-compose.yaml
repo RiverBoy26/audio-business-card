@@ -80,6 +80,10 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
 
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      APP_AVATAR_STORAGE_DIR: /app/storage/avatars
+
+    volumes:
+      - avatar_storage:/app/storage
 
     depends_on:
       auth-db:
@@ -101,10 +105,18 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://card-db:5432/card_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      APP_CARD_IMAGE_STORAGE_DIR: /app/storage/card-images
+      APP_CARD_DOCUMENT_STORAGE_DIR: /app/storage/card-documents
+      SOUND_SERVICE_URL: http://sound-service:8083
+
+    volumes:
+      - card_image_storage:/app/storage
 
     depends_on:
       card-db:
         condition: service_healthy
+      sound-service:
+        condition: service_started
 
     networks:
       - backend
@@ -124,9 +136,12 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
 
       APP_MUSIC_STORAGE_DIR: /app/storage/music
+      APP_VOICE_STORAGE_DIR: /app/storage/voice
+      VOICE_MODEL_DIRECTORY: /app/models/gigaam-v2
 
     volumes:
       - audio_storage:/app/storage
+      - ./models/gigaam-v2:/app/models/gigaam-v2:ro
 
     depends_on:
       sound-db:
@@ -169,3 +184,5 @@ volumes:
   card_db_data:
   sound_db_data:
   audio_storage:
+  avatar_storage:
+  card_image_storage:
