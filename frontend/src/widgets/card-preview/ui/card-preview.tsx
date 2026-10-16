@@ -10,6 +10,7 @@ import { getMusicBlob, getMusicFiles } from '@/entities/music/api/music-api'
 import { getVoiceRecordingBlob, getVoiceRecordings } from '@/entities/voice-recording/api/voice-recording-api'
 import { Button } from '@/shared/ui/button'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
+import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
 
 type CardPreviewProps = {
   cardId?: string
@@ -41,6 +42,7 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
   const voiceQuery = useQuery({ queryKey: ['voice-recordings'], queryFn: getVoiceRecordings })
   const playersRef = useRef<{ key: string; items: HTMLAudioElement[]; urls: string[] } | null>(null)
   const requestRef = useRef(0)
+  const playbackOwnerRef = useRef(createPlaybackOwner())
   const [playingKey, setPlayingKey] = useState<string | null>(null)
   const [position, setPosition] = useState({ key: '', current: 0, duration: 0 })
   const [error, setError] = useState<string | null>(null)
@@ -67,6 +69,12 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
     }
   }, [key])
 
+  useEffect(() => onOtherPlayback(playbackOwnerRef.current, () => {
+    requestRef.current += 1
+    playersRef.current?.items.forEach((item) => item.pause())
+    setPlayingKey(null)
+  }), [])
+
   useEffect(() => {
     const players = playersRef.current
     if (!players || players.key !== key) return
@@ -74,14 +82,25 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
     if (music) players.items[players.items.length - 1].volume = draft.musicVolume / 100
   }, [draft.voiceVolume, draft.musicVolume, key, recording, music])
 
+  useEffect(() => {
+    const players = playersRef.current
+    if (!players || !music) return
+    const voicePlayer = recording ? players.items[0] : null
+    const musicPlayer = players.items[players.items.length - 1]
+    if (Number.isFinite(musicPlayer.duration) && musicPlayer.duration > 0) {
+      musicPlayer.currentTime = (draft.musicStartSeconds + (voicePlayer?.currentTime ?? 0)) % musicPlayer.duration
+    }
+  }, [draft.musicStartSeconds, music, recording])
+
   async function togglePlayback() {
     if (isPlaying) {
+      requestRef.current += 1
       playersRef.current?.items.forEach((item) => item.pause())
       setPlayingKey(null)
       return
     }
     setError(null)
-    const request = requestRef.current
+    const request = ++requestRef.current
     try {
       let players = playersRef.current
       if (!players || players.key !== key) {
@@ -97,8 +116,14 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
         if (voiceBlob) items[0].volume = draft.voiceVolume / 100
         if (musicBlob) items[items.length - 1].volume = draft.musicVolume / 100
         const primary = items[0]
+        const musicPlayer = musicBlob ? items[items.length - 1] : null
+        const setMusicTime = (voiceTime: number) => {
+          if (!musicPlayer || !Number.isFinite(musicPlayer.duration) || musicPlayer.duration <= 0) return
+          musicPlayer.currentTime = (draft.musicStartSeconds + voiceTime) % musicPlayer.duration
+        }
         primary.ontimeupdate = () => setPosition({ key, current: primary.currentTime, duration: primary.duration || 0 })
         primary.onloadedmetadata = () => setPosition({ key, current: primary.currentTime, duration: primary.duration || 0 })
+        if (musicPlayer) musicPlayer.onloadedmetadata = () => setMusicTime(primary.currentTime)
         primary.onended = () => {
           items.forEach((item) => item.pause())
           setPlayingKey(null)
@@ -106,6 +131,7 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
         players = { key, items, urls }
         playersRef.current = players
       }
+      announcePlayback(playbackOwnerRef.current)
       await Promise.all(players.items.map((item) => item.play()))
       if (request === requestRef.current) setPlayingKey(key)
     } catch {
@@ -121,7 +147,7 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
     const nextTime = duration * percent / 100
     players.items[0].currentTime = nextTime
     if (players.items.length > 1 && Number.isFinite(players.items[1].duration) && players.items[1].duration > 0) {
-      players.items[1].currentTime = nextTime % players.items[1].duration
+      players.items[1].currentTime = (draft.musicStartSeconds + nextTime) % players.items[1].duration
     }
     setPosition({ key, current: nextTime, duration })
   }
@@ -130,7 +156,7 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
     <div className="mt-5 border-t border-border pt-4">
       <div className="flex items-center gap-3">
         <button aria-label={isPlaying ? 'Пауза' : 'Воспроизвести аудио визитки'} className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-45" disabled={!canPlay} onClick={() => void togglePlayback()} type="button">{isPlaying ? <Pause className="size-5 fill-current" /> : <Play className="ml-0.5 size-5 fill-current" />}</button>
-        <AudioWaveform className="h-11" progress={duration ? current / duration : 0} />
+        <AudioWaveform className="h-11" onSeek={duration ? (progress) => seek(progress * 100) : undefined} progress={duration ? current / duration : 0} />
         <span className="shrink-0 text-[10px] text-muted-foreground">{formatDuration(current)} / {formatDuration(duration)}</span>
       </div>
       <label className="mt-2 block text-[11px] text-muted-foreground">

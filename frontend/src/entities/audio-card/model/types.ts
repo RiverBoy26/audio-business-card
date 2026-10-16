@@ -32,6 +32,7 @@ export type CardDraft = {
   published: boolean
   publicCode: string | null
   musicVolume: number
+  musicStartSeconds: number
   musicId: string | null
   photoFile: File | null
   photoUrl: string
@@ -59,6 +60,7 @@ export const initialCardDraft: CardDraft = {
   skills: ['Python', 'FastAPI', 'PostgreSQL', 'Docker'],
   voiceVolume: 100,
   musicVolume: 30,
+  musicStartSeconds: 0,
   musicId: null,
   voiceRecordingId: null,
 }
@@ -75,6 +77,7 @@ export type PublicAudioCard = {
   id: string
   musicUrl: string | null
   musicVolume: number
+  musicStartSeconds: number
   photoUrl: string | null
   publishedAt: string
   publicCode: string
