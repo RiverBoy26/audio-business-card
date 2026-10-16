@@ -1,7 +1,7 @@
 import type { AudioCard, CardDraft } from '@/entities/audio-card/model/types'
 
 export const initialCardDraft: CardDraft = {
-  fullName: 'Марк Соколов',
+  fullName: 'Марк Сергеевич Соколов',
   specialty: 'Бэкенд-разработчик',
   experience: '1 год',
   desiredRole: 'Junior Python Developer',

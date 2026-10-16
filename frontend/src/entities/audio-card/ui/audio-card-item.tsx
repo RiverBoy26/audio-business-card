@@ -2,7 +2,6 @@ import {
   Copy,
   Download,
   FilePlus2,
-  FileText,
   MoreVertical,
   Pause,
   Pencil,
@@ -98,7 +97,7 @@ export function AudioCardItem({ card }: AudioCardItemProps) {
       >
         <span className="flex min-w-0 items-center gap-2">
           {card.pdfName ? (
-            <FileText aria-hidden="true" className="size-4 shrink-0 text-primary" />
+            <img alt="PDF" className="size-6 shrink-0 object-contain" src="/assets/pdf.png" />
           ) : (
             <FilePlus2 aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
           )}

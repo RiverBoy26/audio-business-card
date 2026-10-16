@@ -23,7 +23,7 @@ const sourceOptions = [
 export function ProfileDataForm({ draft, onChange }: ProfileDataFormProps) {
   const [source, setSource] = useState<DataSource>('profile')
   const [skillInput, setSkillInput] = useState('')
-  const disabled = source === 'profile'
+  const profileLocked = source === 'profile'
 
   function updateField<Key extends keyof CardDraft>(
     key: Key,
@@ -96,21 +96,21 @@ export function ProfileDataForm({ draft, onChange }: ProfileDataFormProps) {
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <Field
-          disabled={disabled}
+          disabled
           id="full-name"
-          label="ФИО"
-          onChange={(event) => updateField('fullName', event.target.value)}
+          label="ФИО (из профиля)"
+          readOnly
           value={draft.fullName}
         />
         <Field
-          disabled={disabled}
+          disabled={profileLocked}
           id="specialty"
           label="Специальность"
           onChange={(event) => updateField('specialty', event.target.value)}
           value={draft.specialty}
         />
         <SelectField
-          disabled={disabled}
+          disabled={profileLocked}
           id="experience"
           label="Опыт"
           onChange={(event) => updateField('experience', event.target.value)}
@@ -123,7 +123,7 @@ export function ProfileDataForm({ draft, onChange }: ProfileDataFormProps) {
           <option>3 года и больше</option>
         </SelectField>
         <Field
-          disabled={disabled}
+          disabled={profileLocked}
           id="desired-role"
           label="Желаемая должность"
           onChange={(event) => updateField('desiredRole', event.target.value)}
@@ -140,7 +140,7 @@ export function ProfileDataForm({ draft, onChange }: ProfileDataFormProps) {
             <Tag
               key={skill}
               onRemove={
-                disabled
+                profileLocked
                   ? undefined
                   : () =>
                       updateField(
@@ -152,7 +152,7 @@ export function ProfileDataForm({ draft, onChange }: ProfileDataFormProps) {
               {skill}
             </Tag>
           ))}
-          {disabled ? null : (
+          {profileLocked ? null : (
             <input
               className="h-7 min-w-24 flex-1 rounded-md border border-dashed border-border bg-card px-2 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
               id="skill-input"

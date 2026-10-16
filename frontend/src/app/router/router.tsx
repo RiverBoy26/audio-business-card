@@ -28,6 +28,13 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: 'open',
+        lazy: async () => {
+          const { OpenCardPage } = await import('@/pages/open-card/ui/open-card-page')
+          return { Component: OpenCardPage }
+        },
+      },
+      {
         path: 'cards',
         lazy: async () => {
           const { MyCardsPage } = await import(

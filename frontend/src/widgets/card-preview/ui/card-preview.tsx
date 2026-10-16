@@ -1,7 +1,7 @@
 import {
   Check,
   Copy,
-  FileText,
+  Download,
   Link2,
   Pause,
   Play,
@@ -97,13 +97,12 @@ export function CardPreview({ draft }: CardPreviewProps) {
 
         <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
           <div className="flex min-w-0 items-center gap-2">
-            <FileText aria-hidden="true" className="size-4 shrink-0 text-primary" />
+            <img alt="PDF" className="size-7 shrink-0 object-contain" src="/assets/pdf.png" />
             <span className="truncate text-xs font-medium">Резюме.pdf</span>
           </div>
-          <span className="shrink-0 text-[10px] text-muted-foreground">
-            ID: MK7A2
-          </span>
+          <Download aria-hidden="true" className="size-4 shrink-0 text-primary" />
         </div>
+        <p className="mt-2 text-right text-[10px] text-muted-foreground">ID: MK7A2</p>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
@@ -119,14 +118,14 @@ export function CardPreview({ draft }: CardPreviewProps) {
           QR-код
         </Button>
       </div>
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-        <Button onClick={() => showNotice('Визитка опубликована')}>
-          <Send aria-hidden="true" className="size-4" />
-          Опубликовать
-        </Button>
+      <div className="mt-2 grid gap-2">
         <Button onClick={() => showNotice('Черновик сохранён')} variant="outline">
           <Save aria-hidden="true" className="size-4" />
-          Сохранить
+          Сохранить как черновик
+        </Button>
+        <Button onClick={() => showNotice('Визитка опубликована')}>
+          <Send aria-hidden="true" className="size-4" />
+          Опубликовать визитку
         </Button>
       </div>
 
