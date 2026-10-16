@@ -22,25 +22,6 @@ function extensionForMime(mimeType: string) {
   return 'webm'
 }
 
-const recordingExamples = [
-  {
-    title: 'Бэкенд с точным стажем',
-    text: 'Я бэкенд-разработчик. В работе использую Java, Spring Boot, PostgreSQL, Redis, Docker и Git. Опыт работы — два года и шесть месяцев. Хочу работать Middle Java-разработчиком.',
-  },
-  {
-    title: 'Фронтенд с диапазоном стажа',
-    text: 'Я фронтенд-разработчик. Работаю с JavaScript, TypeScript, React, React Native, GitHub и GitLab. Мой опыт — от одного года до трёх лет. Ищу работу Frontend-разработчиком.',
-  },
-  {
-    title: 'DevOps с английскими названиями',
-    text: 'Я DevOps-инженер. Использую Linux, Bash, Docker, Kubernetes, Nginx, GitLab CI/CD, Ansible и Terraform. Опыт работы — три года и семь месяцев. Хочу работать Senior DevOps-инженером.',
-  },
-  {
-    title: 'Отрицание и дробный стаж',
-    text: 'Я бэкенд-разработчик. Работаю не с Java, а с Python, Django, FastAPI и PostgreSQL. Мой стаж — полтора года. Хочу работать Python-разработчиком.',
-  },
-]
-
 export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
   const queryClient = useQueryClient()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -61,7 +42,7 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
   const [playing, setPlaying] = useState(false)
   const [musicPlayingId, setMusicPlayingId] = useState<string | null>(null)
   const [musicError, setMusicError] = useState<string | null>(null)
-  const [dialogStage, setDialogStage] = useState<'instructions' | 'recording' | 'review' | null>(null)
+  const [dialogStage, setDialogStage] = useState<'recording' | 'review' | null>(null)
   const [recorderError, setRecorderError] = useState<string | null>(null)
   const voiceQuery = useQuery({ queryKey: ['voice-recordings'], queryFn: getVoiceRecordings })
   const musicQuery = useQuery({ queryKey: ['music'], queryFn: getMusicFiles })
@@ -173,11 +154,6 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
     setDialogStage(null)
   }
 
-  async function beginRecording() {
-    setDialogStage(null)
-    if (await startRecording()) setDialogStage('recording')
-  }
-
   async function recordAgain() {
     audioRef.current?.pause()
     setPlaying(false)
@@ -257,10 +233,10 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
 
   return (
     <>
-    <section className="rounded-xl border border-border bg-card p-5">
+    <section className="min-w-0 rounded-xl border border-border bg-card p-5">
       <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-semibold">Голосовая заметка</h2>{isRecording ? <span className="flex items-center gap-2 text-xs text-destructive"><span className="size-2 animate-pulse rounded-full bg-destructive" />Идёт запись · {formatDuration(duration)}</span> : null}</div>
       <div className="mt-3 flex flex-wrap gap-0">
-        <Button className="rounded-r-none" onClick={() => setDialogStage('instructions')} type="button" variant="outline"><Mic className="size-4 text-primary" />Записать</Button>
+        <Button className="rounded-r-none" onClick={async () => { if (await startRecording()) setDialogStage('recording') }} type="button" variant="outline"><Mic className="size-4 text-primary" />Записать</Button>
         <input accept=".webm,.mp3,.wav,.ogg,.m4a,.aac,audio/webm,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/aac" className="hidden" onChange={selectFile} ref={inputRef} type="file" />
         <Button className="rounded-l-none border-l-0" disabled={isRecording || uploadMutation.isPending} onClick={() => inputRef.current?.click()} type="button" variant="outline"><Upload className="size-4" />Загрузить</Button>
         {recordedFile ? <Button className="ml-2" disabled={uploadMutation.isPending} onClick={() => uploadMutation.mutate({ file: recordedFile, seconds: duration })} type="button"><CloudUpload className="size-4" />{uploadMutation.isPending ? 'Сохраняем…' : 'Сохранить запись'}</Button> : null}
@@ -288,22 +264,6 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
       {recorderError || uploadMutation.isError || voiceQuery.isError ? <p className="mt-3 text-xs text-destructive">{recorderError ?? 'Не удалось сохранить или загрузить запись.'}</p> : null}
       {latestRecording?.processingStatus === 'READY' && !recordedFile ? <p className="mt-3 text-xs text-muted-foreground">Запись сохранена и готова к последующей обработке моделью.</p> : null}
     </section>
-    <Modal className="max-w-2xl px-6 pb-8 pt-7 sm:px-8" onClose={() => setDialogStage(null)} open={dialogStage === 'instructions'} title="Инструкции по записи">
-      <BrandLogo className="mb-8" imageClassName="w-56 sm:w-64" />
-      <div className="text-center">
-        <h2 className="text-2xl font-semibold sm:text-3xl">Инструкции по записи</h2>
-        <p className="mt-3 text-sm text-muted-foreground">Говорите спокойно и назовите специальность, стек, опыт и желаемую должность.</p>
-      </div>
-      <ol className="mt-7 grid gap-4">
-        {recordingExamples.map((example, index) => (
-          <li key={example.title}>
-            <p className="text-sm font-semibold">{index + 1}. {example.title}</p>
-            <p className="mt-2 border-l-[3px] border-border pl-4 text-sm leading-6 text-muted-foreground">{example.text}</p>
-          </li>
-        ))}
-      </ol>
-      <Button className="mt-7 h-12 w-full text-base" onClick={() => void beginRecording()} type="button">Приступить</Button>
-    </Modal>
     <Modal className="max-w-md px-8 pb-8 pt-7" onClose={cancelRecording} open={dialogStage === 'recording'} title="Идёт запись">
       <BrandLogo className="mx-auto flex justify-center" imageClassName="w-60" />
       <div className="mt-12 text-center">

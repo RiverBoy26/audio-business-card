@@ -120,7 +120,8 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
 
       <div className="mt-5 inline-flex overflow-hidden rounded-lg border border-border bg-card">
         <button
-          className={`flex h-10 items-center gap-2 border-r border-border px-4 text-sm transition ${draft.cardType === 'RESUME' ? 'bg-accent text-primary' : 'hover:bg-muted'}`}
+          aria-pressed={draft.cardType === 'RESUME'}
+          className={`flex h-10 items-center gap-2 border-r border-border px-4 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${draft.cardType === 'RESUME' ? 'bg-accent text-primary' : 'hover:bg-muted'}`}
           onClick={() => setDraft({ ...draft, cardType: 'RESUME' })}
           type="button"
         >
@@ -128,7 +129,8 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
           Для резюме
         </button>
         <button
-          className={`flex h-10 items-center gap-2 px-4 text-sm transition ${draft.cardType === 'PORTFOLIO' ? 'bg-accent text-primary' : 'hover:bg-muted'}`}
+          aria-pressed={draft.cardType === 'PORTFOLIO'}
+          className={`flex h-10 items-center gap-2 px-4 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${draft.cardType === 'PORTFOLIO' ? 'bg-accent text-primary' : 'hover:bg-muted'}`}
           onClick={() => setDraft({ ...draft, cardType: 'PORTFOLIO' })}
           type="button"
         >
@@ -136,9 +138,14 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
           Для портфолио
         </button>
       </div>
+      <p className="mt-2 max-w-2xl text-xs leading-5 text-muted-foreground">
+        {draft.cardType === 'RESUME'
+          ? 'Для резюме укажите должность, на которую откликаетесь, и прикрепите PDF с резюме.'
+          : 'Для портфолио укажите желаемую роль внутри команды и прикрепите PDF с работами.'}
+      </p>
 
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(400px,0.92fr)]">
-        <div className="grid gap-4">
+        <div className="min-w-0 grid gap-4">
           <ProfileDataForm avatarUrl={user?.avatarUrl ?? null} draft={draft} onChange={setDraft} />
           <VoiceStoryEditor draft={draft} onChange={setDraft} />
         </div>
