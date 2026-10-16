@@ -16,6 +16,7 @@ public record RegisterRequest(
 
         String middleName,
 
+        @NotBlank
         LocalDate birthDate,
 
         @NotBlank
