@@ -4,6 +4,8 @@ import audio.business.card.enums.CardType;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 public class AudioCardRequest {
@@ -11,4 +13,6 @@ public class AudioCardRequest {
     private String description;
     private String photoUrl;
     private CardType cardType;
+    private UUID musicId;
+    private String desiredPosition;
 }

@@ -181,4 +181,42 @@ public class AuthServiceImpl implements AuthService {
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
     }
+
+
+    @Transactional
+    public UserResponse updateCurrentUser(
+            UUID userId,
+            UpdateProfileRequest request
+    ) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Пользователь не найден"
+                ));
+
+        String email = normalizeEmail(request.email());
+
+        if (userRepository.existsByEmailIgnoreCaseAndIdNot(
+                email, userId
+        )) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Этот email уже используется"
+            );
+        }
+
+        user.setFirstName(request.firstName().trim());
+        user.setLastName(request.lastName().trim());
+        user.setMiddleName(
+                request.middleName() == null
+                        || request.middleName().isBlank()
+                        ? null
+                        : request.middleName().trim()
+        );
+        user.setBirthDate(request.birthDate());
+        user.setEmail(email);
+        user.setPhone(request.phone().trim());
+
+        return UserResponse.from(user);
+    }
 }
