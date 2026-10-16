@@ -33,7 +33,7 @@ public class AudioCardServiceImp implements AudioCardService {
     @Override
     public AudioCardResponse findById(UUID userId, UUID audioCardId) {
         AudioCard audioCard = audioCardRepository.findByIdAndUserId(audioCardId, userId)
-                        .orElseThrow(() -> new ResponseStatusException(
+                .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Аудиовизитка не найдена!"));
 
         return AudioCardMapper.toResponse(audioCard);
@@ -71,7 +71,9 @@ public class AudioCardServiceImp implements AudioCardService {
             card.setPhotoUrl(newAudioCard.getPhotoUrl());
         }
 
-
+        if (newAudioCard.getCardType() != null) {
+            card.setCardType(newAudioCard.getCardType());
+        }
 
         AudioCard updateCard = audioCardRepository.save(card);
 

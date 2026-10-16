@@ -1,5 +1,6 @@
 package audio.business.card.dto.response;
 
+import audio.business.card.enums.CardType;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,4 +13,5 @@ public class AudioCardResponse {
     private String title;
     private String description;
     private String photoUrl;
+    private CardType cardType;
 }
