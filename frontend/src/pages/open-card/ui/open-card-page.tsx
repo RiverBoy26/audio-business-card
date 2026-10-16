@@ -30,6 +30,8 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
     urls: string[]
     voice: HTMLAudioElement | null
   } | null>(null)
+  const requestRef = useRef(0)
+  const playbackOwnerRef = useRef(createPlaybackOwner())
   const [playing, setPlaying] = useState(false)
   const [position, setPosition] = useState({ current: 0, duration: 0 })
   const [error, setError] = useState<string | null>(null)
@@ -49,20 +51,18 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
     if (players?.music) players.music.volume = card.musicVolume / 100
   }, [card.musicVolume, card.voiceVolume])
 
-  async function toggle() {
-    if (playing) {
-      playersRef.current?.voice?.pause()
-      playersRef.current?.music?.pause()
   useEffect(() => onOtherPlayback(playbackOwnerRef.current, () => {
     requestRef.current += 1
-    playersRef.current?.players.forEach((player) => player.pause())
+    playersRef.current?.voice?.pause()
+    playersRef.current?.music?.pause()
     setPlaying(false)
   }), [])
 
   async function toggle() {
     if (playing) {
       requestRef.current += 1
-      playersRef.current?.players.forEach((player) => player.pause())
+      playersRef.current?.voice?.pause()
+      playersRef.current?.music?.pause()
       setPlaying(false)
       return
     }
@@ -75,6 +75,7 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
           card.voiceUrl ? getPublicCardMedia(card.voiceUrl) : Promise.resolve(null),
           card.musicUrl ? getPublicCardMedia(card.musicUrl) : Promise.resolve(null),
         ])
+        if (request !== requestRef.current) return
         const voiceUrl = voice ? URL.createObjectURL(voice) : null
         const musicUrl = music ? URL.createObjectURL(music) : null
         const voicePlayer = voiceUrl ? new Audio(voiceUrl) : null
@@ -86,17 +87,18 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
           musicPlayer.volume = card.musicVolume / 100
           musicPlayer.loop = Boolean(voicePlayer)
         }
-        
+
         const setMusicTime = (voiceTime: number) => {
-          if (!musicPlayer || !Number.isFinite(musicPlayer.duration) || musicPlayer.duration <= 0) { return }
-          musicPlayer.currentTime = (card.musicStartSeconds + voiceTime) % musicPlayer.duration}
+          if (!musicPlayer || !Number.isFinite(musicPlayer.duration) || musicPlayer.duration <= 0) return
+          moveAudioTo(musicPlayer, (card.musicStartSeconds + voiceTime) % musicPlayer.duration)
+        }
         primary.ontimeupdate = () => setPosition({ current: primary.currentTime, duration: primary.duration || 0 })
         primary.onloadedmetadata = primary.ontimeupdate
         if (musicPlayer) musicPlayer.onloadedmetadata = () => setMusicTime(primary.currentTime)
         primary.onended = () => {
           voicePlayer?.pause()
           musicPlayer?.pause()
-          if (voicePlayer && musicPlayer) moveAudioTo(musicPlayer, 0)
+          if (voicePlayer && musicPlayer) setMusicTime(0)
           setPlaying(false)
         }
         state = {
@@ -109,19 +111,26 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
       }
       if (state.primary.ended || (Number.isFinite(state.primary.duration) && state.primary.currentTime >= state.primary.duration)) {
         moveAudioTo(state.primary, 0)
-        if (state.music) moveAudioTo(state.music, 0)
+        if (state.music && Number.isFinite(state.music.duration) && state.music.duration > 0) {
+          moveAudioTo(state.music, card.musicStartSeconds % state.music.duration)
+        }
         setPosition({ current: 0, duration: state.primary.duration || 0 })
       }
       if (state.voice && state.music && state.voice.currentTime === 0) {
-        moveAudioTo(state.music, 0)
+        if (Number.isFinite(state.music.duration) && state.music.duration > 0) {
+          moveAudioTo(state.music, card.musicStartSeconds % state.music.duration)
+        }
       }
+      announcePlayback(playbackOwnerRef.current)
       await Promise.all([
         ...(state.music ? [state.music.play()] : []),
         ...(state.voice ? [state.voice.play()] : []),
       ])
-      if (request !== requestRef.current) return
-      announcePlayback(playbackOwnerRef.current)
-      await Promise.all(state.players.map((player) => player.play()))
+      if (request !== requestRef.current) {
+        state.voice?.pause()
+        state.music?.pause()
+        return
+      }
       setPlaying(true)
     } catch {
       playersRef.current?.voice?.pause()
@@ -138,7 +147,7 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
     moveAudioTo(state.primary, next)
 
     if (state.voice && state.music && Number.isFinite(state.music.duration) && state.music.duration > 0) {
-      moveAudioTo(state.music,(card.musicStartSeconds + next) % state.music.duration,)
+      moveAudioTo(state.music, (card.musicStartSeconds + next) % state.music.duration)
     }
     setPosition((current) => ({ ...current, current: next }))
   }

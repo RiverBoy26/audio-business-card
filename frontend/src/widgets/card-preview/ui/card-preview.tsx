@@ -83,7 +83,8 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
 
   useEffect(() => onOtherPlayback(playbackOwnerRef.current, () => {
     requestRef.current += 1
-    playersRef.current?.items.forEach((item) => item.pause())
+    playersRef.current?.voice?.pause()
+    playersRef.current?.music?.pause()
     setPlayingKey(null)
   }), [])
 
@@ -97,8 +98,9 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
   useEffect(() => {
     const players = playersRef.current
     if (!players || !music) return
-    const voicePlayer = recording ? players.items[0] : null
-    const musicPlayer = players.items[players.items.length - 1]
+    const voicePlayer = players.voice
+    const musicPlayer = players.music
+    if (!musicPlayer) return
     if (Number.isFinite(musicPlayer.duration) && musicPlayer.duration > 0) {
       musicPlayer.currentTime = (draft.musicStartSeconds + (voicePlayer?.currentTime ?? 0)) % musicPlayer.duration
     }
@@ -133,13 +135,17 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
           musicPlayer.volume = draft.musicVolume / 100
           musicPlayer.loop = Boolean(voicePlayer)
         }
+        const setMusicTime = (voiceTime: number) => {
+          if (!musicPlayer || !Number.isFinite(musicPlayer.duration) || musicPlayer.duration <= 0) return
+          moveAudioTo(musicPlayer, (draft.musicStartSeconds + voiceTime) % musicPlayer.duration)
+        }
         primary.ontimeupdate = () => setPosition({ key, current: primary.currentTime, duration: primary.duration || 0 })
         primary.onloadedmetadata = () => setPosition({ key, current: primary.currentTime, duration: primary.duration || 0 })
         if (musicPlayer) musicPlayer.onloadedmetadata = () => setMusicTime(primary.currentTime)
         primary.onended = () => {
           voicePlayer?.pause()
           musicPlayer?.pause()
-          if (voicePlayer && musicPlayer) moveAudioTo(musicPlayer, 0)
+          if (voicePlayer && musicPlayer) setMusicTime(0)
           setPlayingKey(null)
         }
         players = {
@@ -153,17 +159,27 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
       }
       if (players.primary.ended || (Number.isFinite(players.primary.duration) && players.primary.currentTime >= players.primary.duration)) {
         moveAudioTo(players.primary, 0)
-        if (players.music) moveAudioTo(players.music, 0)
+        if (players.music && Number.isFinite(players.music.duration) && players.music.duration > 0) {
+          moveAudioTo(players.music, draft.musicStartSeconds % players.music.duration)
+        }
         setPosition({ key, current: 0, duration: players.primary.duration || 0 })
       }
       if (players.voice && players.music && players.voice.currentTime === 0) {
-        moveAudioTo(players.music, 0)
+        if (Number.isFinite(players.music.duration) && players.music.duration > 0) {
+          moveAudioTo(players.music, draft.musicStartSeconds % players.music.duration)
+        }
       }
+      announcePlayback(playbackOwnerRef.current)
       await Promise.all([
         ...(players.music ? [players.music.play()] : []),
         ...(players.voice ? [players.voice.play()] : []),
       ])
-      if (request === requestRef.current) setPlayingKey(key)
+      if (request !== requestRef.current) {
+        players.voice?.pause()
+        players.music?.pause()
+        return
+      }
+      setPlayingKey(key)
     } catch {
       playersRef.current?.voice?.pause()
       playersRef.current?.music?.pause()
@@ -179,7 +195,7 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
     moveAudioTo(players.primary, nextTime)
 
     if (players.voice && players.music && Number.isFinite(players.music.duration) && players.music.duration > 0) {
-      moveAudioTo(players.music, (draft.musicStartSeconds + nextTime) % players.music.duration,)
+      moveAudioTo(players.music, (draft.musicStartSeconds + nextTime) % players.music.duration)
     }
     setPosition({ key, current: nextTime, duration })
   }

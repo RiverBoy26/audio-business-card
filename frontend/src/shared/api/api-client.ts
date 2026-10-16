@@ -47,7 +47,10 @@ function createUrl(path: string) {
 async function readError(response: Response) {
   const fallback = `Запрос завершился с ошибкой ${response.status}`
   if (response.status === 413) {
-    return 'Запись слишком большая для отправки. Сделайте её короче и попробуйте снова.'
+    return {
+      fieldErrors: {},
+      message: 'Запись слишком большая для отправки. Сделайте её короче и попробуйте снова.',
+    }
   }
   const contentType = response.headers.get('content-type') ?? ''
 
