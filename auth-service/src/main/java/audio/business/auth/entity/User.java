@@ -51,6 +51,6 @@ public class User {
     @Column(name = "middle_name")
     private String middleName;
 
-    @Column(name = "birth_date")
+    @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
 }
