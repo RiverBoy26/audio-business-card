@@ -11,4 +11,5 @@ public class CardSettingResponse {
     private UUID cardId;
     private Integer voiceVolume;
     private Integer musicVolume;
+    private Integer musicStartSeconds;
 }

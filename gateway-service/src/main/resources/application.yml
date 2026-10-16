@@ -16,7 +16,7 @@ spring:
         - id: card-service
           uri: ${CARD_SERVICE_URL:http://localhost:8082}
           predicates:
-            - Path=/audio-cards,/audio-cards/**,/public/audio-cards/**
+            - Path=/audio-cards,/audio-cards/**,/public/audio-cards/**,/stacks
 
         - id: sound-service
           uri: ${SOUND_SERVICE_URL:http://localhost:8083}

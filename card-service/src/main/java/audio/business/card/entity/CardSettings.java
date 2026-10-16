@@ -38,4 +38,8 @@ public class CardSettings {
     @Max(100)
     @Column(name = "music_volume", nullable = false)
     private Integer musicVolume = 30;
+
+    @Min(0)
+    @Column(name = "music_start_seconds", nullable = false, columnDefinition = "integer default 0")
+    private Integer musicStartSeconds = 0;
 }

@@ -29,9 +29,10 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
   const { user } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const profileFullName = [user?.lastName, user?.firstName, user?.middleName].filter(Boolean).join(' ')
   const [draft, setDraft] = useState(() => ({
     ...loadedDraft,
-    fullName: loadedDraft.fullName || [user?.firstName, user?.middleName, user?.lastName].filter(Boolean).join(' '),
+    fullName: profileFullName || loadedDraft.fullName,
     contactEmail: loadedDraft.contactEmail || user?.email || '',
     contactPhone: loadedDraft.contactPhone || user?.phone || '',
   }))

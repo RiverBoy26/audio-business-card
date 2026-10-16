@@ -9,6 +9,7 @@ import { CardImage } from '@/entities/audio-card/ui/card-image'
 import { Button } from '@/shared/ui/button'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
 import { AsyncState } from '@/shared/ui/async-state'
+import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
 
 function initials(name: string | null) {
   return (name ?? '').trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'АВ'
@@ -20,6 +21,8 @@ function duration(value: number) {
 
 function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
   const playersRef = useRef<{ players: HTMLAudioElement[]; urls: string[] } | null>(null)
+  const requestRef = useRef(0)
+  const playbackOwnerRef = useRef(createPlaybackOwner())
   const [playing, setPlaying] = useState(false)
   const [position, setPosition] = useState({ current: 0, duration: 0 })
   const [error, setError] = useState<string | null>(null)
@@ -30,13 +33,21 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
     playersRef.current?.urls.forEach(URL.revokeObjectURL)
   }, [])
 
+  useEffect(() => onOtherPlayback(playbackOwnerRef.current, () => {
+    requestRef.current += 1
+    playersRef.current?.players.forEach((player) => player.pause())
+    setPlaying(false)
+  }), [])
+
   async function toggle() {
     if (playing) {
+      requestRef.current += 1
       playersRef.current?.players.forEach((player) => player.pause())
       setPlaying(false)
       return
     }
     setError(null)
+    const request = ++requestRef.current
     try {
       let state = playersRef.current
       if (!state) {
@@ -44,14 +55,21 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
           card.voiceUrl ? getPublicCardMedia(card.voiceUrl) : Promise.resolve(null),
           card.musicUrl ? getPublicCardMedia(card.musicUrl) : Promise.resolve(null),
         ])
+        if (request !== requestRef.current) return
         const urls = [voice, music].filter((blob): blob is Blob => blob !== null).map(URL.createObjectURL)
         const players = urls.map((url) => new Audio(url))
         if (voice) players[0].volume = card.voiceVolume / 100
         if (music) players[players.length - 1].volume = card.musicVolume / 100
         if (voice && music) players[1].loop = true
         const primary = players[0]
+        const musicPlayer = music ? players[players.length - 1] : null
+        const setMusicTime = (voiceTime: number) => {
+          if (!musicPlayer || !Number.isFinite(musicPlayer.duration) || musicPlayer.duration <= 0) return
+          musicPlayer.currentTime = (card.musicStartSeconds + voiceTime) % musicPlayer.duration
+        }
         primary.ontimeupdate = () => setPosition({ current: primary.currentTime, duration: primary.duration || 0 })
         primary.onloadedmetadata = primary.ontimeupdate
+        if (musicPlayer) musicPlayer.onloadedmetadata = () => setMusicTime(primary.currentTime)
         primary.onended = () => {
           players.forEach((player) => player.pause())
           setPlaying(false)
@@ -59,6 +77,8 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
         state = { players, urls }
         playersRef.current = state
       }
+      if (request !== requestRef.current) return
+      announcePlayback(playbackOwnerRef.current)
       await Promise.all(state.players.map((player) => player.play()))
       setPlaying(true)
     } catch {
@@ -72,7 +92,7 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
     if (!state || !position.duration) return
     const next = position.duration * percent / 100
     state.players[0].currentTime = next
-    if (state.players.length > 1 && state.players[1].duration) state.players[1].currentTime = next % state.players[1].duration
+    if (state.players.length > 1 && state.players[1].duration) state.players[1].currentTime = (card.musicStartSeconds + next) % state.players[1].duration
     setPosition((current) => ({ ...current, current: next }))
   }
 
@@ -82,7 +102,7 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
         <button aria-label={playing ? 'Пауза' : 'Воспроизвести'} className="flex size-9 shrink-0 items-center justify-center rounded-full border-[3px] border-primary bg-card text-primary transition hover:bg-accent disabled:border-border disabled:text-muted-foreground disabled:opacity-60" disabled={!canPlay} onClick={() => void toggle()} type="button">
           {playing ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}
         </button>
-        <AudioWaveform className="h-10 min-w-0 flex-1" progress={canPlay ? Math.max(position.duration ? position.current / position.duration : 0, 0.62) : 0} />
+        <AudioWaveform className="h-10 min-w-0 flex-1" onSeek={position.duration ? (progress) => seek(progress * 100) : undefined} progress={position.duration ? position.current / position.duration : 0} />
         <span className="shrink-0 text-[10px] text-foreground/75">{duration(position.current)} / {duration(position.duration)}</span>
       </div>
       <input aria-label="Позиция аудио" className="sr-only" disabled={!position.duration} max={100} min={0} onChange={(event) => seek(Number(event.target.value))} type="range" value={position.duration ? position.current / position.duration * 100 : 0} />

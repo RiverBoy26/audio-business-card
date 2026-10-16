@@ -25,6 +25,7 @@ public class PublicAudioCardResponse {
     private Integer experienceYears;
     private Integer voiceVolume;
     private Integer musicVolume;
+    private Integer musicStartSeconds;
     private String voiceUrl;
     private String musicUrl;
     private LocalDateTime publishedAt;

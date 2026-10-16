@@ -1,3 +1,5 @@
+import type { MouseEvent } from 'react'
+
 import { cn } from '@/shared/lib/cn'
 
 const bars = [
@@ -8,18 +10,38 @@ const bars = [
 type AudioWaveformProps = {
   className?: string
   progress?: number
+  onSeek?: (progress: number) => void
 }
 
 export function AudioWaveform({
   className,
-  progress = 0.68,
+  progress = 0,
+  onSeek,
 }: AudioWaveformProps) {
-  const activeBars = Math.round(bars.length * progress)
+  const normalizedProgress = Math.min(1, Math.max(0, progress))
+  const activeBars = Math.round(bars.length * normalizedProgress)
+
+  function seek(event: MouseEvent<HTMLDivElement>) {
+    if (!onSeek) return
+    const bounds = event.currentTarget.getBoundingClientRect()
+    onSeek((event.clientX - bounds.left) / bounds.width)
+  }
 
   return (
     <div
-      aria-hidden="true"
-      className={cn('flex h-10 flex-1 items-center gap-[2px]', className)}
+      aria-label={onSeek ? 'Позиция аудио' : undefined}
+      aria-valuemax={onSeek ? 100 : undefined}
+      aria-valuemin={onSeek ? 0 : undefined}
+      aria-valuenow={onSeek ? Math.round(normalizedProgress * 100) : undefined}
+      className={cn('flex h-10 flex-1 items-center gap-[2px]', onSeek && 'cursor-pointer', className)}
+      onClick={seek}
+      onKeyDown={(event) => {
+        if (!onSeek) return
+        if (event.key === 'ArrowRight') onSeek(Math.min(1, normalizedProgress + 0.05))
+        if (event.key === 'ArrowLeft') onSeek(Math.max(0, normalizedProgress - 0.05))
+      }}
+      role={onSeek ? 'slider' : undefined}
+      tabIndex={onSeek ? 0 : undefined}
     >
       {bars.map((height, index) => (
         <span
