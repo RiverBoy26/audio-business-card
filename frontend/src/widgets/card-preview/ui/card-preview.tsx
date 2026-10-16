@@ -145,6 +145,12 @@ export function CardPreview({ cardId, draft, error, isDocumentDeleting, isPublis
   const [documentError, setDocumentError] = useState<string | null>(null)
   const documentInputRef = useRef<HTMLInputElement>(null)
   const publicUrl = cardId ? `${window.location.origin}/card/${cardId}` : ''
+  const positionLabel = draft.cardType === 'RESUME'
+    ? 'Желаемая должность'
+    : 'Желаемая роль в команде'
+  const documentLabel = draft.cardType === 'RESUME'
+    ? 'Прикрепить резюме в PDF'
+    : 'Прикрепить портфолио в PDF'
 
   async function copyPublicLink() {
     if (!cardId || !draft.published) return
@@ -199,7 +205,7 @@ export function CardPreview({ cardId, draft, error, isDocumentDeleting, isPublis
   }
 
   return (
-    <aside className="rounded-2xl border border-border bg-card p-5 lg:sticky lg:top-20">
+    <aside className="min-w-0 rounded-2xl border border-border bg-card p-5 lg:sticky lg:top-20">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Предпросмотр</h2>
         <span className={`rounded-lg px-3 py-1.5 text-[11px] ${draft.published ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground'}`}>{draft.published ? 'Опубликовано' : 'Черновик'}</span>
@@ -212,7 +218,10 @@ export function CardPreview({ cardId, draft, error, isDocumentDeleting, isPublis
             <h3 className="truncate text-lg font-semibold">{draft.fullName || 'Имя Фамилия'}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{draft.description || 'Специализация'}</p>
             <p className="mt-2 text-xs text-muted-foreground">Опыт: {draft.experienceYears || 0} {draft.experienceYears === 1 ? 'год' : 'лет'}</p>
-            <p className="mt-1 truncate text-xs">{draft.title || 'Желаемая должность'}</p>
+            <p className="mt-1 text-xs">
+              <span className="text-muted-foreground">{positionLabel}: </span>
+              <span className="font-medium">{draft.title || 'не указана'}</span>
+            </p>
           </div>
         </div>
 
@@ -241,11 +250,11 @@ export function CardPreview({ cardId, draft, error, isDocumentDeleting, isPublis
           </div>
         ) : (
           <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border px-4 py-3 text-xs text-muted-foreground transition hover:border-primary hover:text-primary" onClick={() => documentInputRef.current?.click()} type="button">
-            <Upload className="size-4" />Загрузить PDF-файл
+            <Upload className="size-4" />{documentLabel}
           </button>
         )}
         {documentError ? <p className="mt-2 text-xs text-destructive">{documentError}</p> : null}
-        <p className="mt-2 text-right text-[10px] text-muted-foreground">ID: {draft.cardType === 'RESUME' ? 'РЕЗЮМЕ' : 'ПОРТФОЛИО'}</p>
+        <p className="mt-2 text-right text-[10px] text-muted-foreground">Тип: {draft.cardType === 'RESUME' ? 'Резюме' : 'Портфолио'}</p>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">

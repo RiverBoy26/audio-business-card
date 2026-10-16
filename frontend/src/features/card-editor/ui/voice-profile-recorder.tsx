@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from 'react'
 
 import type { CardDraft } from '@/entities/audio-card/model/types'
 import { processVoiceProfile, type VoiceProfile } from '@/entities/voice-profile/api/voice-profile-api'
+import { BrandLogo } from '@/shared/ui/brand-logo'
 import { Button } from '@/shared/ui/button'
+import { Modal } from '@/shared/ui/modal'
 
 type RecorderSession = {
   context: AudioContext
@@ -66,6 +68,7 @@ export function VoiceProfileRecorder({ draft, onChange }: VoiceProfileRecorderPr
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [result, setResult] = useState<VoiceProfile | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [instructionOpen, setInstructionOpen] = useState(false)
   const mutation = useMutation({
     mutationFn: processVoiceProfile,
     onSuccess: (profile) => {
@@ -155,17 +158,39 @@ export function VoiceProfileRecorder({ draft, onChange }: VoiceProfileRecorderPr
   }
 
   return (
-    <div className="mt-3 rounded-lg bg-muted p-3">
-      <p className="text-xs text-muted-foreground">Назовите специальность, технологии, опыт и желаемую должность. Запись не публикуется и после обработки удаляется с сервера.</p>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {!recording && !file ? <Button onClick={() => void startRecording()} size="sm" type="button"><Mic className="size-4" />Начать запись</Button> : null}
-        {recording ? <Button onClick={() => void stopRecording()} size="sm" type="button"><Square className="size-4 fill-current" />Остановить · {seconds} с</Button> : null}
-        {file ? <Button disabled={mutation.isPending} onClick={() => mutation.mutate(file)} size="sm" type="button"><WandSparkles className="size-4" />{mutation.isPending ? 'Распознаём…' : 'Распознать и заполнить'}</Button> : null}
-        {file ? <Button disabled={mutation.isPending} onClick={reset} size="sm" type="button" variant="outline"><RotateCcw className="size-4" />Перезаписать</Button> : null}
+    <>
+      <div className="mt-3 rounded-lg bg-muted p-3">
+        <p className="text-xs text-muted-foreground">Запишите короткий текст, и мы заполним специальность, технологии, опыт и желаемую должность или роль.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {!recording && !file ? <Button onClick={() => setInstructionOpen(true)} size="sm" type="button"><Mic className="size-4" />Начать запись</Button> : null}
+          {recording ? <Button onClick={() => void stopRecording()} size="sm" type="button"><Square className="size-4 fill-current" />Остановить · {seconds} с</Button> : null}
+          {file ? <Button disabled={mutation.isPending} onClick={() => mutation.mutate(file)} size="sm" type="button"><WandSparkles className="size-4" />{mutation.isPending ? 'Распознаём…' : 'Распознать и заполнить'}</Button> : null}
+          {file ? <Button disabled={mutation.isPending} onClick={reset} size="sm" type="button" variant="outline"><RotateCcw className="size-4" />Перезаписать</Button> : null}
+        </div>
+        {previewUrl ? <audio className="mt-3 h-9 w-full" controls src={previewUrl} /> : null}
+        {result ? <div className="mt-3 rounded-md border border-border bg-card p-3 text-xs"><p className="font-medium text-primary">Поля заполнены по записи</p><p className="mt-1 text-muted-foreground">Распознано: {result.transcript}</p>{result.unknownSkills.length ? <p className="mt-1 text-destructive">Не распознаны технологии: {result.unknownSkills.join(', ')}</p> : null}{result.issues.length ? <p className="mt-1 text-amber-700">Проверьте результат вручную: {result.issues.join(', ')}</p> : null}</div> : null}
+        {error || mutation.isError ? <p className="mt-2 text-xs text-destructive">{error ?? (mutation.error instanceof Error ? mutation.error.message : 'Не удалось обработать запись.')}</p> : null}
       </div>
-      {previewUrl ? <audio className="mt-3 h-9 w-full" controls src={previewUrl} /> : null}
-      {result ? <div className="mt-3 rounded-md border border-border bg-card p-3 text-xs"><p className="font-medium text-primary">Поля заполнены по записи</p><p className="mt-1 text-muted-foreground">Распознано: {result.transcript}</p>{result.unknownSkills.length ? <p className="mt-1 text-destructive">Не распознаны технологии: {result.unknownSkills.join(', ')}</p> : null}{result.issues.length ? <p className="mt-1 text-amber-700">Проверьте результат вручную: {result.issues.join(', ')}</p> : null}</div> : null}
-      {error || mutation.isError ? <p className="mt-2 text-xs text-destructive">{error ?? (mutation.error instanceof Error ? mutation.error.message : 'Не удалось обработать запись.')}</p> : null}
-    </div>
+
+      <Modal className="max-w-xl px-6 pb-7 pt-6 sm:px-8" onClose={() => setInstructionOpen(false)} open={instructionOpen} title="Как продиктовать данные">
+        <BrandLogo className="mb-7" imageClassName="w-52 sm:w-60" />
+        <h2 className="text-2xl font-semibold">Как продиктовать данные</h2>
+        <div className="mt-6 grid gap-5 text-sm leading-6">
+          <div>
+            <p className="font-semibold">Шаблон</p>
+            <p className="mt-2 border-l-[3px] border-primary pl-4 text-muted-foreground">
+              Я [специальность]. Работаю с [технологии]. Мой опыт — [срок]. Хочу работать [желаемая должность или роль].
+            </p>
+          </div>
+          <div>
+            <p className="font-semibold">Пример</p>
+            <p className="mt-2 border-l-[3px] border-border pl-4 text-muted-foreground">
+              Я бэкенд-разработчик. Работаю с Java, Spring Boot, PostgreSQL и Docker. Мой опыт — два года. Хочу работать Middle Java-разработчиком.
+            </p>
+          </div>
+        </div>
+        <Button className="mt-7 h-11 w-full" onClick={() => { setInstructionOpen(false); void startRecording() }} type="button">Начать запись</Button>
+      </Modal>
+    </>
   )
 }

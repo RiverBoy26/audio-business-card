@@ -21,6 +21,12 @@ export function ProfileDataForm({ avatarUrl, draft, onChange }: ProfileDataFormP
   const [isAddingSkill, setIsAddingSkill] = useState(false)
   const [newSkill, setNewSkill] = useState('')
   const [skillError, setSkillError] = useState<string | null>(null)
+  const positionLabel = draft.cardType === 'RESUME'
+    ? 'Желаемая должность'
+    : 'Желаемая роль в команде'
+  const positionPlaceholder = draft.cardType === 'RESUME'
+    ? 'Junior Python Developer'
+    : 'Frontend-разработчик в продуктовой команде'
 
   useEffect(() => {
     const previewUrl = draft.photoFile ? draft.photoUrl : null
@@ -61,7 +67,7 @@ export function ProfileDataForm({ avatarUrl, draft, onChange }: ProfileDataFormP
   }
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
+    <section className="min-w-0 rounded-xl border border-border bg-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">Данные визитки</h2>
@@ -71,21 +77,21 @@ export function ProfileDataForm({ avatarUrl, draft, onChange }: ProfileDataFormP
       </div>
 
       <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-lg border border-border">
-        <button className={`flex h-10 items-center justify-center gap-2 border-r border-border text-xs transition ${inputMode === 'profile' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('profile')} type="button"><UserRound className="size-4" /> Из профиля</button>
-        <button className={`flex h-10 items-center justify-center gap-2 border-r border-border text-xs transition ${inputMode === 'manual' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('manual')} type="button"><Pencil className="size-4" /> Вручную</button>
-        <button className={`flex h-10 items-center justify-center gap-2 text-xs transition ${inputMode === 'voice' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('voice')} type="button"><Mic className="size-4" /> Голосом</button>
+        <button aria-pressed={inputMode === 'profile'} className={`flex h-10 items-center justify-center gap-2 border-r border-border text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${inputMode === 'profile' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('profile')} type="button"><UserRound className="size-4" /> Из профиля</button>
+        <button aria-pressed={inputMode === 'manual'} className={`flex h-10 items-center justify-center gap-2 border-r border-border text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${inputMode === 'manual' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('manual')} type="button"><Pencil className="size-4" /> Вручную</button>
+        <button aria-pressed={inputMode === 'voice'} className={`flex h-10 items-center justify-center gap-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${inputMode === 'voice' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('voice')} type="button"><Mic className="size-4" /> Голосом</button>
       </div>
 
       {inputMode === 'voice' ? <VoiceProfileRecorder draft={draft} onChange={onChange} /> : null}
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <Field disabled={inputMode !== 'manual'} id="card-full-name" label="ФИО (из профиля)" onChange={(event) => update('fullName', event.target.value)} placeholder="Имя Фамилия" value={draft.fullName} />
-        <Field disabled={inputMode === 'profile'} id="card-specialty" label="Специальность" maxLength={5000} onChange={(event) => update('description', event.target.value)} placeholder="Бэкенд-разработчик" value={draft.description} />
-        <SelectField id="experience-years" label="Опыт" onChange={(event) => update('experienceYears', Number(event.target.value))} value={draft.experienceYears}>
+        <Field disabled id="card-full-name" label="ФИО (из профиля)" placeholder="Заполните имя в профиле" value={draft.fullName} />
+        <Field id="card-specialty" label="Специальность" maxLength={5000} onChange={(event) => update('description', event.target.value)} placeholder="Бэкенд-разработчик" value={draft.description} />
+        <SelectField id="experience-years" label="Опыт работы" onChange={(event) => update('experienceYears', Number(event.target.value))} value={draft.experienceYears}>
           <option value={0}>Без опыта</option>
           {Array.from({ length: 10 }, (_, index) => index + 1).map((years) => <option key={years} value={years}>{years} {years === 1 ? 'год' : years < 5 ? 'года' : 'лет'}</option>)}
         </SelectField>
-        <Field id="desired-position" label="Желаемая должность" maxLength={150} onChange={(event) => update('title', event.target.value)} placeholder="Junior Python Developer" required value={draft.title} />
+        <Field id="desired-position" label={positionLabel} maxLength={150} onChange={(event) => update('title', event.target.value)} placeholder={positionPlaceholder} required value={draft.title} />
       </div>
 
       <div className="mt-5">

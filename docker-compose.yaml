@@ -2,6 +2,25 @@
 name: audio-business-card
 
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+
+    restart: unless-stopped
+
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+
+    depends_on:
+      gateway-service:
+        condition: service_started
+
+    networks:
+      - backend
+
   auth-db:
     image: postgres:16-alpine
     restart: unless-stopped
