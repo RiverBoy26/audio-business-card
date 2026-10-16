@@ -19,30 +19,38 @@ import java.util.UUID;
 public class VoiceRecordingService {
     private final VoiceRecordingRepository repository;
     private final VoiceRecordingStorageService storage;
+    private final VoiceNoiseReductionService noiseReduction;
 
-    public VoiceRecordingService(VoiceRecordingRepository repository, VoiceRecordingStorageService storage) {
+    public VoiceRecordingService(
+            VoiceRecordingRepository repository,
+            VoiceRecordingStorageService storage,
+            VoiceNoiseReductionService noiseReduction
+    ) {
         this.repository = repository;
         this.storage = storage;
+        this.noiseReduction = noiseReduction;
     }
 
     public VoiceRecordingResponse upload(MultipartFile file, int durationSeconds, UUID userId) throws IOException {
         if (durationSeconds < 0 || durationSeconds > 1800) throw new IllegalArgumentException("Некорректная длительность записи");
-        String storedFilename = storage.store(file);
-        try {
-            VoiceRecording recording = new VoiceRecording();
-            recording.setId(UUID.randomUUID());
-            recording.setUserId(userId);
-            recording.setOriginalFilename(file.getOriginalFilename() == null ? "voice-recording" : file.getOriginalFilename());
-            recording.setStoredFilename(storedFilename);
-            recording.setContentType(file.getContentType() == null ? "application/octet-stream" : file.getContentType());
-            recording.setSize(file.getSize());
-            recording.setDurationSeconds(durationSeconds);
-            recording.setProcessingStatus("READY");
-            recording.setCreatedAt(LocalDateTime.now());
-            return VoiceRecordingResponse.from(repository.save(recording));
-        } catch (RuntimeException exception) {
-            storage.delete(storedFilename);
-            throw exception;
+        try (VoiceNoiseReductionService.ProcessedRecording processed = noiseReduction.reduce(file)) {
+            String storedFilename = storage.store(processed.path(), "webm");
+            try {
+                VoiceRecording recording = new VoiceRecording();
+                recording.setId(UUID.randomUUID());
+                recording.setUserId(userId);
+                recording.setOriginalFilename(processed.originalFilename());
+                recording.setStoredFilename(storedFilename);
+                recording.setContentType("audio/webm");
+                recording.setSize(processed.size());
+                recording.setDurationSeconds(durationSeconds);
+                recording.setProcessingStatus("READY");
+                recording.setCreatedAt(LocalDateTime.now());
+                return VoiceRecordingResponse.from(repository.save(recording));
+            } catch (RuntimeException exception) {
+                storage.delete(storedFilename);
+                throw exception;
+            }
         }
     }
 

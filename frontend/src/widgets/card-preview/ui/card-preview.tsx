@@ -35,10 +35,20 @@ function formatDuration(seconds: number) {
   return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
 }
 
+function moveAudioTo(player: HTMLAudioElement, seconds: number) {
+  player.currentTime = seconds
+}
+
 function CardAudioPreview({ draft }: { draft: CardDraft }) {
   const musicQuery = useQuery({ queryKey: ['music'], queryFn: getMusicFiles })
   const voiceQuery = useQuery({ queryKey: ['voice-recordings'], queryFn: getVoiceRecordings })
-  const playersRef = useRef<{ key: string; items: HTMLAudioElement[]; urls: string[] } | null>(null)
+  const playersRef = useRef<{
+    key: string
+    music: HTMLAudioElement | null
+    primary: HTMLAudioElement
+    urls: string[]
+    voice: HTMLAudioElement | null
+  } | null>(null)
   const requestRef = useRef(0)
   const [playingKey, setPlayingKey] = useState<string | null>(null)
   const [position, setPosition] = useState({ key: '', current: 0, duration: 0 })
@@ -54,13 +64,15 @@ function CardAudioPreview({ draft }: { draft: CardDraft }) {
   useEffect(() => {
     requestRef.current += 1
     const players = playersRef.current
-    players?.items.forEach((item) => item.pause())
+    players?.voice?.pause()
+    players?.music?.pause()
     players?.urls.forEach((url) => URL.revokeObjectURL(url))
     playersRef.current = null
     return () => {
       requestRef.current += 1
       const currentPlayers = playersRef.current
-      currentPlayers?.items.forEach((item) => item.pause())
+      currentPlayers?.voice?.pause()
+      currentPlayers?.music?.pause()
       currentPlayers?.urls.forEach((url) => URL.revokeObjectURL(url))
       playersRef.current = null
     }
@@ -69,13 +81,14 @@ function CardAudioPreview({ draft }: { draft: CardDraft }) {
   useEffect(() => {
     const players = playersRef.current
     if (!players || players.key !== key) return
-    if (recording) players.items[0].volume = draft.voiceVolume / 100
-    if (music) players.items[players.items.length - 1].volume = draft.musicVolume / 100
+    if (players.voice) players.voice.volume = draft.voiceVolume / 100
+    if (players.music) players.music.volume = draft.musicVolume / 100
   }, [draft.voiceVolume, draft.musicVolume, key, recording, music])
 
   async function togglePlayback() {
     if (isPlaying) {
-      playersRef.current?.items.forEach((item) => item.pause())
+      playersRef.current?.voice?.pause()
+      playersRef.current?.music?.pause()
       setPlayingKey(null)
       return
     }
@@ -89,26 +102,50 @@ function CardAudioPreview({ draft }: { draft: CardDraft }) {
           music ? getMusicBlob(music) : Promise.resolve(null),
         ])
         if (request !== requestRef.current) return
-        const urls = [voiceBlob, musicBlob].filter((blob): blob is Blob => blob !== null).map((blob) => URL.createObjectURL(blob))
-        const items = urls.map((url) => new Audio(url))
-        if (!items.length) return
-        if (voiceBlob && musicBlob) items[1].loop = true
-        if (voiceBlob) items[0].volume = draft.voiceVolume / 100
-        if (musicBlob) items[items.length - 1].volume = draft.musicVolume / 100
-        const primary = items[0]
+        const voiceUrl = voiceBlob ? URL.createObjectURL(voiceBlob) : null
+        const musicUrl = musicBlob ? URL.createObjectURL(musicBlob) : null
+        const voicePlayer = voiceUrl ? new Audio(voiceUrl) : null
+        const musicPlayer = musicUrl ? new Audio(musicUrl) : null
+        const primary = voicePlayer ?? musicPlayer
+        if (!primary) return
+        if (voicePlayer) voicePlayer.volume = draft.voiceVolume / 100
+        if (musicPlayer) {
+          musicPlayer.volume = draft.musicVolume / 100
+          musicPlayer.loop = Boolean(voicePlayer)
+        }
         primary.ontimeupdate = () => setPosition({ key, current: primary.currentTime, duration: primary.duration || 0 })
         primary.onloadedmetadata = () => setPosition({ key, current: primary.currentTime, duration: primary.duration || 0 })
         primary.onended = () => {
-          items.forEach((item) => item.pause())
+          voicePlayer?.pause()
+          musicPlayer?.pause()
+          if (voicePlayer && musicPlayer) moveAudioTo(musicPlayer, 0)
           setPlayingKey(null)
         }
-        players = { key, items, urls }
+        players = {
+          key,
+          music: musicPlayer,
+          primary,
+          urls: [voiceUrl, musicUrl].filter((url): url is string => url !== null),
+          voice: voicePlayer,
+        }
         playersRef.current = players
       }
-      await Promise.all(players.items.map((item) => item.play()))
+      if (players.primary.ended || (Number.isFinite(players.primary.duration) && players.primary.currentTime >= players.primary.duration)) {
+        moveAudioTo(players.primary, 0)
+        if (players.music) moveAudioTo(players.music, 0)
+        setPosition({ key, current: 0, duration: players.primary.duration || 0 })
+      }
+      if (players.voice && players.music && players.voice.currentTime === 0) {
+        moveAudioTo(players.music, 0)
+      }
+      await Promise.all([
+        ...(players.music ? [players.music.play()] : []),
+        ...(players.voice ? [players.voice.play()] : []),
+      ])
       if (request === requestRef.current) setPlayingKey(key)
     } catch {
-      playersRef.current?.items.forEach((item) => item.pause())
+      playersRef.current?.voice?.pause()
+      playersRef.current?.music?.pause()
       setPlayingKey(null)
       setError('Не удалось воспроизвести аудио.')
     }
@@ -118,9 +155,9 @@ function CardAudioPreview({ draft }: { draft: CardDraft }) {
     const players = playersRef.current
     if (!players || !duration) return
     const nextTime = duration * percent / 100
-    players.items[0].currentTime = nextTime
-    if (players.items.length > 1 && Number.isFinite(players.items[1].duration) && players.items[1].duration > 0) {
-      players.items[1].currentTime = nextTime % players.items[1].duration
+    moveAudioTo(players.primary, nextTime)
+    if (players.voice && players.music && Number.isFinite(players.music.duration) && players.music.duration > 0) {
+      moveAudioTo(players.music, nextTime % players.music.duration)
     }
     setPosition({ key, current: nextTime, duration })
   }
@@ -261,13 +298,13 @@ export function CardPreview({ cardId, draft, error, isDocumentDeleting, isPublis
         <Button disabled={!draft.published || !cardId} onClick={() => void copyPublicLink()} variant="outline"><Link2 className="size-4" />{linkCopied ? 'Скопировано' : 'Ссылка'}</Button>
         <Button disabled={!draft.published || !cardId} onClick={() => setQrOpen(true)} variant="outline"><QrCode className="size-4" />QR-код</Button>
       </div>
-      <Button className="mt-2 w-full" disabled={isSaving || isPublishing || !draft.title.trim()} onClick={onSave} variant="outline"><Save className="size-4" />{isSaving ? 'Сохраняем…' : 'Сохранить как черновик'}</Button>
+      <Button className="mt-2 w-full" disabled={isSaving || isPublishing || !draft.title.trim()} onClick={onSave} variant="outline"><Save className="size-4" />{isSaving ? 'Сохраняем…' : draft.published ? 'Сохранить изменения' : 'Сохранить как черновик'}</Button>
       <Button className="mt-2 w-full" disabled={isPublishing || isSaving || !draft.title.trim()} onClick={draft.published ? onUnpublish : onPublish}><Send className="size-4" />{isPublishing ? (draft.published ? 'Отменяем публикацию…' : 'Публикуем…') : draft.published ? 'Отменить публикацию' : 'Опубликовать визитку'}</Button>
 
       {draft.published && draft.publicCode ? <p className="mt-3 text-center text-sm font-bold text-foreground">Код визитки: {draft.publicCode}</p> : null}
 
       <p aria-live="polite" className={`mt-3 min-h-5 text-center text-xs ${error ? 'text-destructive' : 'text-muted-foreground'}`}>
-        {error ? error : linkCopied ? <span className="inline-flex items-center gap-1"><Check className="size-3.5 text-primary" />Публичная ссылка скопирована</span> : saved ? <span className="inline-flex items-center gap-1"><Check className="size-3.5 text-primary" />Изменения сохранены</span> : null}
+        {error ? error : linkCopied ? <span className="inline-flex items-center gap-1"><Check className="size-3.5 text-primary" />Публичная ссылка скопирована</span> : saved ? <span className="inline-flex items-center gap-1"><Check className="size-3.5 text-primary" />{draft.published ? 'Публичная визитка обновлена' : 'Изменения сохранены'}</span> : null}
       </p>
 
       {qrOpen && publicUrl ? (

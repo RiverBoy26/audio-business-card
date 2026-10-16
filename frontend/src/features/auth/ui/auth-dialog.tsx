@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 
 import { useAuth } from '@/features/auth/model/use-auth'
+import { ApiError } from '@/shared/api/api-client'
 import { BrandLogo } from '@/shared/ui/brand-logo'
 import { Button } from '@/shared/ui/button'
 import { Field } from '@/shared/ui/field'
@@ -19,13 +20,25 @@ type AuthDialogProps = {
 export function AuthDialog({ mode, onClose, onModeChange }: AuthDialogProps) {
   const { login, register } = useAuth()
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
+
+  function clearFieldError(field: string) {
+    setFieldErrors((current) => {
+      if (!current[field]) return current
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
+    setError(null)
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     setSubmitting(true)
     setError(null)
+    setFieldErrors({})
 
     try {
       if (mode === 'login') {
@@ -35,7 +48,8 @@ export function AuthDialog({ mode, onClose, onModeChange }: AuthDialogProps) {
         const passwordRepeat = String(form.get('passwordRepeat'))
 
         if (password !== passwordRepeat) {
-          throw new Error('Пароли не совпадают')
+          setFieldErrors({ passwordRepeat: 'Пароли не совпадают' })
+          return
         }
 
         const middleName = String(form.get('middleName')).trim()
@@ -51,13 +65,15 @@ export function AuthDialog({ mode, onClose, onModeChange }: AuthDialogProps) {
       }
       onClose()
     } catch (caught) {
-      setError(
-        caught instanceof Error
+      const nextFieldErrors = caught instanceof ApiError ? caught.fieldErrors : {}
+      setFieldErrors(nextFieldErrors)
+      setError(Object.keys(nextFieldErrors).length === 0
+        ? caught instanceof Error
           ? caught.message
           : isLogin
             ? 'Не удалось войти'
-            : 'Не удалось зарегистрироваться',
-      )
+            : 'Не удалось зарегистрироваться'
+        : null)
     } finally {
       setSubmitting(false)
     }
@@ -80,18 +96,20 @@ export function AuthDialog({ mode, onClose, onModeChange }: AuthDialogProps) {
       <form className="mt-8 grid gap-4" onSubmit={submit}>
         {!isLogin ? (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="register-first-name" label="Имя" name="firstName" required />
-            <Field id="register-last-name" label="Фамилия" name="lastName" required />
+            <Field error={fieldErrors.firstName} id="register-first-name" label="Имя" name="firstName" onChange={() => clearFieldError('firstName')} required />
+            <Field error={fieldErrors.lastName} id="register-last-name" label="Фамилия" name="lastName" onChange={() => clearFieldError('lastName')} required />
           </div>
         ) : null}
         {!isLogin ? (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="register-middle-name" label="Отчество" name="middleName" />
+            <Field error={fieldErrors.middleName} id="register-middle-name" label="Отчество" name="middleName" onChange={() => clearFieldError('middleName')} />
             <Field
+              error={fieldErrors.birthDate}
               id="register-birth-date"
               label="Дата рождения"
               max={maxBirthDate}
               name="birthDate"
+              onChange={() => clearFieldError('birthDate')}
               required
               type="date"
             />
@@ -99,28 +117,34 @@ export function AuthDialog({ mode, onClose, onModeChange }: AuthDialogProps) {
         ) : null}
         {!isLogin ? (
           <Field
+            error={fieldErrors.phone}
             id="register-phone"
             label="Номер телефона"
             name="phone"
-            pattern="\+[0-9-]{9,11}[0-9]"
+            onChange={() => clearFieldError('phone')}
+            pattern="\+[0-9]{10,11}"
             placeholder="+79001234567"
             required
-            title="Введите номер с плюсом, используя цифры и дефисы"
+            title="Введите номер в формате +79991234567"
             type="tel"
           />
         ) : null}
         <Field
+          error={fieldErrors.email}
           id={isLogin ? 'login-email' : 'register-email'}
           label={isLogin ? 'Логин' : 'Почта'}
           name="email"
+          onChange={() => clearFieldError('email')}
           placeholder={isLogin ? 'Ваша почта' : undefined}
           required
           type="email"
         />
         <Field
+          error={fieldErrors.password}
           id={isLogin ? 'login-password' : 'register-password'}
           label="Пароль"
           name="password"
+          onChange={() => clearFieldError('password')}
           maxLength={72}
           minLength={isLogin ? undefined : 8}
           placeholder={isLogin ? '••••••••' : undefined}
@@ -129,11 +153,13 @@ export function AuthDialog({ mode, onClose, onModeChange }: AuthDialogProps) {
         />
         {!isLogin ? (
           <Field
+            error={fieldErrors.passwordRepeat}
             id="register-password-repeat"
             label="Повторите пароль"
             maxLength={72}
             minLength={8}
             name="passwordRepeat"
+            onChange={() => clearFieldError('passwordRepeat')}
             required
             type="password"
           />
@@ -146,6 +172,7 @@ export function AuthDialog({ mode, onClose, onModeChange }: AuthDialogProps) {
               className="block text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => {
                 setError(null)
+                setFieldErrors({})
                 onModeChange(isLogin ? 'register' : 'login')
               }}
               type="button"

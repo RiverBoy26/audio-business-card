@@ -12,6 +12,8 @@ import audio.business.card.entity.CardExperience;
 import audio.business.card.mapper.AudioCardMapper;
 import audio.business.card.repository.AudioCardRepository;
 import audio.business.card.repository.CardExperienceRepository;
+import audio.business.card.repository.CardSphereRepository;
+import audio.business.card.repository.CardStackRepository;
 import audio.business.card.service.interfaces.AudioCardService;
 import audio.business.card.service.CardImageStorageService;
 import audio.business.card.service.CardDocumentStorageService;
@@ -23,6 +25,9 @@ import org.springframework.web.client.RestClientResponseException;
 import java.io.IOException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -42,6 +47,8 @@ public class AudioCardServiceImp implements AudioCardService {
     private static final SecureRandom CODE_RANDOM = new SecureRandom();
     private final AudioCardRepository audioCardRepository;
     private final CardExperienceRepository cardExperienceRepository;
+    private final CardStackRepository cardStackRepository;
+    private final CardSphereRepository cardSphereRepository;
     private final CardImageStorageService imageStorage;
     private final CardDocumentStorageService documentStorage;
     private final RestClient soundClient;
@@ -49,11 +56,15 @@ public class AudioCardServiceImp implements AudioCardService {
     public AudioCardServiceImp(
             AudioCardRepository audioCardRepository,
             CardExperienceRepository cardExperienceRepository,
+            CardStackRepository cardStackRepository,
+            CardSphereRepository cardSphereRepository,
             CardImageStorageService imageStorage,
             CardDocumentStorageService documentStorage,
             @Value("${app.sound-service-url:http://localhost:8083}") String soundServiceUrl) {
         this.audioCardRepository = audioCardRepository;
         this.cardExperienceRepository = cardExperienceRepository;
+        this.cardStackRepository = cardStackRepository;
+        this.cardSphereRepository = cardSphereRepository;
         this.imageStorage = imageStorage;
         this.documentStorage = documentStorage;
         this.soundClient = RestClient.create(soundServiceUrl);
@@ -212,6 +223,7 @@ public class AudioCardServiceImp implements AudioCardService {
     }
 
     @Override
+    @Transactional
     public void delete(UUID userId, UUID audioCardId) {
         AudioCard card = audioCardRepository
                 .findByIdAndUserId(audioCardId, userId)
@@ -220,9 +232,22 @@ public class AudioCardServiceImp implements AudioCardService {
                         "Аудиовизитка не найдена"
                 ));
 
+        String photoFilename = card.getPhotoFilename();
+        String documentFilename = card.getDocumentFilename();
+
+        cardStackRepository.deleteAllByAudioCardId(audioCardId);
+        cardSphereRepository.deleteAllByAudioCardId(audioCardId);
+        cardExperienceRepository.deleteByAudioCardId(audioCardId);
         audioCardRepository.delete(card);
-        imageStorage.delete(card.getPhotoFilename());
-        documentStorage.delete(card.getDocumentFilename());
+        audioCardRepository.flush();
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                imageStorage.delete(photoFilename);
+                documentStorage.delete(documentFilename);
+            }
+        });
     }
 
     @Override

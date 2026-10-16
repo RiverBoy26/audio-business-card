@@ -7,6 +7,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
@@ -20,11 +21,28 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
+    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                fieldErrors.putIfAbsent(error.getField(), error.getDefaultMessage())
+        );
+        String message = fieldErrors.values().stream()
+                .findFirst()
+                .orElse("Проверьте заполнение полей");
         return ResponseEntity.badRequest().body(Map.of(
-                        "error", "Bad Request",
-                        "message", "Неверные данные запроса"
-                ));
+                "error", "Validation failed",
+                "message", message,
+                "fieldErrors", fieldErrors
+        ));
+    }
+
+    @ExceptionHandler(FieldConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleFieldConflict(FieldConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "error", "Conflict",
+                "message", ex.getMessage(),
+                "fieldErrors", Map.of(ex.getField(), ex.getMessage())
+        ));
     }
 
     @ExceptionHandler(ResponseStatusException.class)

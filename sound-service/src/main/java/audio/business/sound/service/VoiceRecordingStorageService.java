@@ -39,6 +39,22 @@ public class VoiceRecordingStorageService {
         return storedFilename;
     }
 
+    public String store(Path source, String extension) throws IOException {
+        String normalizedExtension = extension == null ? "" : extension.toLowerCase(Locale.ROOT);
+        if (!ALLOWED_EXTENSIONS.contains(normalizedExtension)) {
+            throw new IllegalArgumentException("Неподдерживаемый формат записи");
+        }
+        if (!Files.isRegularFile(source) || Files.size(source) == 0) {
+            throw new IllegalArgumentException("Запись пуста");
+        }
+        Files.createDirectories(storageDirectory);
+        String storedFilename = UUID.randomUUID() + "." + normalizedExtension;
+        Path target = storageDirectory.resolve(storedFilename).normalize();
+        if (!target.startsWith(storageDirectory)) throw new IllegalArgumentException("Недопустимое имя файла");
+        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+        return storedFilename;
+    }
+
     public Resource load(String storedFilename) throws IOException {
         Path path = storageDirectory.resolve(storedFilename).normalize();
         if (!path.startsWith(storageDirectory)) throw new IllegalArgumentException("Недопустимый путь к файлу");
