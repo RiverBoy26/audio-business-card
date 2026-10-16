@@ -1,55 +1,72 @@
 import { Camera, Mail, Phone } from 'lucide-react'
+import { useRef, useState, type ChangeEvent } from 'react'
 
+import { useAuth } from '@/features/auth/model/use-auth'
 import { ProfileForm } from '@/features/profile-editor/ui/profile-form'
 import { Button } from '@/shared/ui/button'
 
 export function ProfilePage() {
+  const { uploadAvatar, user } = useAuth()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [avatarVersion, setAvatarVersion] = useState(0)
+  if (!user) return null
+
+  const fullName = [user.lastName, user.firstName, user.middleName]
+    .filter(Boolean)
+    .join(' ')
+  const initials = `${user.firstName.at(0) ?? ''}${user.lastName.at(0) ?? ''}`
+
+  async function selectAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setUploading(true)
+    setError(null)
+    try {
+      await uploadAvatar(file)
+      setAvatarVersion((version) => version + 1)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Не удалось загрузить аватар')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-6 lg:px-8 lg:py-8">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">
-          Личные данные
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-          Профиль
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Заполните профиль один раз, чтобы быстрее создавать визитки.
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">Личные данные</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Профиль</h1>
       </header>
 
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="rounded-xl border border-border bg-card p-5 lg:sticky lg:top-20">
-          <div className="relative mx-auto flex size-28 items-center justify-center rounded-xl bg-accent text-3xl font-semibold text-primary">
-            МС
-            <Button
-              aria-label="Изменить фотографию"
-              className="absolute -bottom-3 -right-3 rounded-full border-4 border-card"
-              size="icon"
-            >
-              <Camera aria-hidden="true" className="size-4" />
+          <div className="relative mx-auto flex size-28 items-center justify-center overflow-visible rounded-xl bg-accent text-3xl font-semibold text-primary">
+            {user.avatarUrl ? (
+              <img alt="Аватар" className="size-full rounded-xl object-cover" src={`${user.avatarUrl}?v=${avatarVersion}`} />
+            ) : initials.toLocaleUpperCase('ru')}
+            <input accept="image/jpeg,image/png,image/webp" className="hidden" onChange={selectAvatar} ref={inputRef} type="file" />
+            <Button aria-label="Загрузить аватар" className="absolute -bottom-3 -right-3 rounded-full border-4 border-card" disabled={uploading} onClick={() => inputRef.current?.click()} size="icon" type="button">
+              <Camera className="size-4" />
             </Button>
           </div>
-          <div className="mt-6 text-center">
-            <h2 className="text-lg font-semibold">Марк Сергеевич Соколов</h2>
-          </div>
-
+          <h2 className="mt-6 text-center text-lg font-semibold">{fullName}</h2>
           <dl className="mt-5 grid gap-3 border-t border-border pt-4 text-xs">
             <div className="flex min-w-0 items-center gap-2">
-              <Mail aria-hidden="true" className="size-4 shrink-0 text-primary" />
-              <dd className="truncate text-muted-foreground">
-                mark.sokolov@example.ru
-              </dd>
+              <Mail className="size-4 shrink-0 text-primary" />
+              <dd className="truncate text-muted-foreground">{user.email}</dd>
             </div>
             <div className="flex items-center gap-2">
-              <Phone aria-hidden="true" className="size-4 shrink-0 text-primary" />
-              <dd className="text-muted-foreground">+7 900 123-45-67</dd>
+              <Phone className="size-4 shrink-0 text-primary" />
+              <dd className="text-muted-foreground">{user.phone}</dd>
             </div>
           </dl>
-
+          <p className="mt-4 text-center text-xs text-muted-foreground">JPG, PNG или WEBP, до 5 МБ</p>
+          {error ? <p className="mt-2 text-center text-xs text-destructive">{error}</p> : null}
         </aside>
-
-        <ProfileForm />
+        <ProfileForm user={user} />
       </div>
     </main>
   )

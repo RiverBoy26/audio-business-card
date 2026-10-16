@@ -17,6 +17,14 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/audio-cards': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/public/audio-cards': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
 })

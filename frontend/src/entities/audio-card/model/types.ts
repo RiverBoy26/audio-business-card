@@ -1,19 +1,77 @@
-export type CardStatus = 'published' | 'draft'
+export type CardType = 'PORTFOLIO' | 'RESUME'
 
-export type CardDraft = {
-  desiredRole: string
-  experience: string
-  fullName: string
+export type AudioCard = {
+  cardType: CardType
+  description: string | null
+  documentName: string | null
+  documentUrl: string | null
+  id: string
+  fullName: string | null
+  published: boolean
+  publishedAt: string | null
+  publicCode: string | null
+  musicId: string | null
+  photoUrl: string | null
   skills: string[]
-  specialty: string
+  title: string
+  voiceRecordingId: string | null
 }
 
-export type AudioCard = CardDraft & {
-  duration: string
-  id: string
-  kind: 'Резюме' | 'Портфолио'
-  pdfName?: string
-  status: CardStatus
+export type CardDraft = {
+  cardType: CardType
+  description: string
+  documentFile: File | null
+  documentName: string | null
+  documentUrl: string | null
+  experienceYears: number
+  fullName: string
+  published: boolean
+  publicCode: string | null
+  musicVolume: number
+  musicId: string | null
+  photoFile: File | null
+  photoUrl: string
+  skills: string[]
   title: string
-  updatedAt: string
+  voiceVolume: number
+  voiceRecordingId: string | null
+}
+
+export const initialCardDraft: CardDraft = {
+  title: '',
+  description: '',
+  documentFile: null,
+  documentName: null,
+  documentUrl: null,
+  fullName: '',
+  published: false,
+  publicCode: null,
+  photoUrl: '',
+  photoFile: null,
+  cardType: 'RESUME',
+  experienceYears: 0,
+  skills: ['Python', 'FastAPI', 'PostgreSQL', 'Docker'],
+  voiceVolume: 100,
+  musicVolume: 30,
+  musicId: null,
+  voiceRecordingId: null,
+}
+
+export type PublicAudioCard = {
+  cardType: CardType
+  description: string | null
+  documentName: string | null
+  documentUrl: string | null
+  experienceYears: number
+  fullName: string | null
+  id: string
+  musicUrl: string | null
+  musicVolume: number
+  photoUrl: string | null
+  publishedAt: string
+  publicCode: string
+  skills: string[]
+  title: string
+  voiceUrl: string | null
+  voiceVolume: number
 }

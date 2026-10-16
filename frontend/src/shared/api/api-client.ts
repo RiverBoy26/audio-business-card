@@ -1,5 +1,11 @@
 import { z } from 'zod'
 
+import {
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  saveTokens,
+} from '@/shared/api/auth-storage'
 import { env } from '@/shared/config/env'
 
 const errorPayloadSchema = z.object({
@@ -17,8 +23,11 @@ export class ApiError extends Error {
 }
 
 type ApiRequestOptions<T> = Omit<RequestInit, 'body'> & {
-  body?: unknown
-  schema: z.ZodType<T>
+  auth?: boolean
+  body?: BodyInit
+  json?: unknown
+  responseType?: 'blob' | 'json' | 'void'
+  schema?: z.ZodType<T>
 }
 
 function createUrl(path: string) {
@@ -30,8 +39,13 @@ function createUrl(path: string) {
 
 async function readError(response: Response) {
   const fallback = `Запрос завершился с ошибкой ${response.status}`
+  const contentType = response.headers.get('content-type') ?? ''
 
   try {
+    if (!contentType.includes('application/json')) {
+      return (await response.text()).trim() || fallback
+    }
+
     const payload = errorPayloadSchema.safeParse(await response.json())
 
     return payload.success && payload.data.message
@@ -42,23 +56,91 @@ async function readError(response: Response) {
   }
 }
 
-export async function apiRequest<T>(
-  path: string,
-  { body, headers, schema, ...init }: ApiRequestOptions<T>,
-) {
-  const response = await fetch(createUrl(path), {
-    ...init,
-    body: body === undefined ? undefined : JSON.stringify(body),
+const refreshResponseSchema = z.object({
+  accessToken: z.string().min(1),
+  refreshToken: z.string().min(1),
+})
+
+let refreshPromise: Promise<string> | null = null
+
+async function refreshAccessToken() {
+  const refreshToken = getRefreshToken()
+
+  if (!refreshToken) throw new ApiError('Требуется повторный вход', 401)
+
+  const response = await fetch(createUrl('/api/v1/auth/refresh'), {
+    method: 'POST',
     headers: {
       Accept: 'application/json',
-      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      ...headers,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ refreshToken }),
   })
+
+  if (!response.ok) {
+    clearTokens()
+    throw new ApiError(await readError(response), response.status)
+  }
+
+  const tokens = refreshResponseSchema.parse(await response.json())
+  saveTokens(tokens)
+  return tokens.accessToken
+}
+
+function getRefreshedAccessToken() {
+  refreshPromise ??= refreshAccessToken().finally(() => {
+    refreshPromise = null
+  })
+
+  return refreshPromise
+}
+
+async function parseResponse<T>(
+  response: Response,
+  responseType: ApiRequestOptions<T>['responseType'],
+  schema?: z.ZodType<T>,
+) {
+  if (responseType === 'void' || response.status === 204) return undefined as T
+  if (responseType === 'blob') return (await response.blob()) as T
+
+  const payload: unknown = await response.json()
+  return schema ? schema.parse(payload) : (payload as T)
+}
+
+export async function apiRequest<T>(
+  path: string,
+  {
+    auth = true,
+    body,
+    headers,
+    json,
+    responseType = 'json',
+    schema,
+    ...init
+  }: ApiRequestOptions<T>,
+) {
+  const makeRequest = (accessToken: string | null) =>
+    fetch(createUrl(path), {
+      ...init,
+      body: json === undefined ? body : JSON.stringify(json),
+      headers: {
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...(json === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...headers,
+        Accept: responseType === 'blob' ? '*/*' : 'application/json',
+      },
+    })
+
+  let response = await makeRequest(auth ? getAccessToken() : null)
+
+  if (auth && response.status === 401 && getRefreshToken()) {
+    const accessToken = await getRefreshedAccessToken()
+    response = await makeRequest(accessToken)
+  }
 
   if (!response.ok) {
     throw new ApiError(await readError(response), response.status)
   }
 
-  return schema.parse(await response.json())
+  return parseResponse(response, responseType, schema)
 }

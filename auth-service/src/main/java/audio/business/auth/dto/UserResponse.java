@@ -14,7 +14,8 @@ public record UserResponse(
         LocalDate birthDate,
         String email,
         String phone,
-        Role role
+        Role role,
+        String avatarUrl
 ) {
     public static UserResponse from(User user) {
         return new UserResponse(
@@ -25,7 +26,10 @@ public record UserResponse(
                 user.getBirthDate(),
                 user.getEmail(),
                 user.getPhone(),
-                user.getRole()
+                user.getRole(),
+                user.getAvatarFilename() == null
+                        ? null
+                        : "/api/v1/auth/users/" + user.getId() + "/avatar"
         );
     }
 }

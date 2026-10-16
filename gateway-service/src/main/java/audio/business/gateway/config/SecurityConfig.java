@@ -31,10 +31,16 @@ public class SecurityConfig {
                                 "/api/v1/auth/logout"
                         ).permitAll()
 
+                        .pathMatchers(HttpMethod.GET, "/api/v1/auth/users/*/avatar").permitAll()
+
+                        .pathMatchers(HttpMethod.GET, "/public/audio-cards/**").permitAll()
+
                         .pathMatchers(
                                 HttpMethod.GET,
                                 "/api/v1/auth/me"
                         ).authenticated()
+
+                        .pathMatchers(HttpMethod.POST, "/api/v1/auth/me/avatar").authenticated()
 
                         .pathMatchers(
                                 "/audio-cards",
@@ -43,7 +49,10 @@ public class SecurityConfig {
 
                         .pathMatchers(
                                 "/api/music",
-                                "/api/music/**"
+                                "/api/music/**",
+                                "/api/voice-recordings",
+                                "/api/voice-recordings/**",
+                                "/api/voice-profile"
                         ).hasAnyRole("USER", "ADMIN")
 
                         .anyExchange().denyAll()
