@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 
 import { AuthDialog, type AuthMode } from '@/features/auth/ui/auth-dialog'
 import { useAuth } from '@/features/auth/model/use-auth'
+import { UserAvatar } from '@/entities/user/ui/user-avatar'
 import { cn } from '@/shared/lib/cn'
 import { BrandLogo } from '@/shared/ui/brand-logo'
 import { Button } from '@/shared/ui/button'
@@ -24,7 +25,7 @@ const navigationLinkClass = ({ isActive }: { isActive: boolean }) =>
 export function RootLayout() {
   const { pathname, search } = useLocation()
   const navigate = useNavigate()
-  const { logout, user } = useAuth()
+  const { avatarRevision, logout, user } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode | null>(null)
@@ -69,8 +70,13 @@ export function RootLayout() {
                   onClick={() => setUserMenuOpen((open) => !open)}
                   type="button"
                 >
-                  <span className="size-9 rounded-full bg-muted" />
-                  {user?.firstName ?? 'Аккаунт'}
+                  <UserAvatar
+                    avatarUrl={user.avatarUrl}
+                    firstName={user.firstName}
+                    lastName={user.lastName}
+                    revision={avatarRevision}
+                  />
+                  <span className="max-w-32 truncate">{user.firstName}</span>
                   <ChevronDown aria-hidden="true" className={cn('size-4 transition', userMenuOpen && 'rotate-180')} />
                 </button>
                 {userMenuOpen ? (
@@ -92,11 +98,17 @@ export function RootLayout() {
               <Button
                 aria-expanded={mobileMenuOpen}
                 aria-label={mobileMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
-                className="ml-auto lg:hidden"
+                className="ml-auto gap-2 px-2 lg:hidden"
                 onClick={() => setMobileMenuOpen((open) => !open)}
-                size="icon"
                 variant="ghost"
               >
+                <UserAvatar
+                  avatarUrl={user.avatarUrl}
+                  className="size-8"
+                  firstName={user.firstName}
+                  lastName={user.lastName}
+                  revision={avatarRevision}
+                />
                 {mobileMenuOpen ? (
                   <X aria-hidden="true" className="size-5" />
                 ) : (

@@ -1,27 +1,154 @@
-import type { CurrentUser } from '@/features/auth/model/auth-api'
+import { CheckCircle2, LoaderCircle, Pencil } from 'lucide-react'
+import { useState, type ChangeEvent, type FormEvent } from 'react'
+
+import type {
+  CurrentUser,
+  UpdateProfilePayload,
+} from '@/features/auth/model/auth-api'
+import { Button } from '@/shared/ui/button'
 import { Field } from '@/shared/ui/field'
 
-type ProfileFormProps = { user: CurrentUser }
+type ProfileFormProps = {
+  onSave: (payload: UpdateProfilePayload) => Promise<void>
+  user: CurrentUser
+}
 
-export function ProfileForm({ user }: ProfileFormProps) {
+type ProfileDraft = Omit<UpdateProfilePayload, 'middleName'> & {
+  middleName: string
+}
+
+function createDraft(user: CurrentUser): ProfileDraft {
+  return {
+    birthDate: user.birthDate,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    middleName: user.middleName ?? '',
+    phone: user.phone,
+  }
+}
+
+function draftsMatch(draft: ProfileDraft, user: CurrentUser) {
+  return (
+    draft.birthDate === user.birthDate &&
+    draft.email === user.email &&
+    draft.firstName === user.firstName &&
+    draft.lastName === user.lastName &&
+    draft.middleName === (user.middleName ?? '') &&
+    draft.phone === user.phone
+  )
+}
+
+export function ProfileForm({ onSave, user }: ProfileFormProps) {
+  const [draft, setDraft] = useState(() => createDraft(user))
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  const isDirty = !draftsMatch(draft, user)
+
+  function update(field: keyof ProfileDraft) {
+    return (event: ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({ ...current, [field]: event.target.value }))
+      setError(null)
+      setSaved(false)
+    }
+  }
+
+  function startEditing() {
+    setDraft(createDraft(user))
+    setError(null)
+    setSaved(false)
+    setEditing(true)
+  }
+
+  function cancelEditing() {
+    setDraft(createDraft(user))
+    setError(null)
+    setEditing(false)
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!isDirty || saving) return
+
+    setSaving(true)
+    setError(null)
+    setSaved(false)
+
+    try {
+      const payload: UpdateProfilePayload = {
+        ...draft,
+        firstName: draft.firstName.trim(),
+        lastName: draft.lastName.trim(),
+        middleName: draft.middleName.trim() || null,
+        email: draft.email.trim(),
+        phone: draft.phone.trim(),
+      }
+      await onSave(payload)
+      setDraft({ ...payload, middleName: payload.middleName ?? '' })
+      setEditing(false)
+      setSaved(true)
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Не удалось сохранить изменения',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
-      <div>
-        <h2 className="text-xl font-semibold">Основные данные</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Данные получены из защищённого endpoint <code>/me</code>. Изменение
-          профиля текущим backend не поддерживается.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold">Основные данные</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Эти данные будут использоваться при создании новых визиток.
+          </p>
+        </div>
+        {!editing ? (
+          <Button onClick={startEditing} size="sm" type="button" variant="outline">
+            <Pencil aria-hidden="true" className="size-4" />
+            Редактировать
+          </Button>
+        ) : null}
       </div>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <Field disabled id="first-name" label="Имя" value={user.firstName} />
-        <Field disabled id="middle-name" label="Отчество" value={user.middleName ?? ''} />
-        <Field disabled id="last-name" label="Фамилия" value={user.lastName} />
-        <Field disabled id="birth-date" label="Дата рождения" type="date" value={user.birthDate} />
-        <Field disabled id="email" label="Электронная почта" type="email" value={user.email} />
-        <Field disabled id="phone" label="Телефон" value={user.phone} />
-      </div>
+      <form className="mt-5" onSubmit={submit}>
+        <fieldset disabled={!editing || saving}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field autoComplete="given-name" id="first-name" label="Имя" maxLength={100} onChange={update('firstName')} required value={draft.firstName} />
+            <Field autoComplete="additional-name" id="middle-name" label="Отчество" maxLength={100} onChange={update('middleName')} value={draft.middleName} />
+            <Field autoComplete="family-name" id="last-name" label="Фамилия" maxLength={100} onChange={update('lastName')} required value={draft.lastName} />
+            <Field autoComplete="bday" id="birth-date" label="Дата рождения" onChange={update('birthDate')} required type="date" value={draft.birthDate} />
+            <Field autoComplete="email" id="email" label="Электронная почта" maxLength={255} onChange={update('email')} required type="email" value={draft.email} />
+            <Field autoComplete="tel" id="phone" label="Телефон" onChange={update('phone')} pattern="^\+([0-9-]?){9,11}[0-9]$" required title="Введите номер в международном формате, например +7-900-123-45-67" value={draft.phone} />
+          </div>
+        </fieldset>
+
+        <div aria-live="polite" className="mt-4 min-h-5 text-sm">
+          {error ? <p className="text-destructive">{error}</p> : null}
+          {saved ? (
+            <p className="flex items-center gap-2 text-foreground">
+              <CheckCircle2 aria-hidden="true" className="size-4 text-primary" />
+              Изменения сохранены
+            </p>
+          ) : null}
+        </div>
+
+        {editing ? (
+          <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+            <Button disabled={saving} onClick={cancelEditing} type="button" variant="outline">Отменить</Button>
+            <Button disabled={!isDirty || saving} type="submit">
+              {saving ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : null}
+              {saving ? 'Сохраняем…' : 'Сохранить изменения'}
+            </Button>
+          </div>
+        ) : null}
+      </form>
     </section>
   )
 }

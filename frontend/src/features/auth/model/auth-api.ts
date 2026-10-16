@@ -36,6 +36,8 @@ export type RegisterPayload = {
   phone: string
 }
 
+export type UpdateProfilePayload = Omit<RegisterPayload, 'password'>
+
 export function login(email: string, password: string) {
   return apiRequest<AuthResponse>('/api/v1/auth/login', {
     method: 'POST',
@@ -56,6 +58,14 @@ export function register(payload: RegisterPayload) {
 
 export function getCurrentUser() {
   return apiRequest<CurrentUser>('/api/v1/auth/me', { schema: userSchema })
+}
+
+export function updateProfile(payload: UpdateProfilePayload) {
+  return apiRequest<CurrentUser>('/api/v1/auth/me', {
+    method: 'PUT',
+    json: payload,
+    schema: userSchema,
+  })
 }
 
 export function uploadAvatar(file: File) {

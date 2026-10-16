@@ -4,9 +4,9 @@ import { Button } from '@/shared/ui/button'
 
 export function HomePage() {
   return (
-    <main className="overflow-hidden bg-card">
-      <div className="relative mx-auto grid min-h-[calc(100svh-4rem-1px)] w-full max-w-7xl items-center overflow-hidden px-4 py-12 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:px-8 lg:py-16">
-        <section className="relative z-10 max-w-2xl" aria-labelledby="hero-title">
+    <main className="bg-card">
+      <div className="mx-auto grid min-h-[calc(100svh-4rem-1px)] w-full max-w-7xl items-center gap-10 px-4 py-10 sm:px-6 sm:py-12 lg:grid-cols-[1.02fr_0.98fr] lg:gap-6 lg:px-8 lg:py-16">
+        <section className="max-w-2xl" aria-labelledby="hero-title">
           <h1
             id="hero-title"
             className="text-5xl font-bold leading-[1.02] tracking-[-0.035em] sm:text-6xl lg:text-7xl"
@@ -27,8 +27,15 @@ export function HomePage() {
           </div>
         </section>
 
-        <div className="pointer-events-none absolute -right-[28%] top-0 h-full w-[90%] sm:-right-[18%] lg:-right-[8%] lg:w-[66%]">
-          <img alt="" className="h-full w-full object-contain object-right opacity-80" src="/assets/main-page-circle.png" />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none mx-auto flex w-full max-w-[30rem] items-center justify-center sm:max-w-[34rem] lg:max-w-none lg:justify-self-end"
+        >
+          <img
+            alt=""
+            className="block h-auto w-full object-contain opacity-80"
+            src="/assets/main-page-circle.png"
+          />
         </div>
       </div>
     </main>

@@ -5,6 +5,7 @@ import {
   login as loginRequest,
   logout as logoutRequest,
   register as registerRequest,
+  updateProfile as updateProfileRequest,
   uploadAvatar as uploadAvatarRequest,
   type CurrentUser,
 } from '@/features/auth/model/auth-api'
@@ -20,6 +21,7 @@ import {
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<CurrentUser | null>(null)
+  const [avatarRevision, setAvatarRevision] = useState(0)
   const [isReady, setIsReady] = useState(() => !getRefreshToken())
 
   useEffect(() => {
@@ -33,6 +35,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<AuthContextValue>(
     () => ({
+      avatarRevision,
       isReady,
       user,
       login: async (email, password) => {
@@ -47,6 +50,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       },
       uploadAvatar: async (file) => {
         setUser(await uploadAvatarRequest(file))
+        setAvatarRevision((revision) => revision + 1)
+      },
+      updateProfile: async (payload) => {
+        setUser(await updateProfileRequest(payload))
       },
       logout: async () => {
         const refreshToken = getRefreshToken()
@@ -59,7 +66,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
       },
     }),
-    [isReady, user],
+    [avatarRevision, isReady, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
