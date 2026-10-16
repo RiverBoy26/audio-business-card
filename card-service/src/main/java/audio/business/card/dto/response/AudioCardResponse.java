@@ -24,8 +24,6 @@ public class AudioCardResponse {
     private boolean published;
     private java.time.LocalDateTime publishedAt;
     private String publicCode;
-}
-
     private String desiredPosition;
 }
 

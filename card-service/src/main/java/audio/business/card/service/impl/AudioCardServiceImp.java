@@ -129,8 +129,6 @@ public class AudioCardServiceImp implements AudioCardService {
         }
         if (newAudioCard.isVoiceRecordingIdProvided()) {
             card.setVoiceRecordingId(newAudioCard.getVoiceRecordingId());
-        if (newAudioCard.getMusicId() != null) {
-            card.setMusicId(newAudioCard.getMusicId());
         }
 
         if (newAudioCard.getDesiredPosition() != null) {
