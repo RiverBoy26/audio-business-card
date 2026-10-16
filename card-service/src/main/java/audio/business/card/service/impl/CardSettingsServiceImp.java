@@ -62,6 +62,10 @@ public class CardSettingsServiceImp implements CardSettingsService {
             settings.setMusicVolume(newCardSettings.getMusicVolume());
         }
 
+        if (newCardSettings.getMusicStartSeconds() != null) {
+            settings.setMusicStartSeconds(newCardSettings.getMusicStartSeconds());
+        }
+
         CardSettings saveCardSetting = cardSettingsRepository.save(settings);
 
         return CardSettingsMapper.toResponse(saveCardSetting);

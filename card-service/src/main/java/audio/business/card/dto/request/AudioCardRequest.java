@@ -13,6 +13,8 @@ import java.util.UUID;
 public class AudioCardRequest {
     private String title;
     private String fullName;
+    private String contactEmail;
+    private String contactPhone;
     private String description;
     private String photoUrl;
     private CardType cardType;

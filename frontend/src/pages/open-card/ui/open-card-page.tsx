@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Download, FileText, Pause, Play } from 'lucide-react'
+import { Download, FileText, Mail, Pause, Phone, Play } from 'lucide-react'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -9,6 +9,7 @@ import { CardImage } from '@/entities/audio-card/ui/card-image'
 import { Button } from '@/shared/ui/button'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
 import { AsyncState } from '@/shared/ui/async-state'
+import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
 
 function initials(name: string | null) {
   return (name ?? '').trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'АВ'
@@ -52,10 +53,21 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
     if (playing) {
       playersRef.current?.voice?.pause()
       playersRef.current?.music?.pause()
+  useEffect(() => onOtherPlayback(playbackOwnerRef.current, () => {
+    requestRef.current += 1
+    playersRef.current?.players.forEach((player) => player.pause())
+    setPlaying(false)
+  }), [])
+
+  async function toggle() {
+    if (playing) {
+      requestRef.current += 1
+      playersRef.current?.players.forEach((player) => player.pause())
       setPlaying(false)
       return
     }
     setError(null)
+    const request = ++requestRef.current
     try {
       let state = playersRef.current
       if (!state) {
@@ -74,8 +86,13 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
           musicPlayer.volume = card.musicVolume / 100
           musicPlayer.loop = Boolean(voicePlayer)
         }
+        
+        const setMusicTime = (voiceTime: number) => {
+          if (!musicPlayer || !Number.isFinite(musicPlayer.duration) || musicPlayer.duration <= 0) { return }
+          musicPlayer.currentTime = (card.musicStartSeconds + voiceTime) % musicPlayer.duration}
         primary.ontimeupdate = () => setPosition({ current: primary.currentTime, duration: primary.duration || 0 })
         primary.onloadedmetadata = primary.ontimeupdate
+        if (musicPlayer) musicPlayer.onloadedmetadata = () => setMusicTime(primary.currentTime)
         primary.onended = () => {
           voicePlayer?.pause()
           musicPlayer?.pause()
@@ -102,6 +119,9 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
         ...(state.music ? [state.music.play()] : []),
         ...(state.voice ? [state.voice.play()] : []),
       ])
+      if (request !== requestRef.current) return
+      announcePlayback(playbackOwnerRef.current)
+      await Promise.all(state.players.map((player) => player.play()))
       setPlaying(true)
     } catch {
       playersRef.current?.voice?.pause()
@@ -116,7 +136,10 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
     if (!state || !position.duration) return
     const next = position.duration * percent / 100
     moveAudioTo(state.primary, next)
-    if (state.voice && state.music && state.music.duration) moveAudioTo(state.music, next % state.music.duration)
+
+    if (state.voice && state.music && Number.isFinite(state.music.duration) && state.music.duration > 0) {
+      moveAudioTo(state.music,(card.musicStartSeconds + next) % state.music.duration,)
+    }
     setPosition((current) => ({ ...current, current: next }))
   }
 
@@ -126,7 +149,7 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
         <button aria-label={playing ? 'Пауза' : 'Воспроизвести'} className="flex size-9 shrink-0 items-center justify-center rounded-full border-[3px] border-primary bg-card text-primary transition hover:bg-accent disabled:border-border disabled:text-muted-foreground disabled:opacity-60" disabled={!canPlay} onClick={() => void toggle()} type="button">
           {playing ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}
         </button>
-        <AudioWaveform className="h-10 min-w-0 flex-1" progress={canPlay ? Math.max(position.duration ? position.current / position.duration : 0, 0.62) : 0} />
+        <AudioWaveform className="h-10 min-w-0 flex-1" onSeek={position.duration ? (progress) => seek(progress * 100) : undefined} progress={position.duration ? position.current / position.duration : 0} />
         <span className="shrink-0 text-[10px] text-foreground/75">{duration(position.current)} / {duration(position.duration)}</span>
       </div>
       <input aria-label="Позиция аудио" className="sr-only" disabled={!position.duration} max={100} min={0} onChange={(event) => seek(Number(event.target.value))} type="range" value={position.duration ? position.current / position.duration * 100 : 0} />
@@ -221,7 +244,23 @@ export function PublicCardPage() {
 
           <section>
             <h2 className="text-xl font-semibold sm:text-2xl">Контакты</h2>
-            <div aria-label="Контакты будут добавлены позже" className="mt-3 min-h-40 rounded-2xl border border-border bg-card" />
+            <div className="mt-3 grid gap-2 rounded-xl border border-border p-4">
+              {card.contactEmail ? (
+                <a className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-2 text-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={`mailto:${card.contactEmail}`}>
+                  <Mail aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                  <span className="truncate">{card.contactEmail}</span>
+                </a>
+              ) : null}
+              {card.contactPhone ? (
+                <a className="flex items-center gap-3 rounded-lg px-2 py-2 text-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={`tel:${card.contactPhone.replace(/[^+\d]/g, '')}`}>
+                  <Phone aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                  <span>{card.contactPhone}</span>
+                </a>
+              ) : null}
+              {!card.contactEmail && !card.contactPhone ? (
+                <p className="px-2 py-3 text-sm text-muted-foreground">Автор не указал контактные данные.</p>
+              ) : null}
+            </div>
           </section>
         </div>
       </article>

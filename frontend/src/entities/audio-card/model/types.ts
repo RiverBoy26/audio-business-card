@@ -2,6 +2,8 @@ export type CardType = 'PORTFOLIO' | 'RESUME'
 
 export type AudioCard = {
   cardType: CardType
+  contactEmail: string | null
+  contactPhone: string | null
   description: string | null
   documentName: string | null
   documentUrl: string | null
@@ -19,6 +21,8 @@ export type AudioCard = {
 
 export type CardDraft = {
   cardType: CardType
+  contactEmail: string
+  contactPhone: string
   description: string
   documentFile: File | null
   documentName: string | null
@@ -28,6 +32,7 @@ export type CardDraft = {
   published: boolean
   publicCode: string | null
   musicVolume: number
+  musicStartSeconds: number
   musicId: string | null
   photoFile: File | null
   photoUrl: string
@@ -44,6 +49,8 @@ export const initialCardDraft: CardDraft = {
   documentName: null,
   documentUrl: null,
   fullName: '',
+  contactEmail: '',
+  contactPhone: '',
   published: false,
   publicCode: null,
   photoUrl: '',
@@ -53,12 +60,15 @@ export const initialCardDraft: CardDraft = {
   skills: ['Python', 'FastAPI', 'PostgreSQL', 'Docker'],
   voiceVolume: 100,
   musicVolume: 30,
+  musicStartSeconds: 0,
   musicId: null,
   voiceRecordingId: null,
 }
 
 export type PublicAudioCard = {
   cardType: CardType
+  contactEmail: string | null
+  contactPhone: string | null
   description: string | null
   documentName: string | null
   documentUrl: string | null
@@ -67,6 +77,7 @@ export type PublicAudioCard = {
   id: string
   musicUrl: string | null
   musicVolume: number
+  musicStartSeconds: number
   photoUrl: string | null
   publishedAt: string
   publicCode: string

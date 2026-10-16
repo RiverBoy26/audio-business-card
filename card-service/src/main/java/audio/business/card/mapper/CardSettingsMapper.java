@@ -11,6 +11,7 @@ public class CardSettingsMapper {
         cardSettingResponse.setCardId(cardSettings.getCardId());
         cardSettingResponse.setVoiceVolume(cardSettings.getVoiceVolume());
         cardSettingResponse.setMusicVolume(cardSettings.getMusicVolume());
+        cardSettingResponse.setMusicStartSeconds(cardSettings.getMusicStartSeconds());
 
         return cardSettingResponse;
     }
@@ -20,6 +21,7 @@ public class CardSettingsMapper {
 
         cardSettings.setVoiceVolume(cardSettingsRequest.getVoiceVolume());
         cardSettings.setMusicVolume(cardSettingsRequest.getMusicVolume());
+        cardSettings.setMusicStartSeconds(cardSettingsRequest.getMusicStartSeconds());
 
         return cardSettings;
     }

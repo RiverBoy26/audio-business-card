@@ -15,4 +15,8 @@ public class CardSettingsRequest {
     @Min(0)
     @Max(100)
     private Integer musicVolume;
+
+    @Min(0)
+    @Max(86400)
+    private Integer musicStartSeconds;
 }

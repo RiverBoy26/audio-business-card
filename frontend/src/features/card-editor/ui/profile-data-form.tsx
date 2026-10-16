@@ -1,7 +1,9 @@
 import { ImagePlus, Mic, Pencil, UserRound, X } from 'lucide-react'
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useEffect, useRef, useState, type ChangeEvent, type Dispatch, type SetStateAction } from 'react'
 
 import type { CardDraft } from '@/entities/audio-card/model/types'
+import { getStackSuggestions, type StackSuggestion } from '@/entities/stack/api/stack-api'
 import { CardImage } from '@/entities/audio-card/ui/card-image'
 import { Button } from '@/shared/ui/button'
 import { Field, SelectField } from '@/shared/ui/field'
@@ -10,17 +12,22 @@ import { VoiceProfileRecorder } from '@/features/card-editor/ui/voice-profile-re
 type ProfileDataFormProps = {
   avatarUrl: string | null
   draft: CardDraft
-  onChange: (draft: CardDraft) => void
+  onChange: Dispatch<SetStateAction<CardDraft>>
 }
 
-type InputMode = 'profile' | 'manual' | 'voice'
+type InputMode = 'manual' | 'voice'
 
 export function ProfileDataForm({ avatarUrl, draft, onChange }: ProfileDataFormProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [inputMode, setInputMode] = useState<InputMode>('profile')
+  const [inputMode, setInputMode] = useState<InputMode>('manual')
   const [isAddingSkill, setIsAddingSkill] = useState(false)
   const [newSkill, setNewSkill] = useState('')
   const [skillError, setSkillError] = useState<string | null>(null)
+  const stackQuery = useQuery({ queryKey: ['stack-suggestions'], queryFn: getStackSuggestions })
+  const normalizedSkill = newSkill.trim().toLocaleLowerCase('ru-RU')
+  const suggestions = normalizedSkill
+    ? (stackQuery.data ?? []).filter((item) => [item.name, ...item.aliases].some((value) => value.toLocaleLowerCase('ru-RU').includes(normalizedSkill))).slice(0, 6)
+    : []
   const positionLabel = draft.cardType === 'RESUME'
     ? 'Желаемая должность'
     : 'Желаемая роль в команде'
@@ -46,8 +53,8 @@ export function ProfileDataForm({ avatarUrl, draft, onChange }: ProfileDataFormP
     onChange({ ...draft, photoFile: file, photoUrl: URL.createObjectURL(file) })
   }
 
-  function addSkill() {
-    const skill = newSkill.trim().replace(/\s+/g, ' ')
+  function addSkill(suggestion?: StackSuggestion) {
+    const skill = (suggestion?.name ?? newSkill).trim().replace(/\s+/g, ' ')
     if (!skill) {
       setSkillError('Введите название технологии.')
       return
@@ -73,19 +80,17 @@ export function ProfileDataForm({ avatarUrl, draft, onChange }: ProfileDataFormP
           <h2 className="text-lg font-semibold">Данные визитки</h2>
           <p className="mt-1 text-xs text-muted-foreground">Выберите, как заполнить основную информацию.</p>
         </div>
-        <span className="rounded-full bg-accent px-3 py-1 text-[11px] font-medium text-primary">Синхронизировано</span>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-lg border border-border">
-        <button aria-pressed={inputMode === 'profile'} className={`flex h-10 items-center justify-center gap-2 border-r border-border text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${inputMode === 'profile' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('profile')} type="button"><UserRound className="size-4" /> Из профиля</button>
+      <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-lg border border-border">
         <button aria-pressed={inputMode === 'manual'} className={`flex h-10 items-center justify-center gap-2 border-r border-border text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${inputMode === 'manual' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('manual')} type="button"><Pencil className="size-4" /> Вручную</button>
         <button aria-pressed={inputMode === 'voice'} className={`flex h-10 items-center justify-center gap-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${inputMode === 'voice' ? 'bg-accent text-primary' : 'hover:bg-muted'}`} onClick={() => setInputMode('voice')} type="button"><Mic className="size-4" /> Голосом</button>
       </div>
 
-      {inputMode === 'voice' ? <VoiceProfileRecorder draft={draft} onChange={onChange} /> : null}
+      {inputMode === 'voice' ? <VoiceProfileRecorder onChange={onChange} /> : null}
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <Field disabled id="card-full-name" label="ФИО (из профиля)" placeholder="Заполните имя в профиле" value={draft.fullName} />
+        <Field disabled id="card-full-name" label="ФИО" placeholder="Заполните имя в профиле" value={draft.fullName} />
         <Field id="card-specialty" label="Специальность" maxLength={5000} onChange={(event) => update('description', event.target.value)} placeholder="Бэкенд-разработчик" value={draft.description} />
         <SelectField id="experience-years" label="Опыт работы" onChange={(event) => update('experienceYears', Number(event.target.value))} value={draft.experienceYears}>
           <option value={0}>Без опыта</option>
@@ -99,10 +104,13 @@ export function ProfileDataForm({ avatarUrl, draft, onChange }: ProfileDataFormP
         <div className="mt-2 flex flex-wrap gap-2">
           {draft.skills.map((skill) => <span className="inline-flex items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-xs" key={skill}>{skill}<button aria-label={`Убрать ${skill}`} className="text-muted-foreground hover:text-foreground" onClick={() => update('skills', draft.skills.filter((item) => item !== skill))} type="button"><X className="size-3" /></button></span>)}
           {isAddingSkill ? (
-            <form className="flex h-8 overflow-hidden rounded-lg border border-primary/50 bg-card" onSubmit={(event) => { event.preventDefault(); addSkill() }}>
-              <input aria-label="Новая технология" autoFocus className="w-32 px-2.5 text-xs outline-none" maxLength={50} onChange={(event) => { setNewSkill(event.target.value); setSkillError(null) }} onKeyDown={(event) => { if (event.key === 'Escape') { setIsAddingSkill(false); setNewSkill(''); setSkillError(null) } }} placeholder="Например, Java" value={newSkill} />
-              <button className="border-l border-border px-2 text-xs font-medium text-primary hover:bg-accent" type="submit">Добавить</button>
-            </form>
+            <div className="relative">
+              <form className="flex h-8 overflow-hidden rounded-lg border border-primary/50 bg-card" onSubmit={(event) => { event.preventDefault(); addSkill(suggestions[0]) }}>
+                <input aria-autocomplete="list" aria-controls="stack-suggestions" aria-label="Новая технология" autoComplete="off" autoFocus className="w-40 px-2.5 text-xs outline-none" maxLength={50} onChange={(event) => { setNewSkill(event.target.value); setSkillError(null) }} onKeyDown={(event) => { if (event.key === 'Escape') { setIsAddingSkill(false); setNewSkill(''); setSkillError(null) } }} placeholder="Например, реакт" value={newSkill} />
+                <button className="border-l border-border px-2 text-xs font-medium text-primary hover:bg-accent" type="submit">Добавить</button>
+              </form>
+              {suggestions.length ? <div className="absolute left-0 top-10 z-20 w-72 overflow-hidden rounded-lg border border-border bg-card shadow-lg" id="stack-suggestions" role="listbox">{suggestions.map((item) => <button className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs hover:bg-muted" key={item.id} onClick={() => addSkill(item)} role="option" type="button"><span className="font-medium">{item.name}</span>{item.aliases[0] ? <span className="truncate text-muted-foreground">{item.aliases[0]}</span> : null}</button>)}</div> : null}
+            </div>
           ) : (
             <button className="rounded-lg border border-dashed border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:border-primary hover:text-primary" onClick={() => setIsAddingSkill(true)} type="button">+ Добавить</button>
           )}

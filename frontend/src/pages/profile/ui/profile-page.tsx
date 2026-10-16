@@ -76,7 +76,6 @@ export function ProfilePage() {
               <dd className="text-muted-foreground">{user.phone}</dd>
             </div>
           </dl>
-          <p className="mt-4 text-center text-xs text-muted-foreground">JPG, PNG или WEBP, до 5 МБ</p>
           {error ? <p className="mt-2 text-center text-xs text-destructive">{error}</p> : null}
         </aside>
         <ProfileForm onSave={updateProfile} user={user} />

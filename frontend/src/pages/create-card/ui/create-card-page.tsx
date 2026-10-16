@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BriefcaseBusiness, FolderOpen } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 import {
   deleteCardDocument,
@@ -29,9 +29,12 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
   const { user } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const profileFullName = [user?.lastName, user?.firstName, user?.middleName].filter(Boolean).join(' ')
   const [draft, setDraft] = useState(() => ({
     ...loadedDraft,
-    fullName: loadedDraft.fullName || [user?.firstName, user?.middleName, user?.lastName].filter(Boolean).join(' '),
+    fullName: profileFullName || loadedDraft.fullName,
+    contactEmail: loadedDraft.contactEmail || user?.email || '',
+    contactPhone: loadedDraft.contactPhone || user?.phone || '',
   }))
   const [saved, setSaved] = useState(false)
   const [publishedCardId, setPublishedCardId] = useState(cardId)
@@ -73,7 +76,7 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
         publicCode: card.publicCode,
       }))
       await queryClient.invalidateQueries({ queryKey: ['audio-cards'] })
-      if (!cardId) navigate(`/create?id=${card.id}`, { replace: true })
+      if (!cardId) navigate(`/cards/${card.id}/edit`, { replace: true })
     },
   })
   const unpublishMutation = useMutation({
@@ -175,6 +178,7 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
             documentFile: file,
             documentName: file.name,
           }))}
+          onDraftChange={setDraft}
           onPublish={() => publishMutation.mutate()}
           onUnpublish={() => unpublishMutation.mutate()}
           onSave={() => saveMutation.mutate()}
@@ -186,8 +190,7 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
 }
 
 export function CreateCardPage() {
-  const [searchParams] = useSearchParams()
-  const cardId = searchParams.get('id') ?? undefined
+  const { cardId } = useParams()
   const draftQuery = useQuery({
     queryKey: ['audio-card-draft', cardId],
     queryFn: () => getCardDraft(cardId!),

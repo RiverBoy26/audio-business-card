@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { Check, Download, FileText, Link2, Pause, Play, QrCode, Save, Send, Trash2, Upload, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Check, Download, FileText, Link2, Pause, Play, QrCode, Save, Send, Trash2, Upload, Volume2, X } from 'lucide-react'
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 
 import type { CardDraft } from '@/entities/audio-card/model/types'
@@ -10,6 +10,7 @@ import { getMusicBlob, getMusicFiles } from '@/entities/music/api/music-api'
 import { getVoiceRecordingBlob, getVoiceRecordings } from '@/entities/voice-recording/api/voice-recording-api'
 import { Button } from '@/shared/ui/button'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
+import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
 
 type CardPreviewProps = {
   cardId?: string
@@ -20,6 +21,7 @@ type CardPreviewProps = {
   isDocumentDeleting: boolean
   onDocumentDelete: () => void
   onDocumentSelect: (file: File) => void
+  onDraftChange: Dispatch<SetStateAction<CardDraft>>
   onPublish: () => void
   onSave: () => void
   onUnpublish: () => void
@@ -39,7 +41,7 @@ function moveAudioTo(player: HTMLAudioElement, seconds: number) {
   player.currentTime = seconds
 }
 
-function CardAudioPreview({ draft }: { draft: CardDraft }) {
+function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dispatch<SetStateAction<CardDraft>> }) {
   const musicQuery = useQuery({ queryKey: ['music'], queryFn: getMusicFiles })
   const voiceQuery = useQuery({ queryKey: ['voice-recordings'], queryFn: getVoiceRecordings })
   const playersRef = useRef<{
@@ -50,6 +52,7 @@ function CardAudioPreview({ draft }: { draft: CardDraft }) {
     voice: HTMLAudioElement | null
   } | null>(null)
   const requestRef = useRef(0)
+  const playbackOwnerRef = useRef(createPlaybackOwner())
   const [playingKey, setPlayingKey] = useState<string | null>(null)
   const [position, setPosition] = useState({ key: '', current: 0, duration: 0 })
   const [error, setError] = useState<string | null>(null)
@@ -78,6 +81,12 @@ function CardAudioPreview({ draft }: { draft: CardDraft }) {
     }
   }, [key])
 
+  useEffect(() => onOtherPlayback(playbackOwnerRef.current, () => {
+    requestRef.current += 1
+    playersRef.current?.items.forEach((item) => item.pause())
+    setPlayingKey(null)
+  }), [])
+
   useEffect(() => {
     const players = playersRef.current
     if (!players || players.key !== key) return
@@ -85,15 +94,26 @@ function CardAudioPreview({ draft }: { draft: CardDraft }) {
     if (players.music) players.music.volume = draft.musicVolume / 100
   }, [draft.voiceVolume, draft.musicVolume, key, recording, music])
 
+  useEffect(() => {
+    const players = playersRef.current
+    if (!players || !music) return
+    const voicePlayer = recording ? players.items[0] : null
+    const musicPlayer = players.items[players.items.length - 1]
+    if (Number.isFinite(musicPlayer.duration) && musicPlayer.duration > 0) {
+      musicPlayer.currentTime = (draft.musicStartSeconds + (voicePlayer?.currentTime ?? 0)) % musicPlayer.duration
+    }
+  }, [draft.musicStartSeconds, music, recording])
+
   async function togglePlayback() {
     if (isPlaying) {
+      requestRef.current += 1
       playersRef.current?.voice?.pause()
       playersRef.current?.music?.pause()
       setPlayingKey(null)
       return
     }
     setError(null)
-    const request = requestRef.current
+    const request = ++requestRef.current
     try {
       let players = playersRef.current
       if (!players || players.key !== key) {
@@ -115,6 +135,7 @@ function CardAudioPreview({ draft }: { draft: CardDraft }) {
         }
         primary.ontimeupdate = () => setPosition({ key, current: primary.currentTime, duration: primary.duration || 0 })
         primary.onloadedmetadata = () => setPosition({ key, current: primary.currentTime, duration: primary.duration || 0 })
+        if (musicPlayer) musicPlayer.onloadedmetadata = () => setMusicTime(primary.currentTime)
         primary.onended = () => {
           voicePlayer?.pause()
           musicPlayer?.pause()
@@ -156,8 +177,9 @@ function CardAudioPreview({ draft }: { draft: CardDraft }) {
     if (!players || !duration) return
     const nextTime = duration * percent / 100
     moveAudioTo(players.primary, nextTime)
+
     if (players.voice && players.music && Number.isFinite(players.music.duration) && players.music.duration > 0) {
-      moveAudioTo(players.music, nextTime % players.music.duration)
+      moveAudioTo(players.music, (draft.musicStartSeconds + nextTime) % players.music.duration,)
     }
     setPosition({ key, current: nextTime, duration })
   }
@@ -166,17 +188,26 @@ function CardAudioPreview({ draft }: { draft: CardDraft }) {
     <div className="mt-5 border-t border-border pt-4">
       <div className="flex items-center gap-3">
         <button aria-label={isPlaying ? 'Пауза' : 'Воспроизвести аудио визитки'} className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-45" disabled={!canPlay} onClick={() => void togglePlayback()} type="button">{isPlaying ? <Pause className="size-5 fill-current" /> : <Play className="ml-0.5 size-5 fill-current" />}</button>
-        <AudioWaveform className="h-11" progress={duration ? current / duration : 0} />
+        <AudioWaveform className="h-11" onSeek={duration ? (progress) => seek(progress * 100) : undefined} progress={duration ? current / duration : 0} />
         <span className="shrink-0 text-[10px] text-muted-foreground">{formatDuration(current)} / {formatDuration(duration)}</span>
       </div>
-      <input aria-label="Позиция аудио" className="mt-1 w-full" disabled={!duration} max={100} min={0} onChange={(event) => seek(Number(event.target.value))} type="range" value={duration ? Math.round(current / duration * 100) : 0} />
-      <p className="mt-1 text-[11px] text-muted-foreground">{recording && music ? 'Предпрослушивание голоса с музыкой' : recording ? 'Голосовая заметка' : music ? 'Фоновая музыка' : 'Выберите музыку или добавьте голосовую заметку'}</p>
+      <label className="mt-2 block text-[11px] text-muted-foreground">
+        <span>Позиция воспроизведения</span>
+        <input aria-label="Позиция воспроизведения" className="mt-1 w-full" disabled={!duration} max={100} min={0} onChange={(event) => seek(Number(event.target.value))} type="range" value={duration ? Math.round(current / duration * 100) : 0} />
+      </label>
+      <p className="mt-1 text-[11px] text-muted-foreground">{recording && music ? 'Голос и музыка воспроизводятся вместе' : recording ? 'Только голос' : music ? 'Только фоновая музыка' : 'Выберите музыку или добавьте голос'}</p>
+      {recording || music ? (
+        <div className="mt-3 grid gap-2 rounded-lg bg-muted/60 p-3">
+          {recording ? <label className="grid grid-cols-[70px_1fr_34px] items-center gap-2 text-[11px]"><span className="inline-flex items-center gap-1"><Volume2 className="size-3.5" />Голос</span><input aria-label="Громкость голоса в предпросмотре" max={100} min={0} onChange={(event) => onChange((currentDraft) => ({ ...currentDraft, voiceVolume: Number(event.target.value) }))} type="range" value={draft.voiceVolume} /><span className="text-right tabular-nums text-muted-foreground">{draft.voiceVolume}%</span></label> : null}
+          {music ? <label className="grid grid-cols-[70px_1fr_34px] items-center gap-2 text-[11px]"><span className="inline-flex items-center gap-1"><Volume2 className="size-3.5" />Музыка</span><input aria-label="Громкость музыки в предпросмотре" max={100} min={0} onChange={(event) => onChange((currentDraft) => ({ ...currentDraft, musicVolume: Number(event.target.value) }))} type="range" value={draft.musicVolume} /><span className="text-right tabular-nums text-muted-foreground">{draft.musicVolume}%</span></label> : null}
+        </div>
+      ) : null}
       {error ? <p className="mt-1 text-xs text-destructive">{error}</p> : null}
     </div>
   )
 }
 
-export function CardPreview({ cardId, draft, error, isDocumentDeleting, isPublishing, isSaving, onDocumentDelete, onDocumentSelect, onPublish, onSave, onUnpublish, saved }: CardPreviewProps) {
+export function CardPreview({ cardId, draft, error, isDocumentDeleting, isPublishing, isSaving, onDocumentDelete, onDocumentSelect, onDraftChange, onPublish, onSave, onUnpublish, saved }: CardPreviewProps) {
   const [linkCopied, setLinkCopied] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)
   const [documentError, setDocumentError] = useState<string | null>(null)
@@ -266,7 +297,7 @@ export function CardPreview({ cardId, draft, error, isDocumentDeleting, isPublis
           {draft.skills.length ? draft.skills.map((skill) => <span className="rounded-lg bg-accent px-2.5 py-1.5 text-xs" key={skill}>{skill}</span>) : <span className="text-xs text-muted-foreground">Стек не указан</span>}
         </div>
 
-        <CardAudioPreview draft={draft} />
+        <CardAudioPreview draft={draft} onChange={onDraftChange} />
 
         <input
           accept="application/pdf,.pdf"

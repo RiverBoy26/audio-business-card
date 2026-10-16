@@ -55,6 +55,15 @@ export const router = createBrowserRouter([
             },
           },
           {
+            path: 'cards/:cardId/edit',
+            lazy: async () => {
+              const { CreateCardPage } = await import(
+                '@/pages/create-card/ui/create-card-page'
+              )
+              return { Component: CreateCardPage }
+            },
+          },
+          {
             path: 'profile',
             lazy: async () => {
               const { ProfilePage } = await import(

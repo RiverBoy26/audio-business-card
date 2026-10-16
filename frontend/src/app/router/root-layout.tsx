@@ -11,8 +11,16 @@ import { Button } from '@/shared/ui/button'
 
 const navigation = [
   { label: 'Создать визитку', to: '/create' },
+  { label: 'Мои визитки', to: '/cards' },
   { label: 'Открыть по коду', to: '/open' },
 ]
+
+function navigationItemIsActive(pathname: string, itemTo: string) {
+  if (itemTo === '/create') return pathname === '/create'
+  if (itemTo === '/cards') return pathname === '/cards' || pathname.startsWith('/cards/')
+  if (itemTo === '/open') return pathname === '/open' || pathname.startsWith('/card/')
+  return pathname === itemTo
+}
 
 const navigationLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -56,7 +64,7 @@ export function RootLayout() {
                 className="mx-auto hidden h-full items-center gap-7 lg:flex"
               >
                 {navigation.map((item) => (
-                  <NavLink className={({ isActive }) => navigationLinkClass({ isActive: isActive || (item.to === '/open' && pathname.startsWith('/card/')) })} key={item.to} to={item.to}>
+                  <NavLink className={() => navigationLinkClass({ isActive: navigationItemIsActive(pathname, item.to) })} key={item.to} to={item.to}>
                     {item.label}
                   </NavLink>
                 ))}
@@ -127,10 +135,10 @@ export function RootLayout() {
             <div className="mx-auto grid max-w-7xl gap-1">
               {navigation.map((item) => (
                 <NavLink
-                  className={({ isActive }) =>
+                  className={() =>
                     cn(
                       'rounded-md px-3 py-3 text-sm font-medium',
-                      isActive || (item.to === '/open' && pathname.startsWith('/card/')) ? 'bg-accent text-primary' : 'hover:bg-muted',
+                      navigationItemIsActive(pathname, item.to) ? 'bg-accent text-primary' : 'hover:bg-muted',
                     )
                   }
                   key={item.to}
@@ -141,7 +149,6 @@ export function RootLayout() {
                 </NavLink>
               ))}
               <NavLink className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted" onClick={() => setMobileMenuOpen(false)} to="/profile">Мой профиль</NavLink>
-              <NavLink className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted" onClick={() => setMobileMenuOpen(false)} to="/cards">Мои визитки</NavLink>
               {user ? (
                 <button className="rounded-md px-3 py-3 text-left text-sm font-medium hover:bg-muted" onClick={() => void logout()} type="button">Выйти</button>
               ) : (
