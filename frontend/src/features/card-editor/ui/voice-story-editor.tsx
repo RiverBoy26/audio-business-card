@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type Dispat
 import type { CardDraft } from '@/entities/audio-card/model/types'
 import { getMusicBlob, getMusicFiles, uploadMusic } from '@/entities/music/api/music-api'
 import { getVoiceRecordingBlob, getVoiceRecordings, uploadVoiceRecording, type VoiceRecording } from '@/entities/voice-recording/api/voice-recording-api'
-import { joinVoiceParts, trimVoicePart } from '@/features/card-editor/lib/voice-audio'
+import { clampTrimEnd, clampTrimStart, joinVoiceParts, trimVoicePart } from '@/features/card-editor/lib/voice-audio'
 import { uniqueMusicFiles } from '@/features/card-editor/lib/unique-music-files'
 import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
 import { formatDuration, normalizeDuration } from '@/shared/lib/format-duration'
@@ -75,7 +75,12 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
   })
   const uploadMutation = useMutation({
     mutationFn: async ({ file, mode }: { file: File; mode: 'append' | 'replace' }) => {
-      const currentRecording = voiceQuery.data?.find((item) => item.id === draft.voiceRecordingId)
+      let currentRecording = voiceQuery.data?.find((item) => item.id === draft.voiceRecordingId)
+      if (mode === 'append' && draft.voiceRecordingId && !currentRecording) {
+        const recordings = await queryClient.fetchQuery({ queryKey: ['voice-recordings'], queryFn: getVoiceRecordings })
+        currentRecording = recordings.find((item) => item.id === draft.voiceRecordingId)
+        if (!currentRecording) throw new Error('Не удалось загрузить текущую запись для объединения. Попробуйте ещё раз.')
+      }
       const parts: Blob[] = []
       if (mode === 'append' && currentRecording) {
         parts.push(await getVoiceRecordingBlob(currentRecording))
@@ -84,15 +89,20 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
       const prepared = await joinVoiceParts(parts)
       return uploadVoiceRecording(prepared.file, prepared.durationSeconds)
     },
-    onSuccess: async (recording) => {
+    onSuccess: (recording) => {
+      queryClient.setQueryData<VoiceRecording[]>(['voice-recordings'], (current) => [
+        recording,
+        ...(current ?? []).filter((item) => item.id !== recording.id),
+      ])
       onChange((current) => ({ ...current, voiceRecordingId: recording.id }))
       setRecordedFile(null)
       setDuration(0)
+      setVoicePosition({ current: 0, duration: recording.durationSeconds })
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       setPreviewUrl(null)
       setDialogStage(null)
       setTrimOpen(false)
-      await queryClient.invalidateQueries({ queryKey: ['voice-recordings'] })
+      void queryClient.invalidateQueries({ queryKey: ['voice-recordings'] })
     },
   })
 
@@ -102,10 +112,14 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
       const prepared = await trimVoicePart(source, trimStart, trimEnd)
       return uploadVoiceRecording(prepared.file, prepared.durationSeconds)
     },
-    onSuccess: async (recording) => {
+    onSuccess: (recording) => {
+      queryClient.setQueryData<VoiceRecording[]>(['voice-recordings'], (current) => [
+        recording,
+        ...(current ?? []).filter((item) => item.id !== recording.id),
+      ])
       onChange((current) => ({ ...current, voiceRecordingId: recording.id }))
       setTrimOpen(false)
-      await queryClient.invalidateQueries({ queryKey: ['voice-recordings'] })
+      void queryClient.invalidateQueries({ queryKey: ['voice-recordings'] })
     },
   })
 
@@ -383,8 +397,8 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
       {trimOpen && latestRecording ? (
         <div className="mt-4 rounded-lg border border-border bg-muted/50 p-4">
           <div className="flex items-center justify-between gap-3"><p className="text-sm font-medium">Обрезать голос</p><span className="text-xs tabular-nums text-muted-foreground">{formatDuration(trimStart)}–{formatDuration(trimEnd)}</span></div>
-          <label className="mt-3 grid grid-cols-[58px_1fr] items-center gap-3 text-xs"><span>Начало</span><input aria-label="Начало фрагмента" max={Math.max(0, trimEnd - 1)} min={0} onChange={(event) => setTrimStart(Number(event.target.value))} step={1} type="range" value={trimStart} /></label>
-          <label className="mt-3 grid grid-cols-[58px_1fr] items-center gap-3 text-xs"><span>Конец</span><input aria-label="Конец фрагмента" max={latestRecording.durationSeconds} min={Math.min(latestRecording.durationSeconds, trimStart + 1)} onChange={(event) => setTrimEnd(Number(event.target.value))} step={1} type="range" value={trimEnd} /></label>
+          <label className="mt-3 grid grid-cols-[58px_minmax(0,1fr)] items-center gap-3 text-xs"><span>Начало</span><input aria-label="Начало фрагмента" max={Math.max(0, trimEnd - 1)} min={0} onChange={(event) => setTrimStart(clampTrimStart(Number(event.target.value), trimEnd))} step={1} type="range" value={clampTrimStart(trimStart, trimEnd)} /></label>
+          <label className="mt-3 grid grid-cols-[58px_minmax(0,1fr)] items-center gap-3 text-xs"><span>Конец</span><input aria-label="Конец фрагмента" max={latestRecording.durationSeconds} min={Math.min(latestRecording.durationSeconds, trimStart + 1)} onChange={(event) => setTrimEnd(clampTrimEnd(Number(event.target.value), trimStart, latestRecording.durationSeconds))} step={1} type="range" value={clampTrimEnd(trimEnd, trimStart, latestRecording.durationSeconds)} /></label>
           <div className="mt-3 flex justify-end gap-2"><Button onClick={() => setTrimOpen(false)} size="sm" type="button" variant="outline">Отмена</Button><Button disabled={trimMutation.isPending || trimEnd <= trimStart} onClick={() => trimMutation.mutate(latestRecording)} size="sm" type="button">{trimMutation.isPending ? 'Обрезаем…' : 'Применить'}</Button></div>
         </div>
       ) : null}
@@ -404,7 +418,7 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
       {draft.musicId && !musicDuration && !musicError ? <p className="mt-3 text-xs text-muted-foreground">Определяем длительность музыки…</p> : null}
       {musicQuery.isError || musicError || musicUploadMutation.isError ? <p className="mt-2 text-xs text-destructive">{musicError ?? (musicUploadMutation.isError ? 'Не удалось загрузить музыку. Поддерживаются MP3, WAV, OGG, M4A и AAC.' : 'Не удалось загрузить список музыки.')}</p> : null}
 
-      {recorderError || uploadMutation.isError || trimMutation.isError || voiceQuery.isError ? <p className="mt-3 text-xs text-destructive">{recorderError ?? (trimMutation.error instanceof Error ? trimMutation.error.message : 'Не удалось сохранить или загрузить запись.')}</p> : null}
+      {recorderError || uploadMutation.isError || trimMutation.isError || voiceQuery.isError ? <p className="mt-3 text-xs text-destructive">{recorderError ?? (uploadMutation.error instanceof Error ? uploadMutation.error.message : trimMutation.error instanceof Error ? trimMutation.error.message : 'Не удалось сохранить или загрузить запись.')}</p> : null}
       {latestRecording?.processingStatus === 'READY' && !recordedFile ? <p className="mt-3 text-xs text-muted-foreground">Запись сохранена и готова к последующей обработке моделью.</p> : null}
     </section>
     <Modal className="max-w-md px-8 pb-8 pt-7" onClose={cancelRecording} open={dialogStage === 'recording'} title="Идёт запись">

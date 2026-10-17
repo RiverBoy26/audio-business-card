@@ -151,17 +151,17 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
   }
 
   return (
-    <div className="mt-3">
-      <div className="flex min-h-12 items-center gap-2 sm:gap-3">
+    <div className="mt-3 min-w-0">
+      <div className="grid min-h-12 min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:gap-3">
         <button aria-label={playing ? 'Пауза' : 'Воспроизвести'} className="flex size-9 shrink-0 items-center justify-center rounded-full border-[3px] border-primary bg-card text-primary transition hover:bg-accent disabled:border-border disabled:text-muted-foreground disabled:opacity-60" disabled={!canPlay} onClick={() => void toggle()} type="button">
           {playing ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}
         </button>
         <AudioWaveform className="h-10 min-w-0 flex-1" expanded onSeek={position.duration ? (progress) => seek(progress * 100) : undefined} progress={position.duration ? position.current / position.duration : 0} />
         <span className="shrink-0 text-[10px] text-foreground/75">{formatDuration(position.current)} / {formatDuration(position.duration)}</span>
-        <label className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
+        <label className="col-span-3 ml-auto flex shrink-0 items-center gap-1.5 text-muted-foreground sm:col-span-1 sm:ml-0">
           <Volume2 aria-hidden="true" className="size-4" />
           <span className="sr-only">Громкость аудио</span>
-          <input aria-label="Громкость аудио" className="w-12 sm:w-16" max={100} min={0} onChange={(event) => setVolume(Number(event.target.value))} type="range" value={volume} />
+          <input aria-label="Громкость аудио" className="w-20 sm:w-16" max={100} min={0} onChange={(event) => setVolume(Number(event.target.value))} type="range" value={volume} />
         </label>
       </div>
       <input aria-label="Позиция аудио" className="sr-only" disabled={!position.duration} max={100} min={0} onInput={(event) => seek(Number(event.currentTarget.value))} step={0.1} type="range" value={position.duration ? position.current / position.duration * 100 : 0} />
@@ -218,6 +218,7 @@ export function PublicCardPage() {
   if (query.isError || !query.data) return <main className="mx-auto max-w-2xl px-4 py-16"><AsyncState description="Ссылка неверна, карточка удалена или ещё не опубликована." status="error" title="Визитка недоступна" /></main>
 
   const card = query.data
+  const positionLabel = card.cardType === 'RESUME' ? 'Желаемая должность' : 'Роль в команде'
   return (
     <main className="mx-auto min-h-[calc(100svh-4rem-1px)] w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <div className="flex items-end gap-4">
@@ -225,20 +226,20 @@ export function PublicCardPage() {
         <span className="mb-1 text-xs text-foreground/70">ID:{card.publicCode}</span>
       </div>
 
-      <article className="mt-3 w-full rounded-2xl border border-border bg-card p-5 sm:p-7">
+      <article className="mt-3 min-w-0 w-full overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-7">
         <div className="grid gap-6 md:grid-cols-[165px_minmax(0,1fr)] md:gap-9">
           {card.photoUrl
-            ? <CardImage alt={card.fullName ?? 'Фото автора'} className="h-[215px] w-[165px] rounded-[20px] bg-muted object-cover" src={card.photoUrl} />
-            : <div className="flex h-[215px] w-[165px] items-center justify-center rounded-[20px] bg-muted text-3xl font-medium text-primary">{initials(card.fullName)}</div>}
+            ? <CardImage alt={card.fullName ?? 'Фото автора'} className="mx-auto h-[215px] w-[165px] rounded-[20px] bg-muted object-cover md:mx-0" src={card.photoUrl} />
+            : <div className="mx-auto flex h-[215px] w-[165px] items-center justify-center rounded-[20px] bg-muted text-3xl font-medium text-primary md:mx-0">{initials(card.fullName)}</div>}
           <div className="min-w-0 self-center">
-            <h2 className="text-3xl font-semibold leading-tight sm:text-4xl">{card.fullName || 'Автор визитки'}</h2>
-            <p className="mt-1 text-lg leading-7">{card.description || 'Специализация не указана'}</p>
-            <p className="text-lg leading-7">Хочет работать: {card.title}</p>
-            <p className="text-lg leading-7">Опыт работы: {card.experienceYears} {card.experienceYears === 1 ? 'год' : 'лет'}</p>
-            <p className="text-lg leading-7">Стек технологий:</p>
+            <h2 className="break-words text-2xl font-semibold leading-tight sm:text-4xl">{card.fullName || 'Автор визитки'}</h2>
+            <p className="mt-1 break-words text-base leading-6 sm:text-lg sm:leading-7">{card.description || 'Специализация не указана'}</p>
+            <p className="break-words text-base leading-6 sm:text-lg sm:leading-7">{positionLabel}: {card.title}</p>
+            <p className="text-base leading-6 sm:text-lg sm:leading-7">Опыт работы: {card.experienceYears} {card.experienceYears === 1 ? 'год' : 'лет'}</p>
+            <p className="text-base leading-6 sm:text-lg sm:leading-7">Стек технологий:</p>
             <div className="mt-1.5 flex flex-wrap gap-2.5">
               {card.skills.length
-                ? card.skills.map((skill) => <span className="min-w-[104px] rounded-md border border-border px-3 py-1 text-center text-sm font-semibold" key={skill}>{skill}</span>)
+                ? card.skills.map((skill) => <span className="max-w-full break-words rounded-md border border-border px-3 py-1 text-center text-sm font-semibold sm:min-w-[104px]" key={skill}>{skill}</span>)
                 : <span className="text-sm text-muted-foreground">Не указан</span>}
             </div>
           </div>
@@ -260,17 +261,17 @@ export function PublicCardPage() {
               {card.contactEmail ? (
                 <a className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-2 text-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={`mailto:${card.contactEmail}`}>
                   <Mail aria-hidden="true" className="size-4 shrink-0 text-primary" />
-                  <span className="truncate">{card.contactEmail}</span>
+                  <span className="min-w-0 break-all">{card.contactEmail}</span>
                 </a>
               ) : null}
               {card.contactPhone ? (
-                <a className="flex items-center gap-3 rounded-lg px-2 py-2 text-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={`tel:${card.contactPhone.replace(/[^+\d]/g, '')}`}>
+                <a className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-2 text-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={`tel:${card.contactPhone.replace(/[^+\d]/g, '')}`}>
                   <Phone aria-hidden="true" className="size-4 shrink-0 text-primary" />
-                  <span>{card.contactPhone}</span>
+                  <span className="min-w-0 break-all">{card.contactPhone}</span>
                 </a>
               ) : null}
               {!card.contactEmail && !card.contactPhone ? (
-                <p className="px-2 py-3 text-sm text-muted-foreground">Автор не указал контактные данные.</p>
+                <p className="px-2 py-3 text-sm text-muted-foreground">Контакты не оставлены.</p>
               ) : null}
             </div>
           </section>
