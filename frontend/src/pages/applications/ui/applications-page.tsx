@@ -3,7 +3,7 @@ import { Check, ExternalLink, Inbox, RotateCcw, Send, UserRound, X } from 'lucid
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { getPublicAudioCard } from '@/entities/audio-card/api/audio-card-api'
+import { getApplicationAudioCard } from '@/entities/audio-card/api/audio-card-api'
 import type { PublicAudioCard } from '@/entities/audio-card/model/types'
 import { CardImage } from '@/entities/audio-card/ui/card-image'
 import {
@@ -30,7 +30,7 @@ async function getIncomingApplications() {
     const applications = await getRecruitmentApplications(recruitment.id)
     const candidates: IncomingCandidate[] = await Promise.all(applications.map(async (application) => {
       try {
-        return { application, card: await getPublicAudioCard(application.audioCardId) }
+        return { application, card: await getApplicationAudioCard(application.id) }
       } catch {
         return { application, card: null }
       }
@@ -134,7 +134,7 @@ export function ApplicationsPage() {
                           {application.message ? <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{application.message}</p> : null}
                         </div>
                         <div className="grid shrink-0 gap-3 sm:w-[25.5rem] sm:grid-cols-2">
-                          {card ? <Button asChild className="col-span-full h-14 text-xl font-normal"><Link target="_blank" to={`/card/${card.id}`}><ExternalLink className="size-5" />Посмотреть визитку</Link></Button> : <Button className="col-span-full h-14" disabled variant="outline">Визитка недоступна</Button>}
+                          {card ? <Button asChild className="col-span-full h-14 text-xl font-normal"><Link target="_blank" to={`/applications/${application.id}/card`}><ExternalLink className="size-5" />Посмотреть визитку</Link></Button> : <Button className="col-span-full h-14" disabled variant="outline">Визитка недоступна</Button>}
                           <Button className="h-11 text-lg font-normal" disabled={application.status !== 'PENDING' || decisionMutation.isPending} onClick={() => decisionMutation.mutate({ id: application.id, status: 'ACCEPTED' })}><Check className="size-5" />Принять</Button>
                           <Button className="h-11 bg-muted text-lg font-normal text-foreground hover:bg-border" disabled={application.status !== 'PENDING' || decisionMutation.isPending} onClick={() => decisionMutation.mutate({ id: application.id, status: 'REJECTED' })}><X className="size-5" />Отказать</Button>
                         </div>

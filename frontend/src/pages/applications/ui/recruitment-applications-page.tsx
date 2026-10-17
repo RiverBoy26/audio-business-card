@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Check, ExternalLink, MessageSquareText, UserRound, X } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 
-import { getPublicAudioCard } from '@/entities/audio-card/api/audio-card-api'
+import { getApplicationAudioCard } from '@/entities/audio-card/api/audio-card-api'
 import type { PublicAudioCard } from '@/entities/audio-card/model/types'
 import { CardImage } from '@/entities/audio-card/ui/card-image'
 import {
@@ -30,7 +30,7 @@ async function getApplicationsWithCards(recruitmentId: string) {
   if (!recruitment) throw new Error('Объявление не найдено среди ваших наборов.')
   const candidates: Candidate[] = await Promise.all(applications.map(async (application) => {
     try {
-      return { application, card: await getPublicAudioCard(application.audioCardId) }
+      return { application, card: await getApplicationAudioCard(application.id) }
     } catch {
       return { application, card: null }
     }
@@ -107,7 +107,7 @@ export function RecruitmentApplicationsPage() {
 
                 <div className="grid shrink-0 gap-2 sm:grid-cols-3 lg:w-[520px]">
                   {card ? (
-                    <Button asChild variant="outline"><Link target="_blank" to={`/card/${card.id}`}><ExternalLink className="size-4" />Прослушать визитку</Link></Button>
+                    <Button asChild variant="outline"><Link target="_blank" to={`/applications/${application.id}/card`}><ExternalLink className="size-4" />Прослушать визитку</Link></Button>
                   ) : <Button disabled variant="outline">Визитка недоступна</Button>}
                   <Button disabled={application.status !== 'PENDING' || decisionMutation.isPending} onClick={() => decisionMutation.mutate({ id: application.id, status: 'ACCEPTED' })}><Check className="size-4" />Принять</Button>
                   <Button disabled={application.status !== 'PENDING' || decisionMutation.isPending} onClick={() => decisionMutation.mutate({ id: application.id, status: 'REJECTED' })} variant="outline"><X className="size-4" />Отклонить</Button>

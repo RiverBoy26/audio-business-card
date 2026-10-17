@@ -42,8 +42,8 @@ const publicAudioCardSchema = z.object({
   musicStartSeconds: z.number().int().min(0).default(0),
   voiceUrl: z.string().nullable(),
   musicUrl: z.string().nullable(),
-  publishedAt: z.string(),
-  publicCode: z.string().regex(/^[A-Z0-9]{6}$/),
+  publishedAt: z.string().nullable(),
+  publicCode: z.string().regex(/^[A-Z0-9]{6}$/).nullable(),
 })
 
 const experienceSchema = z.object({
@@ -244,6 +244,15 @@ export function getPublicAudioCardByCode(code: string) {
   })
 }
 
+export function getApplicationAudioCard(applicationId: string) {
+  return apiRequest<PublicAudioCard>(`/api/v1/applications/${applicationId}/card`, {
+    schema: publicAudioCardSchema,
+  })
+}
+
 export function getPublicCardMedia(url: string) {
-  return apiRequest<Blob>(url, { auth: false, responseType: 'blob' })
+  return apiRequest<Blob>(url, {
+    auth: url.startsWith('/api/v1/applications/'),
+    responseType: 'blob',
+  })
 }

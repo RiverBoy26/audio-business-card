@@ -185,6 +185,11 @@ public class AudioCardServiceImp implements AudioCardService {
     }
 
     @Override
+    public PublicAudioCardResponse findSharedById(UUID audioCardId) {
+        return toPublicResponse(findCard(audioCardId));
+    }
+
+    @Override
     public PublicAudioCardResponse findPublishedByCode(String publicCode) {
         String normalizedCode = publicCode == null ? "" : publicCode.trim().toUpperCase(Locale.ROOT);
         if (!normalizedCode.matches("[A-Z0-9]{6}")) {
@@ -292,6 +297,15 @@ public class AudioCardServiceImp implements AudioCardService {
         return new CardPhotoResponse(imageStorage.load(card.getPhotoFilename()), card.getPhotoContentType());
     }
 
+    @Override
+    public CardPhotoResponse getSharedPhoto(UUID audioCardId) throws IOException {
+        AudioCard card = findCard(audioCardId);
+        if (card.getPhotoFilename() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Фотография не найдена");
+        }
+        return new CardPhotoResponse(imageStorage.load(card.getPhotoFilename()), card.getPhotoContentType());
+    }
+
     private String versionedPhotoUrl(String photoUrl, String filename) {
         return photoUrl + "?v=" + filename;
     }
@@ -325,6 +339,11 @@ public class AudioCardServiceImp implements AudioCardService {
     }
 
     @Override
+    public CardDocumentResponse getSharedDocument(UUID audioCardId) throws IOException {
+        return loadDocument(findCard(audioCardId));
+    }
+
+    @Override
     public AudioCardResponse deleteDocument(UUID userId, UUID audioCardId) {
         AudioCard card = findOwnedCard(userId, audioCardId);
         String filename = card.getDocumentFilename();
@@ -355,8 +374,26 @@ public class AudioCardServiceImp implements AudioCardService {
     }
 
     @Override
+    public PublicMediaResponse getSharedVoice(UUID audioCardId) {
+        AudioCard card = findCard(audioCardId);
+        if (card.getVoiceRecordingId() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Голосовая заметка не найдена");
+        }
+        return loadSoundFile("/api/voice-recordings/" + card.getVoiceRecordingId() + "/file", card.getUserId());
+    }
+
+    @Override
     public PublicMediaResponse getPublishedMusic(UUID audioCardId) {
         AudioCard card = findPublishedCard(audioCardId);
+        if (card.getMusicId() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Музыка не найдена");
+        }
+        return loadSoundFile("/api/music/" + card.getMusicId() + "/file", card.getUserId());
+    }
+
+    @Override
+    public PublicMediaResponse getSharedMusic(UUID audioCardId) {
+        AudioCard card = findCard(audioCardId);
         if (card.getMusicId() == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Музыка не найдена");
         }
@@ -371,6 +408,11 @@ public class AudioCardServiceImp implements AudioCardService {
     private AudioCard findPublishedCard(UUID audioCardId) {
         return audioCardRepository.findByIdAndIsPublishedTrue(audioCardId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Опубликованная визитка не найдена"));
+    }
+
+    private AudioCard findCard(UUID audioCardId) {
+        return audioCardRepository.findById(audioCardId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Аудиовизитка не найдена"));
     }
 
     private synchronized AudioCard ensurePublicCode(AudioCard card) {

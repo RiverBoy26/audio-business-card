@@ -61,6 +61,7 @@ export function AuthDialog({ mode, onClose, onModeChange }: AuthDialogProps) {
           email: String(form.get('email')).trim(),
           phone: String(form.get('phone')).trim(),
           password,
+          personalDataConsent: form.get('personalDataConsent') === 'on',
         })
       }
       onClose()
@@ -163,6 +164,28 @@ export function AuthDialog({ mode, onClose, onModeChange }: AuthDialogProps) {
             required
             type="password"
           />
+        ) : null}
+        {!isLogin ? (
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-muted/35 px-4 py-3 text-sm leading-5 transition hover:border-primary/35" htmlFor="register-personal-data-consent">
+            <input
+              aria-describedby={fieldErrors.personalDataConsent ? 'register-personal-data-consent-error' : undefined}
+              aria-invalid={fieldErrors.personalDataConsent ? true : undefined}
+              className="mt-0.5 size-4 shrink-0 accent-primary"
+              id="register-personal-data-consent"
+              name="personalDataConsent"
+              onChange={() => clearFieldError('personalDataConsent')}
+              required
+              type="checkbox"
+            />
+            <span>
+              Я даю согласие на обработку персональных данных
+              {fieldErrors.personalDataConsent ? (
+                <span className="mt-1 block text-xs text-destructive" id="register-personal-data-consent-error">
+                  {fieldErrors.personalDataConsent}
+                </span>
+              ) : null}
+            </span>
+          </label>
         ) : null}
 
         <div className="mt-4 flex items-end justify-between gap-4">

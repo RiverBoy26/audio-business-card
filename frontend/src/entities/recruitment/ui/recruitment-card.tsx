@@ -23,23 +23,19 @@ export function RecruitmentCard({ recruitment, score }: RecruitmentCardProps) {
   const placesLeft = Math.max(0, recruitment.participantsNeeded - recruitment.acceptedCount)
 
   return (
-    <article className="group flex min-w-0 flex-col overflow-hidden rounded-[1.7rem] border border-border/80 bg-card p-4 shadow-[0_16px_45px_rgba(13,10,51,0.04)] transition duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_22px_55px_rgba(83,61,180,0.11)] sm:p-5">
-      <div className="flex gap-4">
-        <RecruitmentVisual className="size-24 sm:size-28" seed={recruitment.id} />
+    <article className="group flex min-w-0 flex-col rounded-[1.6rem] border border-border bg-card p-5 shadow-[0_14px_45px_rgba(13,10,51,0.04)] transition duration-300 hover:-translate-y-0.5 hover:border-primary/35">
+      <div className="flex items-start gap-4">
+        <RecruitmentVisual className="h-36 w-28 shrink-0 rounded-2xl" seed={recruitment.id} />
         <div className="min-w-0 flex-1 py-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="truncate text-xs font-bold uppercase tracking-[0.12em] text-primary">
-              {recruitment.eventName}
-            </p>
+          <div className="flex items-start justify-between gap-3">
+            <h2 className="truncate text-xl font-bold">{recruitment.eventName}</h2>
             {score !== undefined ? (
               <span className="shrink-0 rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold text-primary">
                 {score}% мэтч
               </span>
             ) : null}
           </div>
-          <h2 className="mt-2 line-clamp-2 text-xl font-bold leading-tight sm:text-2xl">
-            {recruitment.title}
-          </h2>
+          <p className="mt-1 line-clamp-2 text-sm font-medium text-primary">{recruitment.title}</p>
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
               <UsersRound className="size-3.5 text-primary" />
@@ -50,12 +46,11 @@ export function RecruitmentCard({ recruitment, score }: RecruitmentCardProps) {
               до {formatDate(recruitment.deadline)}
             </span>
           </div>
+          <p className="mt-3 line-clamp-2 text-sm leading-5 text-muted-foreground">
+            {recruitment.description}
+          </p>
         </div>
       </div>
-
-      <p className="mt-5 line-clamp-3 min-h-[3.75rem] text-sm leading-5 text-muted-foreground">
-        {recruitment.description}
-      </p>
 
       <div className="mt-4 flex min-h-7 flex-wrap gap-2">
         {recruitment.requiredSkills.slice(0, 4).map((skill) => (
@@ -66,7 +61,7 @@ export function RecruitmentCard({ recruitment, score }: RecruitmentCardProps) {
         ) : null}
       </div>
 
-      <div className="mt-5 flex items-center justify-between gap-3 border-t border-border/70 pt-4">
+      <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
         <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
           <MapPin className="size-3.5 shrink-0" />
           <span className="truncate">{recruitment.location || formatLabels[recruitment.format]}</span>

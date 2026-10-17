@@ -27,6 +27,8 @@ public interface AudioCardService {
 
     PublicAudioCardResponse findPublishedById(UUID audioCardId);
 
+    PublicAudioCardResponse findSharedById(UUID audioCardId);
+
     PublicAudioCardResponse findPublishedByCode(String publicCode);
 
     void delete(UUID userId, UUID audioCardId);
@@ -37,15 +39,23 @@ public interface AudioCardService {
 
     CardPhotoResponse getPublishedPhoto(UUID audioCardId) throws IOException;
 
+    CardPhotoResponse getSharedPhoto(UUID audioCardId) throws IOException;
+
     AudioCardResponse uploadDocument(UUID userId, UUID audioCardId, MultipartFile file) throws IOException;
 
     CardDocumentResponse getDocument(UUID userId, UUID audioCardId) throws IOException;
 
     CardDocumentResponse getPublishedDocument(UUID audioCardId) throws IOException;
 
+    CardDocumentResponse getSharedDocument(UUID audioCardId) throws IOException;
+
     AudioCardResponse deleteDocument(UUID userId, UUID audioCardId);
 
     PublicMediaResponse getPublishedVoice(UUID audioCardId);
 
+    PublicMediaResponse getSharedVoice(UUID audioCardId);
+
     PublicMediaResponse getPublishedMusic(UUID audioCardId);
+
+    PublicMediaResponse getSharedMusic(UUID audioCardId);
 }

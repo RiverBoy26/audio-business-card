@@ -30,8 +30,8 @@ export function ApplyDialog({
     queryFn: getAudioCards,
     enabled: open,
   })
-  const publishedCards = (cardsQuery.data ?? []).filter((card) => card.published)
-  const selectedCardId = cardId || publishedCards[0]?.id || ''
+  const savedCards = cardsQuery.data ?? []
+  const selectedCardId = cardId || savedCards[0]?.id || ''
   const mutation = useMutation({
     mutationFn: () => applyToRecruitment(recruitmentId, selectedCardId, message),
     onSuccess: async () => {
@@ -53,16 +53,16 @@ export function ApplyDialog({
       <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Отклик в команду</p>
       <h2 className="mt-2 pr-8 text-2xl font-bold">{recruitmentTitle}</h2>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        Выберите опубликованную аудиовизитку. Автор объявления сможет открыть и прослушать её.
+        Выберите любую сохранённую аудиовизитку. Автор объявления сможет открыть и прослушать её в рамках заявки.
       </p>
 
       <form className="mt-6" onSubmit={submit}>
         {cardsQuery.isLoading ? (
           <div className="h-28 animate-pulse rounded-xl bg-muted" />
-        ) : publishedCards.length ? (
+        ) : savedCards.length ? (
           <fieldset className="grid gap-2">
             <legend className="mb-2 text-xs font-bold">Ваша визитка</legend>
-            {publishedCards.map((card) => (
+            {savedCards.map((card) => (
               <label
                 className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${selectedCardId === card.id ? 'border-primary bg-accent/70' : 'border-border hover:border-primary/40'}`}
                 key={card.id}
@@ -80,7 +80,7 @@ export function ApplyDialog({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-bold">{card.fullName || card.title}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{card.title}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{card.title} · {card.published ? 'Опубликована' : 'Черновик'}</span>
                 </span>
                 {selectedCardId === card.id ? <Check className="size-5 text-primary" /> : null}
               </label>
@@ -88,7 +88,7 @@ export function ApplyDialog({
           </fieldset>
         ) : (
           <div className="rounded-xl border border-dashed border-border p-4 text-sm leading-6 text-muted-foreground">
-            Для отклика нужна опубликованная визитка. Создайте её или опубликуйте существующий черновик в разделе «Мои визитки».
+            Для отклика нужна сохранённая визитка. Создайте её в разделе «Мои визитки».
           </div>
         )}
 

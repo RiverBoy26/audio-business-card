@@ -79,6 +79,13 @@ export const router = createBrowserRouter([
             },
           },
           {
+            path: 'applications/:applicationId/card',
+            lazy: async () => {
+              const { PublicCardPage } = await import('@/pages/open-card/ui/open-card-page')
+              return { Component: PublicCardPage }
+            },
+          },
+          {
             path: 'applications/:recruitmentId',
             lazy: async () => {
               const { RecruitmentApplicationsPage } = await import('@/pages/applications/ui/recruitment-applications-page')

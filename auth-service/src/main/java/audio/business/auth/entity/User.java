@@ -59,4 +59,10 @@ public class User {
 
     @Column(name = "avatar_content_type")
     private String avatarContentType;
+
+    @Column(name = "personal_data_consent_at")
+    private LocalDateTime personalDataConsentAt;
+
+    @Column(name = "personal_data_consent_version", length = 32)
+    private String personalDataConsentVersion;
 }

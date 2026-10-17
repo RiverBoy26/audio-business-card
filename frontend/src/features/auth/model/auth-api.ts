@@ -33,10 +33,11 @@ export type RegisterPayload = {
   lastName: string
   middleName: string | null
   password: string
+  personalDataConsent: boolean
   phone: string
 }
 
-export type UpdateProfilePayload = Omit<RegisterPayload, 'password'>
+export type UpdateProfilePayload = Omit<RegisterPayload, 'password' | 'personalDataConsent'>
 
 export function login(email: string, password: string) {
   return apiRequest<AuthResponse>('/api/v1/auth/login', {

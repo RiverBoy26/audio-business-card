@@ -36,7 +36,7 @@ public class ApplicationService {
         if (recruitment.getCreatorId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Нельзя откликнуться на собственное объявление");
         }
-        cardClient.verifyPublishedOwnedCard(userId, request.audioCardId());
+        cardClient.verifyOwnedCard(userId, request.audioCardId());
         TeamApplication value = applications.findByRecruitmentIdAndApplicantId(recruitmentId, userId).orElse(null);
         if (value != null && value.getStatus() != ApplicationStatus.WITHDRAWN) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Вы уже откликнулись на это объявление");
@@ -66,6 +66,26 @@ public class ApplicationService {
 
     public List<ApplicationResponse> findMine(UUID userId) {
         return applications.findByApplicantIdOrderByCreatedAtDesc(userId).stream().map(this::toResponse).toList();
+    }
+
+    public CardClient.SharedCard findCard(UUID ownerId, UUID applicationId) {
+        TeamApplication application = findOwnedApplication(ownerId, applicationId);
+        CardClient.SharedCard card = cardClient.findSharedCard(application.getAudioCardId());
+        String base = "/api/v1/applications/" + applicationId + "/card";
+        return new CardClient.SharedCard(card.id(), card.fullName(), card.contactEmail(), card.contactPhone(),
+                card.title(), card.description(), card.photoUrl() == null ? null : base + "/photo",
+                card.documentName(), card.documentUrl() == null ? null : base + "/document", card.skills(),
+                card.experienceYears(), card.voiceVolume(), card.musicVolume(), card.musicStartSeconds(),
+                card.voiceUrl() == null ? null : base + "/voice",
+                card.musicUrl() == null ? null : base + "/music", card.publishedAt(), card.publicCode());
+    }
+
+    public CardClient.CardMedia findCardMedia(UUID ownerId, UUID applicationId, String media) {
+        if (!List.of("photo", "document", "voice", "music").contains(media)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Файл визитки не найден");
+        }
+        TeamApplication application = findOwnedApplication(ownerId, applicationId);
+        return cardClient.getSharedMedia(application.getAudioCardId(), media);
     }
 
     @Transactional
@@ -121,6 +141,12 @@ public class ApplicationService {
 
     private ResponseStatusException applicationNotFound() {
         return new ResponseStatusException(HttpStatus.NOT_FOUND, "Отклик не найден");
+    }
+
+    private TeamApplication findOwnedApplication(UUID ownerId, UUID applicationId) {
+        TeamApplication application = applications.findById(applicationId).orElseThrow(this::applicationNotFound);
+        if (!application.getRecruitment().getCreatorId().equals(ownerId)) throw applicationNotFound();
+        return application;
     }
 
     private ApplicationResponse toResponse(TeamApplication value) {

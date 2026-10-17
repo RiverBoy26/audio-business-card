@@ -72,7 +72,7 @@ export function RecruitmentForm({
   }
 
   return (
-    <form className="grid gap-5" onSubmit={submit}>
+    <form className="grid items-start gap-5 xl:grid-cols-2" onSubmit={submit}>
       <section className="rounded-[1.6rem] border border-border bg-card p-5 shadow-[0_14px_40px_rgba(13,10,51,0.035)] sm:p-7">
         <div className="flex items-center gap-3">
           <span className="flex size-10 items-center justify-center rounded-xl bg-accent text-primary">
@@ -209,13 +209,13 @@ export function RecruitmentForm({
       </section>
 
       {error ? (
-        <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive" role="alert">
+        <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive xl:col-span-2" role="alert">
           {error}
         </p>
       ) : null}
 
       {!isArchived ? (
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end xl:col-span-2">
           <Button
             disabled={pending}
             onClick={() => setIntent('save')}

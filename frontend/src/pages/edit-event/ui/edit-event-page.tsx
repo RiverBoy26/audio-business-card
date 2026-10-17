@@ -61,7 +61,7 @@ export function EditEventPage() {
   } : initialRecruitmentDraft
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+    <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
       <Button asChild className="-ml-3" variant="ghost"><Link to="/my-events"><ArrowLeft className="size-4" />Мои мероприятия</Link></Button>
       <header className="mb-8 mt-4">
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">{recruitment ? 'Редактирование набора' : 'Новый набор'}</p>

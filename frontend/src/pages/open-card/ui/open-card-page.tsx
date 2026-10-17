@@ -3,7 +3,7 @@ import { Download, FileText, Mail, Pause, Phone, Play, Volume2 } from 'lucide-re
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { getPublicAudioCard, getPublicAudioCardByCode, getPublicCardMedia } from '@/entities/audio-card/api/audio-card-api'
+import { getApplicationAudioCard, getPublicAudioCard, getPublicAudioCardByCode, getPublicCardMedia } from '@/entities/audio-card/api/audio-card-api'
 import type { PublicAudioCard } from '@/entities/audio-card/model/types'
 import { CardImage } from '@/entities/audio-card/ui/card-image'
 import { Button } from '@/shared/ui/button'
@@ -212,17 +212,23 @@ function PublicDocument({ card }: { card: PublicAudioCard }) {
 
 export function PublicCardPage() {
   const { cardId = '' } = useParams()
-  const query = useQuery({ queryKey: ['public-audio-card', cardId], queryFn: () => getPublicAudioCard(cardId), retry: false })
+  const { applicationId = '' } = useParams()
+  const isApplicationView = Boolean(applicationId)
+  const query = useQuery({
+    queryKey: isApplicationView ? ['application-audio-card', applicationId] : ['public-audio-card', cardId],
+    queryFn: () => isApplicationView ? getApplicationAudioCard(applicationId) : getPublicAudioCard(cardId),
+    retry: false,
+  })
 
-  if (query.isLoading) return <main className="mx-auto max-w-2xl px-4 py-16"><AsyncState description="Получаем опубликованную карточку." status="loading" title="Открываем визитку" /></main>
-  if (query.isError || !query.data) return <main className="mx-auto max-w-2xl px-4 py-16"><AsyncState description="Ссылка неверна, карточка удалена или ещё не опубликована." status="error" title="Визитка недоступна" /></main>
+  if (query.isLoading) return <main className="mx-auto max-w-2xl px-4 py-16"><AsyncState description="Получаем карточку." status="loading" title="Открываем визитку" /></main>
+  if (query.isError || !query.data) return <main className="mx-auto max-w-2xl px-4 py-16"><AsyncState description={isApplicationView ? 'Заявка или визитка недоступна.' : 'Ссылка неверна, карточка удалена или ещё не опубликована.'} status="error" title="Визитка недоступна" /></main>
 
   const card = query.data
   return (
     <main className="mx-auto min-h-[calc(100svh-4rem-1px)] w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <div className="flex items-end gap-4">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Визитка</h1>
-        <span className="mb-1 text-xs text-foreground/70">ID:{card.publicCode}</span>
+        <span className="mb-1 text-xs text-foreground/70">{card.publicCode ? `ID:${card.publicCode}` : 'Не опубликована'}</span>
       </div>
 
       <article className="mt-3 w-full rounded-2xl border border-border bg-card p-5 sm:p-7">

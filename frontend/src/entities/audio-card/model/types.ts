@@ -73,8 +73,8 @@ export type PublicAudioCard = {
   musicVolume: number
   musicStartSeconds: number
   photoUrl: string | null
-  publishedAt: string
-  publicCode: string
+  publishedAt: string | null
+  publicCode: string | null
   skills: string[]
   title: string
   voiceUrl: string | null
