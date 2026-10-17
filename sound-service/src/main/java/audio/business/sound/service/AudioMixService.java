@@ -62,8 +62,8 @@ public class AudioMixService {
             );
         }
 
-        // Проверяем, что выбранная музыка принадлежит пользователю.
-        MusicFile music = musicService.getOwnedById(musicId, userId);
+        // Системные треки доступны всем, пользовательские — только владельцу.
+        MusicFile music = musicService.getAccessibleById(musicId, userId);
 
         Path musicPath = Path.of(music.getStoragePath())
                 .toAbsolutePath()

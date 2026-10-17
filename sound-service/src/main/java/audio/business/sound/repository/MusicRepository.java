@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface MusicRepository extends JpaRepository<MusicFile, UUID> {
     List<MusicFile> findAllByUserId(UUID userId);
+    List<MusicFile> findAllByUserIdOrUserIdIsNull(UUID userId);
 }

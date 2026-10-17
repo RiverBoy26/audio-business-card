@@ -4,12 +4,13 @@ import { apiRequest } from '@/shared/api/api-client'
 
 const musicSchema = z.object({
   id: z.string().uuid(),
-  userId: z.string().uuid(),
+  userId: z.string().uuid().nullable(),
   originalFilename: z.string(),
   contentType: z.string(),
   size: z.number(),
   uploadedAt: z.string(),
   fileUrl: z.string(),
+  system: z.boolean().default(false),
 })
 
 export type MusicFile = z.infer<typeof musicSchema>

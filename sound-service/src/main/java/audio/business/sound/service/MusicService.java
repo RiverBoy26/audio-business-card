@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Comparator;
 import java.util.UUID;
 
 @Service
@@ -64,8 +65,11 @@ public class MusicService {
     }
 
     public List<MusicResponse> getByUserId(UUID userId) {
-        return musicRepository.findAllByUserId(userId)
+        return musicRepository.findAllByUserIdOrUserIdIsNull(userId)
                 .stream()
+                .sorted(Comparator
+                        .comparing((MusicFile music) -> music.getUserId() != null)
+                        .thenComparing(MusicFile::getOriginalFilename, String.CASE_INSENSITIVE_ORDER))
                 .map(MusicResponse::from)
                 .toList();
     }
@@ -78,7 +82,7 @@ public class MusicService {
 
     public Resource getFile(UUID id, UUID userId) throws IOException {
 
-        MusicFile music = getOwnedById(id, userId);
+        MusicFile music = getAccessibleById(id, userId);
 
         return storageService.load(
                 music.getStoredFilename()
@@ -98,6 +102,19 @@ public class MusicService {
         MusicFile music = getById(id);
 
         if (!userId.equals(music.getUserId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Музыкальный файл не найден"
+            );
+        }
+
+        return music;
+    }
+
+    public MusicFile getAccessibleById(UUID id, UUID userId) {
+        MusicFile music = getById(id);
+
+        if (music.getUserId() != null && !userId.equals(music.getUserId())) {
             throw new ResponseStatusException(
                     HttpStatus.NOT_FOUND,
                     "Музыкальный файл не найден"

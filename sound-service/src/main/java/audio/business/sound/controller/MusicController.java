@@ -59,14 +59,14 @@ public class MusicController {
 
     @GetMapping("/{id}")
     public MusicResponse getById(@PathVariable UUID id, @RequestHeader("X-Authenticated-User-Id") UUID userId) {
-        return MusicResponse.from(musicService.getOwnedById(id, userId));
+        return MusicResponse.from(musicService.getAccessibleById(id, userId));
     }
 
     @GetMapping("/{id}/file")
     public ResponseEntity<Resource> getFile(
             @PathVariable UUID id, @RequestHeader("X-Authenticated-User-Id") UUID userId) throws IOException {
 
-        MusicFile music = musicService.getOwnedById(id, userId);
+        MusicFile music = musicService.getAccessibleById(id, userId);
         Resource resource = musicService.getFile(id, userId);
 
         ContentDisposition disposition =

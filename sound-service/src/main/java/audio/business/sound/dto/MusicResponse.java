@@ -12,7 +12,8 @@ public record MusicResponse(
         String contentType,
         long size,
         LocalDateTime uploadedAt,
-        String fileUrl
+        String fileUrl,
+        boolean system
 ) {
     public static MusicResponse from(MusicFile music) {
         return new MusicResponse(
@@ -22,7 +23,8 @@ public record MusicResponse(
                 music.getContentType(),
                 music.getSize(),
                 music.getUploadedAt(),
-                "/api/music/" + music.getId() + "/file"
+                "/api/music/" + music.getId() + "/file",
+                music.getUserId() == null
         );
     }
 }

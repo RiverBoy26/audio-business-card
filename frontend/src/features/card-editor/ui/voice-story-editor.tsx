@@ -24,6 +24,10 @@ function extensionForMime(mimeType: string) {
   return 'webm'
 }
 
+function musicDisplayName(filename: string) {
+  return filename.replace(/\.[^.]+$/, '')
+}
+
 export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
   const queryClient = useQueryClient()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -56,6 +60,8 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
   const [trimEnd, setTrimEnd] = useState(0)
   const voiceQuery = useQuery({ queryKey: ['voice-recordings'], queryFn: getVoiceRecordings })
   const musicQuery = useQuery({ queryKey: ['music'], queryFn: getMusicFiles })
+  const systemMusic = musicQuery.data?.filter((file) => file.system) ?? []
+  const userMusic = musicQuery.data?.filter((file) => !file.system) ?? []
   const musicPlaying = Boolean(draft.musicId && musicPlayingId === draft.musicId)
   const musicUploadMutation = useMutation({
     mutationFn: uploadMusic,
@@ -355,7 +361,9 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
       <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-4">
         <span className="text-primary">♪</span><label className="text-xs" htmlFor="card-background-music">Фоновая музыка</label>
         <select className="h-9 min-w-36 max-w-48 rounded-lg border border-border bg-card px-3 text-xs outline-none" id="card-background-music" onChange={(event) => { setMusicPlayingId(null); setMusicDuration(0); onChange({ ...draft, musicId: event.target.value || null, musicStartSeconds: 0 }) }} value={draft.musicId ?? ''}>
-          <option value="">Без музыки</option>{musicQuery.data?.map((file) => <option key={file.id} value={file.id}>{file.originalFilename}</option>)}
+          <option value="">Без музыки</option>
+          {systemMusic.length ? <optgroup label="Базовая музыка">{systemMusic.map((file) => <option key={file.id} value={file.id}>{musicDisplayName(file.originalFilename)}</option>)}</optgroup> : null}
+          {userMusic.length ? <optgroup label="Моя музыка">{userMusic.map((file) => <option key={file.id} value={file.id}>{musicDisplayName(file.originalFilename)}</option>)}</optgroup> : null}
         </select>
         <input accept=".mp3,.wav,.ogg,.m4a,.aac,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/aac" className="hidden" onChange={selectMusicFile} ref={musicInputRef} type="file" />
         <button className="inline-flex h-8 items-center gap-1 rounded-lg border border-border px-2 text-xs hover:bg-muted disabled:opacity-50" disabled={musicUploadMutation.isPending} onClick={() => musicInputRef.current?.click()} type="button"><Upload className="size-3.5" />{musicUploadMutation.isPending ? 'Загрузка…' : draft.musicId ? 'Заменить своей' : 'Загрузить свою'}</button>
