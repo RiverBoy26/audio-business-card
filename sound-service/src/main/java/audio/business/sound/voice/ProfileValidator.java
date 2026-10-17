@@ -100,7 +100,7 @@ public final class ProfileValidator {
             result = pattern.matcher(result).replaceAll(Matcher.quoteReplacement(alias.getValue()));
         }
         return result.replaceAll("(?iuU)(?<![\\p{L}])джуниор(?![\\p{L}])", "Junior")
-                .replaceAll("(?iuU)(?<![\\p{L}])мидл(?![\\p{L}])", "Middle")
+                .replaceAll("(?iuU)(?<![\\p{L}])(?:мидл|мидоу)(?![\\p{L}])", "Middle")
                 .replaceAll("(?iuU)(?<![\\p{L}])сеньор(?![\\p{L}])", "Senior");
     }
 
