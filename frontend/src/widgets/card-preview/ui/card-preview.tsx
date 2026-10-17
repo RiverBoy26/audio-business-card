@@ -204,11 +204,7 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
         <AudioWaveform className="h-11" onSeek={duration ? (progress) => seek(progress * 100) : undefined} progress={duration ? current / duration : 0} />
         <span className="shrink-0 text-[10px] text-muted-foreground">{formatDuration(current)} / {formatDuration(duration)}</span>
       </div>
-      <label className="mt-2 block text-[11px] text-muted-foreground">
-        <span>Позиция воспроизведения</span>
-        <input aria-label="Позиция воспроизведения" className="mt-1 w-full" disabled={!duration} max={100} min={0} onChange={(event) => seek(Number(event.target.value))} type="range" value={duration ? Math.round(current / duration * 100) : 0} />
-      </label>
-      <p className="mt-1 text-[11px] text-muted-foreground">{recording && music ? 'Голос и музыка воспроизводятся вместе' : recording ? 'Только голос' : music ? 'Только фоновая музыка' : 'Выберите музыку или добавьте голос'}</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">{recording && music ? 'Голос и музыка' : recording ? 'Только голос' : music ? 'Только фоновая музыка' : 'Выберите музыку или добавьте голос'}</p>
       {recording || music ? (
         <div className="mt-3 grid gap-2 rounded-lg bg-muted/60 p-3">
           {recording ? <label className="grid grid-cols-[70px_1fr_34px] items-center gap-2 text-[11px]"><span className="inline-flex items-center gap-1"><Volume2 className="size-3.5" />Голос</span><input aria-label="Громкость голоса в предпросмотре" max={100} min={0} onChange={(event) => onChange((currentDraft) => ({ ...currentDraft, voiceVolume: Number(event.target.value) }))} type="range" value={draft.voiceVolume} /><span className="text-right tabular-nums text-muted-foreground">{draft.voiceVolume}%</span></label> : null}
