@@ -23,7 +23,6 @@ const audioCardSchema = z.object({
   musicId: z.string().uuid().nullable(),
   voiceRecordingId: z.string().uuid().nullable(),
   skills: z.array(z.string()).default([]),
-  cardType: z.enum(['PORTFOLIO', 'RESUME']),
 })
 
 const publicAudioCardSchema = z.object({
@@ -36,7 +35,6 @@ const publicAudioCardSchema = z.object({
   documentName: z.string().nullable(),
   documentUrl: z.string().nullable(),
   photoUrl: z.string().nullable(),
-  cardType: z.enum(['PORTFOLIO', 'RESUME']),
   skills: z.array(z.string()).default([]),
   experienceYears: z.number().int().min(0),
   voiceVolume: z.number().int().min(0).max(100),
@@ -85,7 +83,6 @@ export function createAudioCard(draft: CardDraft) {
       skills: draft.skills,
       musicId: draft.musicId,
       voiceRecordingId: draft.voiceRecordingId,
-      cardType: draft.cardType,
     },
     schema: audioCardSchema,
   })
@@ -104,7 +101,6 @@ export function updateAudioCard(id: string, draft: CardDraft) {
       skills: draft.skills,
       musicId: draft.musicId,
       voiceRecordingId: draft.voiceRecordingId,
-      cardType: draft.cardType,
     },
     schema: audioCardSchema,
   })
@@ -177,7 +173,6 @@ export async function getCardDraft(id: string): Promise<CardDraft> {
     publicCode: card.publicCode,
     photoUrl: card.photoUrl ?? '',
     photoFile: null,
-    cardType: card.cardType,
     experienceYears: experience.experienceYears,
     skills: card.skills,
     voiceVolume: settings.voiceVolume,

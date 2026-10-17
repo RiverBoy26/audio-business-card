@@ -135,10 +135,6 @@ public class AudioCardServiceImp implements AudioCardService {
             card.setPhotoUrl(newAudioCard.getPhotoUrl());
         }
 
-        if (newAudioCard.getCardType() != null) {
-            card.setCardType(newAudioCard.getCardType());
-        }
-
         if (newAudioCard.getSkills() != null) {
             card.setSkills(normalizeSkills(newAudioCard.getSkills()));
         }
@@ -210,7 +206,6 @@ public class AudioCardServiceImp implements AudioCardService {
         response.setPhotoUrl(card.getPhotoFilename() == null
                 ? card.getPhotoUrl()
                 : versionedPhotoUrl("/public/audio-cards/" + card.getId() + "/photo", card.getPhotoFilename()));
-        response.setCardType(card.getCardType());
         response.setSkills(card.getSkills());
         response.setPublishedAt(card.getPublishedAt());
         response.setPublicCode(card.getPublicCode());

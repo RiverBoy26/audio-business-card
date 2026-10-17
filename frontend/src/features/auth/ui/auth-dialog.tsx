@@ -88,7 +88,7 @@ export function AuthDialog({ mode, onClose, onModeChange }: AuthDialogProps) {
       open={mode !== null}
       title={isLogin ? 'Вход' : 'Регистрация'}
     >
-      <BrandLogo className="mx-auto w-fit" imageClassName="h-auto w-64 max-w-[80vw]" />
+      <BrandLogo className="mx-auto w-fit" imageClassName="text-2xl sm:text-3xl" />
       <h2 className="mt-10 text-center text-3xl font-bold">
         {isLogin ? 'С возвращением!' : 'Регистрация'}
       </h2>

@@ -9,7 +9,6 @@ import { AudioCardItem } from '@/entities/audio-card/ui/audio-card-item'
 afterEach(cleanup)
 
 const card: AudioCard = {
-  cardType: 'RESUME',
   contactEmail: null,
   contactPhone: null,
   description: 'Бэкенд-разработчик',

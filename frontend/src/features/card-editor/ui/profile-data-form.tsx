@@ -28,12 +28,8 @@ export function ProfileDataForm({ avatarUrl, draft, onChange }: ProfileDataFormP
   const suggestions = normalizedSkill
     ? (stackQuery.data ?? []).filter((item) => [item.name, ...item.aliases].some((value) => value.toLocaleLowerCase('ru-RU').includes(normalizedSkill))).slice(0, 6)
     : []
-  const positionLabel = draft.cardType === 'RESUME'
-    ? 'Желаемая должность'
-    : 'Желаемая роль в команде'
-  const positionPlaceholder = draft.cardType === 'RESUME'
-    ? 'Junior Python Developer'
-    : 'Frontend-разработчик в продуктовой команде'
+  const positionLabel = 'Желаемая роль в команде'
+  const positionPlaceholder = 'Frontend-разработчик в продуктовой команде'
 
   useEffect(() => {
     const previewUrl = draft.photoFile ? draft.photoUrl : null
@@ -74,10 +70,10 @@ export function ProfileDataForm({ avatarUrl, draft, onChange }: ProfileDataFormP
   }
 
   return (
-    <section className="min-w-0 rounded-xl border border-border bg-card p-5">
+    <section className="min-w-0 rounded-[1.25rem] border border-border bg-card p-5 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Данные визитки</h2>
+          <h2 className="text-[1.75rem] font-bold">Данные визитки</h2>
           <p className="mt-1 text-xs text-muted-foreground">Выберите, как заполнить основную информацию.</p>
         </div>
       </div>
