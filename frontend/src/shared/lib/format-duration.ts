@@ -1,7 +1,10 @@
+export function normalizeDuration(value: number, fallback = 0) {
+  if (Number.isFinite(value) && value > 0) return value
+  return Number.isFinite(fallback) && fallback > 0 ? fallback : 0
+}
+
 export function formatDuration(totalSeconds: number) {
-  const safeSeconds = Number.isFinite(totalSeconds)
-    ? Math.max(0, Math.floor(totalSeconds))
-    : 0
+  const safeSeconds = Math.floor(normalizeDuration(totalSeconds))
   const minutes = Math.floor(safeSeconds / 60)
   const seconds = safeSeconds % 60
 

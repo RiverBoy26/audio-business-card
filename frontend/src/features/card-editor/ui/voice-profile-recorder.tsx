@@ -10,7 +10,7 @@ import { Button } from '@/shared/ui/button'
 import { Modal } from '@/shared/ui/modal'
 import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
-import { formatDuration } from '@/shared/lib/format-duration'
+import { formatDuration, normalizeDuration } from '@/shared/lib/format-duration'
 
 type RecorderSession = {
   context: AudioContext
@@ -61,7 +61,7 @@ function experienceYears(profile: VoiceProfile) {
   return Math.min(80, Math.max(1, Math.round(months / 12)))
 }
 
-function VoicePreviewPlayer({ source }: { source: string }) {
+function VoicePreviewPlayer({ duration, source }: { duration: number; source: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const ownerRef = useRef(createPlaybackOwner())
   const [playing, setPlaying] = useState(false)
@@ -70,7 +70,10 @@ function VoicePreviewPlayer({ source }: { source: string }) {
   useEffect(() => {
     const audio = new Audio(source)
     audioRef.current = audio
-    audio.ontimeupdate = () => setPosition({ current: audio.currentTime, duration: audio.duration || 0 })
+    audio.ontimeupdate = () => setPosition({
+      current: Number.isFinite(audio.currentTime) ? audio.currentTime : 0,
+      duration: normalizeDuration(audio.duration, duration),
+    })
     audio.onloadedmetadata = audio.ontimeupdate
     audio.onended = () => setPlaying(false)
     const unsubscribe = onOtherPlayback(ownerRef.current, () => {
@@ -82,7 +85,7 @@ function VoicePreviewPlayer({ source }: { source: string }) {
       audio.pause()
       audioRef.current = null
     }
-  }, [source])
+  }, [duration, source])
 
   async function toggle() {
     const audio = audioRef.current
@@ -235,7 +238,7 @@ export function VoiceProfileRecorder({ onChange }: VoiceProfileRecorderProps) {
           {file ? <Button disabled={mutation.isPending} onClick={() => mutation.mutate(file)} size="sm" type="button"><WandSparkles className="size-4" />{mutation.isPending ? 'Распознаём…' : 'Распознать и заполнить'}</Button> : null}
           {file ? <Button disabled={mutation.isPending} onClick={reset} size="sm" type="button" variant="outline"><RotateCcw className="size-4" />Перезаписать</Button> : null}
         </div>
-        {previewUrl ? <VoicePreviewPlayer key={previewUrl} source={previewUrl} /> : null}
+        {previewUrl ? <VoicePreviewPlayer duration={seconds} key={previewUrl} source={previewUrl} /> : null}
         {result ? (
           <div className="mt-3 rounded-lg border border-border bg-card p-3 text-xs">
             <div className="flex items-start gap-2">

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatDuration } from './format-duration'
+import { formatDuration, normalizeDuration } from './format-duration'
 
 describe('formatDuration', () => {
   it('shows only whole minutes and seconds', () => {
@@ -11,5 +11,9 @@ describe('formatDuration', () => {
     expect(formatDuration(Number.NaN)).toBe('0:00')
     expect(formatDuration(Number.POSITIVE_INFINITY)).toBe('0:00')
     expect(formatDuration(-4.2)).toBe('0:00')
+  })
+
+  it('uses a known recording duration while browser metadata is infinite', () => {
+    expect(normalizeDuration(Number.POSITIVE_INFINITY, 17)).toBe(17)
   })
 })
