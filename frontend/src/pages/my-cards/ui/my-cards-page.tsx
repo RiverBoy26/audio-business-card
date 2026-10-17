@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Trash2 } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -7,14 +7,17 @@ import {
   deleteAudioCard,
   getAudioCards,
 } from '@/entities/audio-card/api/audio-card-api'
+import type { AudioCard } from '@/entities/audio-card/model/types'
 import { AudioCardItem } from '@/entities/audio-card/ui/audio-card-item'
+import { pluralizeRu } from '@/shared/lib/pluralize-ru'
 import { AsyncState } from '@/shared/ui/async-state'
 import { Button } from '@/shared/ui/button'
-import { pluralizeRu } from '@/shared/lib/pluralize-ru'
+import { Modal } from '@/shared/ui/modal'
 
 export function MyCardsPage() {
   const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
+  const [cardToDelete, setCardToDelete] = useState<AudioCard | null>(null)
   const deferredQuery = useDeferredValue(query)
   const cardsQuery = useQuery({ queryKey: ['audio-cards'], queryFn: getAudioCards })
   const cardCount = cardsQuery.data?.length ?? 0
@@ -22,8 +25,15 @@ export function MyCardsPage() {
     mutationFn: deleteAudioCard,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['audio-cards'] })
+      setCardToDelete(null)
     },
   })
+
+  function closeDeleteDialog() {
+    if (deleteMutation.isPending) return
+    deleteMutation.reset()
+    setCardToDelete(null)
+  }
 
   const visibleCards = useMemo(() => {
     const normalized = deferredQuery.trim().toLocaleLowerCase('ru')
@@ -85,10 +95,9 @@ export function MyCardsPage() {
               card={card}
               deleting={deleteMutation.isPending && deleteMutation.variables === card.id}
               key={card.id}
-              onDelete={(id) => {
-                if (window.confirm('Удалить эту визитку без возможности восстановления?')) {
-                  deleteMutation.mutate(id)
-                }
+              onDelete={() => {
+                deleteMutation.reset()
+                setCardToDelete(card)
               }}
             />
           ))}
@@ -103,11 +112,35 @@ export function MyCardsPage() {
         </div>
       )}
 
-      {deleteMutation.isError ? (
-        <p className="mt-4 text-sm text-destructive">
-          {deleteMutation.error instanceof Error ? deleteMutation.error.message : 'Не удалось удалить визитку'}
+      <Modal className="max-w-md p-6 sm:p-7" onClose={closeDeleteDialog} open={cardToDelete !== null} title="Подтверждение удаления визитки">
+        <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+          <Trash2 aria-hidden="true" className="size-6" />
+        </div>
+        <h2 className="mt-5 pr-10 text-xl font-semibold">Удалить визитку?</h2>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Визитка <span className="font-medium text-foreground">«{cardToDelete?.title}»</span> будет удалена без возможности восстановления.
+          {cardToDelete?.published ? ' Публичная версия и ссылка на неё также перестанут быть доступны.' : ''}
         </p>
-      ) : null}
+        {deleteMutation.isError ? (
+          <p aria-live="polite" className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {deleteMutation.error instanceof Error ? deleteMutation.error.message : 'Не удалось удалить визитку.'}
+          </p>
+        ) : null}
+        <div className="mt-6 grid gap-2 sm:grid-cols-2">
+          <Button disabled={deleteMutation.isPending} onClick={closeDeleteDialog} type="button" variant="outline">
+            Отмена
+          </Button>
+          <Button
+            className="bg-destructive text-white hover:bg-destructive/90 active:bg-destructive/80"
+            disabled={!cardToDelete || deleteMutation.isPending}
+            onClick={() => cardToDelete && deleteMutation.mutate(cardToDelete.id)}
+            type="button"
+          >
+            <Trash2 aria-hidden="true" className="size-4" />
+            {deleteMutation.isPending ? 'Удаляем…' : 'Удалить визитку'}
+          </Button>
+        </div>
+      </Modal>
     </main>
   )
 }

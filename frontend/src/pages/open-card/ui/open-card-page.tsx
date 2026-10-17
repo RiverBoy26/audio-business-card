@@ -164,7 +164,7 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
           <input aria-label="Громкость аудио" className="w-20 sm:w-16" max={100} min={0} onChange={(event) => setVolume(Number(event.target.value))} type="range" value={volume} />
         </label>
       </div>
-      <input aria-label="Позиция аудио" className="sr-only" disabled={!position.duration} max={100} min={0} onChange={(event) => seek(Number(event.target.value))} type="range" value={position.duration ? position.current / position.duration * 100 : 0} />
+      <input aria-label="Позиция аудио" className="sr-only" disabled={!position.duration} max={100} min={0} onInput={(event) => seek(Number(event.currentTarget.value))} step={0.1} type="range" value={position.duration ? position.current / position.duration * 100 : 0} />
       {!canPlay ? <p className="mt-1 text-xs text-muted-foreground">Автор пока не добавил аудио.</p> : null}
       {error ? <p className="mt-1 text-xs text-destructive">{error}</p> : null}
     </div>
@@ -315,7 +315,7 @@ export function OpenCardPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">Публичные визитки</p>
         <h1 className="mt-3 text-3xl font-bold">Открыть визитку</h1>
         <p className="mt-3 text-sm text-muted-foreground">Вставьте публичную ссылку или идентификатор визитки.</p>
-        <input aria-label="Ссылка или код визитки" autoCapitalize="characters" className="mt-6 h-11 w-full rounded-lg border border-input bg-background px-3 text-sm uppercase outline-none focus:ring-2 focus:ring-ring" onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="Например, A7K3M9" value={code} />
+        <input aria-label="Ссылка или код визитки" autoCapitalize="characters" className="mt-6 h-11 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="Например, A7K3M9" value={code} />
         <Button className="mt-3 w-full" disabled={!code.trim() || opening} type="submit">{opening ? 'Открываем…' : 'Открыть'}</Button>
         <p aria-live="polite" className="mt-3 min-h-5 text-xs text-destructive">{error}</p>
       </form>

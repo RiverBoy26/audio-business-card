@@ -209,7 +209,7 @@ public class AudioCardServiceImp implements AudioCardService {
         response.setDescription(card.getDescription());
         response.setPhotoUrl(card.getPhotoFilename() == null
                 ? card.getPhotoUrl()
-                : "/public/audio-cards/" + card.getId() + "/photo");
+                : versionedPhotoUrl("/public/audio-cards/" + card.getId() + "/photo", card.getPhotoFilename()));
         response.setCardType(card.getCardType());
         response.setSkills(card.getSkills());
         response.setPublishedAt(card.getPublishedAt());
@@ -269,7 +269,7 @@ public class AudioCardServiceImp implements AudioCardService {
         try {
             card.setPhotoFilename(stored.filename());
             card.setPhotoContentType(stored.contentType());
-            card.setPhotoUrl("/audio-cards/" + card.getId() + "/photo");
+            card.setPhotoUrl(versionedPhotoUrl("/audio-cards/" + card.getId() + "/photo", stored.filename()));
             AudioCardResponse response = AudioCardMapper.toResponse(audioCardRepository.save(card));
             imageStorage.delete(previous);
             return response;
@@ -295,6 +295,10 @@ public class AudioCardServiceImp implements AudioCardService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Фотография не найдена");
         }
         return new CardPhotoResponse(imageStorage.load(card.getPhotoFilename()), card.getPhotoContentType());
+    }
+
+    private String versionedPhotoUrl(String photoUrl, String filename) {
+        return photoUrl + "?v=" + filename;
     }
 
     @Override
