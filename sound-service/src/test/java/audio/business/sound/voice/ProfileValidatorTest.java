@@ -290,4 +290,14 @@ class ProfileValidatorTest {
         assertTrue(result.issues().contains("EXPERIENCE_MISSING_OR_INVALID"));
         assertTrue(result.issues().contains("DESIRED_POSITION_MISSING"));
     }
+
+    @Test void handlesReportedBackendProfileRecording() {
+        var result = validator.validate("я бэкенд разработчик мой стек пайтон джао фастерин и котлин хочу стать мидоу джао разработчик");
+
+        assertEquals("Бэкенд-разработчик", result.specialization());
+        assertEquals(List.of("Python", "Java", "Kotlin", "FastAPI"), result.skills());
+        assertEquals("Middle Java разработчик", result.desiredPosition());
+        assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
+        assertEquals(List.of("EXPERIENCE_MISSING_OR_INVALID"), result.issues());
+    }
 }

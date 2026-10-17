@@ -1,14 +1,16 @@
 import { useMutation } from '@tanstack/react-query'
-import { Mic, Pause, Play, RotateCcw, Square, WandSparkles } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Mic, Pause, Play, RotateCcw, Square, WandSparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 
 import type { CardDraft } from '@/entities/audio-card/model/types'
 import { processVoiceProfile, type VoiceProfile } from '@/entities/voice-profile/api/voice-profile-api'
+import { getVoiceProfileFeedback } from '@/features/card-editor/lib/voice-profile-feedback'
 import { BrandLogo } from '@/shared/ui/brand-logo'
 import { Button } from '@/shared/ui/button'
 import { Modal } from '@/shared/ui/modal'
 import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
+import { formatDuration, normalizeDuration } from '@/shared/lib/format-duration'
 
 type RecorderSession = {
   context: AudioContext
@@ -59,11 +61,7 @@ function experienceYears(profile: VoiceProfile) {
   return Math.min(80, Math.max(1, Math.round(months / 12)))
 }
 
-function formatDuration(value: number) {
-  return `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`
-}
-
-function VoicePreviewPlayer({ source }: { source: string }) {
+function VoicePreviewPlayer({ duration, source }: { duration: number; source: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const ownerRef = useRef(createPlaybackOwner())
   const [playing, setPlaying] = useState(false)
@@ -72,7 +70,10 @@ function VoicePreviewPlayer({ source }: { source: string }) {
   useEffect(() => {
     const audio = new Audio(source)
     audioRef.current = audio
-    audio.ontimeupdate = () => setPosition({ current: audio.currentTime, duration: audio.duration || 0 })
+    audio.ontimeupdate = () => setPosition({
+      current: Number.isFinite(audio.currentTime) ? audio.currentTime : 0,
+      duration: normalizeDuration(audio.duration, duration),
+    })
     audio.onloadedmetadata = audio.ontimeupdate
     audio.onended = () => setPlaying(false)
     const unsubscribe = onOtherPlayback(ownerRef.current, () => {
@@ -84,7 +85,7 @@ function VoicePreviewPlayer({ source }: { source: string }) {
       audio.pause()
       audioRef.current = null
     }
-  }, [source])
+  }, [duration, source])
 
   async function toggle() {
     const audio = audioRef.current
@@ -146,6 +147,7 @@ export function VoiceProfileRecorder({ onChange }: VoiceProfileRecorderProps) {
       setResult(profile)
     },
   })
+  const feedback = result ? getVoiceProfileFeedback(result) : []
 
   useEffect(() => {
     if (!recording) return
@@ -179,7 +181,6 @@ export function VoiceProfileRecorder({ onChange }: VoiceProfileRecorderProps) {
           autoGainControl: true,
           channelCount: 1,
           echoCancellation: true,
-          noiseSuppression: true,
         },
       })
       const context = new AudioContext()
@@ -237,8 +238,22 @@ export function VoiceProfileRecorder({ onChange }: VoiceProfileRecorderProps) {
           {file ? <Button disabled={mutation.isPending} onClick={() => mutation.mutate(file)} size="sm" type="button"><WandSparkles className="size-4" />{mutation.isPending ? 'Распознаём…' : 'Распознать и заполнить'}</Button> : null}
           {file ? <Button disabled={mutation.isPending} onClick={reset} size="sm" type="button" variant="outline"><RotateCcw className="size-4" />Перезаписать</Button> : null}
         </div>
-        {previewUrl ? <VoicePreviewPlayer key={previewUrl} source={previewUrl} /> : null}
-        {result ? <div className="mt-3 rounded-md border border-border bg-card p-3 text-xs"><p className="font-medium text-primary">Поля заполнены по записи</p><p className="mt-1 text-muted-foreground">Распознано: {result.transcript}</p>{result.unknownSkills.length ? <p className="mt-1 text-destructive">Не распознаны технологии: {result.unknownSkills.join(', ')}</p> : null}{result.issues.length ? <p className="mt-1 text-amber-700">Проверьте результат вручную: {result.issues.join(', ')}</p> : null}</div> : null}
+        {previewUrl ? <VoicePreviewPlayer duration={seconds} key={previewUrl} source={previewUrl} /> : null}
+        {result ? (
+          <div className="mt-3 rounded-lg border border-border bg-card p-3 text-xs">
+            <div className="flex items-start gap-2">
+              {feedback.length ? <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-amber-600" /> : <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />}
+              <div className="min-w-0">
+                <p className="font-medium">{feedback.length ? `Нужно уточнить: ${feedback.length}` : 'Данные заполнены по записи'}</p>
+                {feedback.length ? <ul className="mt-1.5 grid gap-1 text-muted-foreground">{feedback.map((message) => <li key={message}>{message}</li>)}</ul> : <p className="mt-1 text-muted-foreground">Проверьте заполненные поля перед сохранением.</p>}
+              </div>
+            </div>
+            <details className="mt-2 text-muted-foreground">
+              <summary className="w-fit cursor-pointer select-none hover:text-foreground">Распознанный текст</summary>
+              <p className="mt-1 leading-5">{result.transcript}</p>
+            </details>
+          </div>
+        ) : null}
         {error || mutation.isError ? <p className="mt-2 text-xs text-destructive">{error ?? (mutation.error instanceof Error ? mutation.error.message : 'Не удалось обработать запись.')}</p> : null}
       </div>
 

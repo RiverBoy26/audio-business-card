@@ -34,8 +34,17 @@ export function AudioCardItem({ card, deleting, onDelete }: AudioCardItemProps) 
         {card.description || 'Описание отсутствует.'}
       </p>
 
-      <p className="mt-3 truncate border-t border-border pt-3 text-[11px] text-muted-foreground">
-        ID: {card.id}
+      <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
+        {card.published ? (
+          <>
+            Код визитки:{' '}
+            <span className="font-medium tracking-wide text-foreground">
+              {card.publicCode ?? 'формируется'}
+            </span>
+          </>
+        ) : (
+          'Черновик'
+        )}
       </p>
 
       <div className="mt-4 grid grid-cols-2 gap-2">

@@ -1,22 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CloudUpload, Mic, Pause, Play, Scissors, Square, Upload, Volume2, VolumeX } from 'lucide-react'
-import { useEffect, useRef, useState, type ChangeEvent, type Dispatch, type SetStateAction } from 'react'
+import { CloudUpload, Mic, Pause, Play, Scissors, Square, Upload, Volume2 } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type Dispatch, type SetStateAction } from 'react'
 
 import type { CardDraft } from '@/entities/audio-card/model/types'
 import { getMusicBlob, getMusicFiles, uploadMusic } from '@/entities/music/api/music-api'
 import { getVoiceRecordingBlob, getVoiceRecordings, uploadVoiceRecording, type VoiceRecording } from '@/entities/voice-recording/api/voice-recording-api'
 import { joinVoiceParts, trimVoicePart } from '@/features/card-editor/lib/voice-audio'
+import { uniqueMusicFiles } from '@/features/card-editor/lib/unique-music-files'
 import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
+import { formatDuration, normalizeDuration } from '@/shared/lib/format-duration'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
 import { BrandLogo } from '@/shared/ui/brand-logo'
 import { Button } from '@/shared/ui/button'
 import { Modal } from '@/shared/ui/modal'
 
 type VoiceStoryEditorProps = { draft: CardDraft; onChange: Dispatch<SetStateAction<CardDraft>> }
-
-function formatDuration(seconds: number) {
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
-}
 
 function extensionForMime(mimeType: string) {
   if (mimeType.includes('ogg')) return 'ogg'
@@ -43,7 +41,6 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
   const musicRequestRef = useRef(0)
   const voiceRequestRef = useRef(0)
   const playbackOwnerRef = useRef(createPlaybackOwner())
-  const previousMusicVolumeRef = useRef(draft.musicVolume || 30)
   const [isRecording, setIsRecording] = useState(false)
   const [duration, setDuration] = useState(0)
   const [recordedFile, setRecordedFile] = useState<File | null>(null)
@@ -60,8 +57,9 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
   const [trimEnd, setTrimEnd] = useState(0)
   const voiceQuery = useQuery({ queryKey: ['voice-recordings'], queryFn: getVoiceRecordings })
   const musicQuery = useQuery({ queryKey: ['music'], queryFn: getMusicFiles })
-  const systemMusic = musicQuery.data?.filter((file) => file.system) ?? []
-  const userMusic = musicQuery.data?.filter((file) => !file.system) ?? []
+  const availableMusic = uniqueMusicFiles(musicQuery.data ?? [], draft.musicId)
+  const systemMusic = availableMusic.filter((file) => file.system)
+  const userMusic = availableMusic.filter((file) => !file.system)
   const musicPlaying = Boolean(draft.musicId && musicPlayingId === draft.musicId)
   const musicUploadMutation = useMutation({
     mutationFn: uploadMusic,
@@ -140,14 +138,18 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
 
   useEffect(() => {
     if (musicAudioRef.current) musicAudioRef.current.volume = draft.musicVolume / 100
-    if (draft.musicVolume > 0) previousMusicVolumeRef.current = draft.musicVolume
   }, [draft.musicVolume])
 
   useEffect(() => {
     const audio = musicAudioRef.current
     if (!audio || !musicDuration) return
-    audio.currentTime = Math.min(draft.musicStartSeconds, Math.max(0, musicDuration - 0.1))
-  }, [draft.musicStartSeconds, musicDuration])
+    const maximumStart = Math.max(0, Math.floor(musicDuration - 0.1))
+    const nextStart = Math.min(draft.musicStartSeconds, maximumStart)
+    audio.currentTime = nextStart
+    if (nextStart !== draft.musicStartSeconds) {
+      onChange((current) => ({ ...current, musicStartSeconds: nextStart }))
+    }
+  }, [draft.musicStartSeconds, musicDuration, onChange])
 
   async function startRecording() {
     setRecorderError(null)
@@ -161,7 +163,6 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
           autoGainControl: true,
           channelCount: 1,
           echoCancellation: true,
-          noiseSuppression: true,
         },
       })
       const preferredType = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/webm'].find((type) => MediaRecorder.isTypeSupported(type))
@@ -253,7 +254,12 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
       const audio = new Audio(source)
       if (request !== voiceRequestRef.current) return
       audioRef.current = audio
-      audio.ontimeupdate = () => setVoicePosition({ current: audio.currentTime, duration: audio.duration || 0 })
+      setVoicePosition({ current: 0, duration: 0 })
+      const knownDuration = recordedFile ? duration : recording?.durationSeconds ?? 0
+      audio.ontimeupdate = () => setVoicePosition({
+        current: Number.isFinite(audio.currentTime) ? audio.currentTime : 0,
+        duration: normalizeDuration(audio.duration, knownDuration),
+      })
       audio.onloadedmetadata = audio.ontimeupdate
       audio.addEventListener('ended', () => {
         setPlaying(false)
@@ -267,7 +273,7 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
     }
   }
 
-  async function loadMusic(file: NonNullable<typeof musicQuery.data>[number]) {
+  const loadMusic = useCallback(async (file: NonNullable<typeof musicQuery.data>[number]) => {
     if (musicAudioRef.current) return musicAudioRef.current
     const request = musicRequestRef.current
     const blob = await getMusicBlob(file)
@@ -276,15 +282,23 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
     const audio = new Audio(url)
     audio.volume = draft.musicVolume / 100
     audio.onloadedmetadata = () => {
-      const nextDuration = Number.isFinite(audio.duration) ? audio.duration : 0
+      const nextDuration = normalizeDuration(audio.duration)
       setMusicDuration(nextDuration)
-      audio.currentTime = Math.min(draft.musicStartSeconds, Math.max(0, nextDuration - 0.1))
+      if (nextDuration) {
+        audio.currentTime = Math.min(draft.musicStartSeconds, Math.max(0, Math.floor(nextDuration - 0.1)))
+      }
     }
     audio.onended = () => setMusicPlayingId(null)
     musicUrlRef.current = url
     musicAudioRef.current = audio
     return audio
-  }
+  }, [draft.musicStartSeconds, draft.musicVolume])
+
+  useEffect(() => {
+    const file = musicQuery.data?.find((item) => item.id === draft.musicId)
+    if (!file) return
+    void loadMusic(file).catch(() => setMusicError('Не удалось определить длительность выбранной музыки.'))
+  }, [draft.musicId, loadMusic, musicQuery.data])
 
   function selectFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -368,9 +382,9 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
         <input accept=".mp3,.wav,.ogg,.m4a,.aac,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/aac" className="hidden" onChange={selectMusicFile} ref={musicInputRef} type="file" />
         <button className="inline-flex h-8 items-center gap-1 rounded-lg border border-border px-2 text-xs hover:bg-muted disabled:opacity-50" disabled={musicUploadMutation.isPending} onClick={() => musicInputRef.current?.click()} type="button"><Upload className="size-3.5" />{musicUploadMutation.isPending ? 'Загрузка…' : draft.musicId ? 'Заменить своей' : 'Загрузить свою'}</button>
         <button aria-label={musicPlaying ? 'Приостановить музыку' : 'Прослушать музыку'} className="flex size-8 items-center justify-center rounded-full border border-border text-primary disabled:opacity-40" disabled={!draft.musicId} onClick={() => void toggleMusic()} type="button">{musicPlaying ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}</button>
-        <button aria-label={draft.musicVolume ? 'Выключить музыку' : 'Включить музыку'} className="ml-auto rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground" disabled={!draft.musicId} onClick={() => onChange((current) => ({ ...current, musicVolume: current.musicVolume ? 0 : previousMusicVolumeRef.current }))} type="button">{draft.musicVolume ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}</button><input aria-label="Громкость музыки" className="w-24 sm:w-32" max={100} min={0} onChange={(event) => onChange((current) => ({ ...current, musicVolume: Number(event.target.value) }))} type="range" value={draft.musicVolume} /><span className="w-9 text-right text-xs tabular-nums text-muted-foreground">{draft.musicVolume}%</span>
       </div>
-      {draft.musicId ? <label className="mt-3 grid grid-cols-[auto_1fr_auto] items-center gap-3 text-xs"><span>Начало музыки</span><input aria-label="Позиция начала фоновой музыки" max={Math.max(1, Math.floor(musicDuration || 3600))} min={0} onChange={(event) => onChange((current) => ({ ...current, musicStartSeconds: Number(event.target.value) }))} step={1} type="range" value={Math.min(draft.musicStartSeconds, Math.floor(musicDuration || 3600))} /><span className="w-20 text-right tabular-nums text-muted-foreground">{formatDuration(draft.musicStartSeconds)}{musicDuration ? ` / ${formatDuration(musicDuration)}` : ''}</span></label> : null}
+      {draft.musicId && musicDuration ? <label className="mt-3 grid grid-cols-[auto_1fr_auto] items-center gap-3 text-xs"><span>Начало музыки</span><input aria-label="Позиция начала фоновой музыки" max={Math.max(0, Math.floor(musicDuration - 0.1))} min={0} onChange={(event) => onChange((current) => ({ ...current, musicStartSeconds: Number(event.target.value) }))} step={1} type="range" value={Math.min(draft.musicStartSeconds, Math.max(0, Math.floor(musicDuration - 0.1)))} /><span className="w-20 text-right tabular-nums text-muted-foreground">{formatDuration(Math.min(draft.musicStartSeconds, musicDuration))} / {formatDuration(musicDuration)}</span></label> : null}
+      {draft.musicId && !musicDuration && !musicError ? <p className="mt-3 text-xs text-muted-foreground">Определяем длительность музыки…</p> : null}
       {musicQuery.isError || musicError || musicUploadMutation.isError ? <p className="mt-2 text-xs text-destructive">{musicError ?? (musicUploadMutation.isError ? 'Не удалось загрузить музыку. Поддерживаются MP3, WAV, OGG, M4A и AAC.' : 'Не удалось загрузить список музыки.')}</p> : null}
 
       {recorderError || uploadMutation.isError || trimMutation.isError || voiceQuery.isError ? <p className="mt-3 text-xs text-destructive">{recorderError ?? (trimMutation.error instanceof Error ? trimMutation.error.message : 'Не удалось сохранить или загрузить запись.')}</p> : null}

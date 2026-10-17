@@ -4,9 +4,12 @@ import audio.business.sound.model.MusicFile;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface MusicRepository extends JpaRepository<MusicFile, UUID> {
     List<MusicFile> findAllByUserId(UUID userId);
     List<MusicFile> findAllByUserIdOrUserIdIsNull(UUID userId);
+    Optional<MusicFile> findFirstByUserIdAndOriginalFilenameIgnoreCaseAndSizeOrderByUploadedAtDesc(
+            UUID userId, String originalFilename, long size);
 }
