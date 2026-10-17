@@ -36,6 +36,6 @@ spring:
         format_sql: true
 
 voice:
-  model-directory: ${VOICE_MODEL_DIRECTORY:models/gigaam-v2}
+  model-directory: ${VOICE_MODEL_DIRECTORY:models/gigaam-600m}
   ffmpeg: ${VOICE_FFMPEG:ffmpeg}
   max-seconds: 120

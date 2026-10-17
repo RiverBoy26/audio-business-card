@@ -27,12 +27,14 @@ Java-разработчиком».
 две специальности, поле останется пустым до ручного исправления. Результат всегда нужно
 показать пользователю для подтверждения.
 
+Модель 600M: https://huggingface.co/fussraider/GigaAM-Multilingual-sherpa-onnx-ctc (папка large). Для сравнения также поддерживаются модели GigaAM RNNT с файлами encoder, decoder и joiner.
+
 ## Запуск для разработчика
 
-Нужны JDK 21, Maven и локальная русская модель GigaAM v2 RNNT int8 для sherpa-onnx.
+Нужны JDK 21, Maven и локальная модель GigaAM Multilingual 600M CTC int8 для sherpa-onnx.
 Для WAV от встроенной записи FFmpeg не нужен; для WebM/Opus, MP3 и других контейнеров
 FFmpeg должен быть в PATH (либо передайте `--ffmpeg /path/to/ffmpeg`). Модель хранится
-локально в `models/gigaam-v2` и исключена из Git. Maven автоматически подключает native
+локально в `models/gigaam-600m` и исключена из Git. Maven автоматически подключает native
 библиотеку sherpa-onnx для Windows x64 или Linux x64.
 
 Из корня репозитория:
@@ -52,12 +54,12 @@ java -cp 'sound-service/target/classes:sound-service/target/dependency/*' \
 
 java -cp 'sound-service/target/classes:sound-service/target/dependency/*' \
   audio.business.sound.voice.VoiceProfileCli \
-  --audio /path/to/recording.webm --model /path/to/models/gigaam-v2
+  --audio /path/to/recording.webm --model /path/to/models/gigaam-600m
 
 # Запись с системного микрофона, максимум 30 секунд; Enter завершает запись раньше
 java -cp 'sound-service/target/classes:sound-service/target/dependency/*' \
   audio.business.sound.voice.VoiceProfileCli \
-  --record 30 --model /path/to/models/gigaam-v2
+  --record 30 --model /path/to/models/gigaam-600m
 ```
 
 JSON выводится в stdout, сообщения записи и ошибки — в stderr; код ошибки 1.
@@ -76,7 +78,7 @@ FFmpeg декодирует WebM/Opus, WAV, MP3 и другие поддержи
 
 ```yaml
 voice:
-  model-directory: models/gigaam-v2
+  model-directory: models/gigaam-600m
   ffmpeg: ffmpeg
   max-seconds: 120
 ```

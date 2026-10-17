@@ -12,7 +12,7 @@ import java.nio.file.Path;
 @Configuration(proxyBeanMethods = false)
 public class VoiceRecognitionConfiguration {
     @Bean(destroyMethod = "close")
-    @ConditionalOnResource(resources = "file:${voice.model-directory:models/gigaam-v2}/encoder.int8.onnx")
+    @ConditionalOnResource(resources = "file:${voice.model-directory:models/gigaam-600m}/tokens.txt")
     SherpaOnnxTranscriber speechTranscriber(
             @Value("${voice.model-directory}") String modelDirectory,
             @Value("${voice.ffmpeg:ffmpeg}") String ffmpeg,
@@ -21,7 +21,7 @@ public class VoiceRecognitionConfiguration {
     }
 
     @Bean
-    @ConditionalOnResource(resources = "file:${voice.model-directory:models/gigaam-v2}/encoder.int8.onnx")
+    @ConditionalOnResource(resources = "file:${voice.model-directory:models/gigaam-600m}/tokens.txt")
     VoiceProfileService voiceProfileService(SherpaOnnxTranscriber transcriber) {
         return new VoiceProfileService(transcriber, new ProfileValidator());
     }
