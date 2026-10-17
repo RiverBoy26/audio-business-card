@@ -1,6 +1,7 @@
 package audio.business.sound.voice;
 
 import com.k2fsa.sherpa.onnx.OfflineModelConfig;
+import com.k2fsa.sherpa.onnx.OfflineNemoEncDecCtcModelConfig;
 import com.k2fsa.sherpa.onnx.OfflineRecognizer;
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig;
 import com.k2fsa.sherpa.onnx.OfflineTransducerModelConfig;
@@ -17,7 +18,7 @@ import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** Local Russian ASR using the int8 GigaAM v2 RNNT model through sherpa-onnx. */
+/** Local ASR using GigaAM RNNT or NeMo CTC through sherpa-onnx. */
 public final class SherpaOnnxTranscriber implements SpeechTranscriber, AutoCloseable {
     private record AudioData(float[] samples, int sampleRate) {}
 
@@ -29,24 +30,24 @@ public final class SherpaOnnxTranscriber implements SpeechTranscriber, AutoClose
     public SherpaOnnxTranscriber(Path modelDirectory, String ffmpeg, int maxSeconds) throws IOException {
         if (maxSeconds < 1 || maxSeconds > 300) throw new IllegalArgumentException("Duration must be 1..300 seconds");
         Path directory = modelDirectory.toAbsolutePath().normalize();
-        Path encoder = required(directory, "encoder.int8.onnx");
-        Path decoder = required(directory, "decoder.onnx");
-        Path joiner = required(directory, "joiner.onnx");
         Path tokens = required(directory, "tokens.txt");
-
-        var transducer = OfflineTransducerModelConfig.builder()
-                .setEncoder(encoder.toString())
-                .setDecoder(decoder.toString())
-                .setJoiner(joiner.toString())
-                .build();
-        var model = OfflineModelConfig.builder()
-                .setTransducer(transducer)
+        var builder = OfflineModelConfig.builder()
                 .setTokens(tokens.toString())
                 .setNumThreads(Math.max(1, Math.min(4, Runtime.getRuntime().availableProcessors())))
                 .setProvider("cpu")
-                .setModelType("nemo_transducer")
-                .setDebug(false)
-                .build();
+                .setDebug(false);
+        Path ctc = directory.resolve("model.int8.onnx");
+        if (Files.isRegularFile(ctc)) {
+            builder.setNemo(OfflineNemoEncDecCtcModelConfig.builder()
+                    .setModel(ctc.toString()).build());
+        } else {
+            builder.setTransducer(OfflineTransducerModelConfig.builder()
+                    .setEncoder(required(directory, "encoder.int8.onnx").toString())
+                    .setDecoder(required(directory, "decoder.onnx").toString())
+                    .setJoiner(required(directory, "joiner.onnx").toString()).build())
+                    .setModelType("nemo_transducer");
+        }
+        var model = builder.build();
         var config = OfflineRecognizerConfig.builder()
                 .setOfflineModelConfig(model)
                 .setDecodingMethod("greedy_search")

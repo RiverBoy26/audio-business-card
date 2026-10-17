@@ -95,6 +95,21 @@ export function ProfileDataForm({ avatarUrl, draft, onChange }: ProfileDataFormP
         <Field id="desired-position" label={positionLabel} maxLength={150} onChange={(event) => update('title', event.target.value)} placeholder={positionPlaceholder} required value={draft.title} />
       </div>
 
+      <fieldset className="mt-5 border-t border-border pt-4">
+        <legend className="text-xs font-medium">Контакты в визитке</legend>
+        <p className="mt-1 text-[11px] text-muted-foreground">Выберите, какие данные смогут увидеть получатели карточки.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <label className={`flex min-w-0 items-start gap-2 rounded-lg border border-border px-3 py-2.5 text-xs ${draft.contactEmail ? 'cursor-pointer hover:bg-muted/60' : 'opacity-55'}`}>
+            <input checked={draft.showContactEmail && Boolean(draft.contactEmail)} className="mt-0.5 size-4 accent-primary" disabled={!draft.contactEmail} onChange={(event) => update('showContactEmail', event.target.checked)} type="checkbox" />
+            <span className="min-w-0"><span className="block font-medium">Электронная почта</span><span className="mt-0.5 block truncate text-muted-foreground">{draft.contactEmail || 'Не указана в профиле'}</span></span>
+          </label>
+          <label className={`flex min-w-0 items-start gap-2 rounded-lg border border-border px-3 py-2.5 text-xs ${draft.contactPhone ? 'cursor-pointer hover:bg-muted/60' : 'opacity-55'}`}>
+            <input checked={draft.showContactPhone && Boolean(draft.contactPhone)} className="mt-0.5 size-4 accent-primary" disabled={!draft.contactPhone} onChange={(event) => update('showContactPhone', event.target.checked)} type="checkbox" />
+            <span className="min-w-0"><span className="block font-medium">Телефон</span><span className="mt-0.5 block truncate text-muted-foreground">{draft.contactPhone || 'Не указан в профиле'}</span></span>
+          </label>
+        </div>
+      </fieldset>
+
       <div className="mt-5">
         <p className="text-xs font-medium">Стек</p>
         <div className="mt-2 flex flex-wrap gap-2">

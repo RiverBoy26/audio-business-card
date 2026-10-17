@@ -3,6 +3,14 @@ type PreparedVoice = {
   file: File
 }
 
+export function clampTrimStart(value: number, end: number) {
+  return Math.max(0, Math.min(value, Math.max(0, end - 1)))
+}
+
+export function clampTrimEnd(value: number, start: number, duration: number) {
+  return Math.min(duration, Math.max(value, Math.min(duration, start + 1)))
+}
+
 function writeAscii(view: DataView, offset: number, value: string) {
   for (let index = 0; index < value.length; index += 1) {
     view.setUint8(offset + index, value.charCodeAt(index))

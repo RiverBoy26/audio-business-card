@@ -34,6 +34,8 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
     fullName: profileFullName || loadedDraft.fullName,
     contactEmail: loadedDraft.contactEmail || user?.email || '',
     contactPhone: loadedDraft.contactPhone || user?.phone || '',
+    showContactEmail: cardId ? loadedDraft.showContactEmail : Boolean(user?.email),
+    showContactPhone: cardId ? loadedDraft.showContactPhone : Boolean(user?.phone),
   }))
   const [saved, setSaved] = useState(false)
   const [publishedCardId, setPublishedCardId] = useState(cardId)

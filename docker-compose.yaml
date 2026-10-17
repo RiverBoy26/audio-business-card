@@ -173,11 +173,11 @@ services:
 
       APP_MUSIC_STORAGE_DIR: /app/storage/music
       APP_VOICE_STORAGE_DIR: /app/storage/voice
-      VOICE_MODEL_DIRECTORY: /app/models/gigaam-v2
+      VOICE_MODEL_DIRECTORY: /app/models/gigaam-600m
 
     volumes:
       - audio_storage:/app/storage
-      - ./models/gigaam-v2:/app/models/gigaam-v2:ro
+      - ./models/gigaam-600m:/app/models/gigaam-600m:ro
 
     depends_on:
       sound-db:

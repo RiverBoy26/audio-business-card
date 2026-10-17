@@ -216,7 +216,7 @@ class ProfileValidatorTest {
         assertEquals("DevOps-инженер", result.specialization());
         assertEquals(List.of("Linux", "Bash", "Docker", "Kubernetes", "Nginx", "GitLab CI/CD", "Ansible", "Terraform"), result.skills());
         assertEquals(43, result.experience().minMonths());
-        assertEquals("Senior девопс инженером", result.desiredPosition());
+        assertEquals("Senior DevOps-инженер", result.desiredPosition());
         assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
     }
 
@@ -299,5 +299,124 @@ class ProfileValidatorTest {
         assertEquals("Middle Java разработчик", result.desiredPosition());
         assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
         assertEquals(List.of("EXPERIENCE_MISSING_OR_INVALID"), result.issues());
+    }
+
+    @Test void recognizesObserved600mBackendVariants() {
+        var result = validator.validate("я бэкенд разработчик работаю с пайтон джава джаваскрипт тайпскрипт сишарп гоу пиэйчпи фаст эпиай джанго спрингбуд эйэсбидо нет кор ноу джэс экспресс нэст джейэс эскюэл постск май эк эскюай мой опыт три года хочу работать мидл джава разработчиком");
+        assertTrue(result.skills().containsAll(List.of("Go", "FastAPI", "ASP.NET Core", "Node.js", "NestJS")), result.skills().toString());
+        assertEquals(36, result.experience().minMonths());
+        assertTrue(result.unknownSkills().stream().anyMatch(x -> x.contains("постск")));
+    }
+
+    @Test void recognizesObservedDevOpsVariantsWithoutInventingMissingFields() {
+        var result = validator.validate("я девопс инженер работаю с линукс виндоус сервер баш поэршел актив директори докер кубернет энджин икс гет лаб сд гетхаб экшенс дженкингс эндсибл терафор силениум лейрайт сайпресс патест джей юнит пос свагер опен эйпиай де тус эксел свагенефлоуфт айпиайээ фоуного до десяти лет хочу работатьведущи опинженер");
+        assertEquals("DevOps-инженер", result.specialization());
+        assertTrue(result.skills().containsAll(List.of("PowerShell", "Kubernetes", "Nginx", "GitHub Actions", "Jenkins", "Ansible", "Terraform", "Selenium", "Playwright", "pytest", "OpenAPI")), result.skills().toString());
+        assertNull(result.experience());
+        assertNull(result.desiredPosition());
+    }
+
+    @Test void recoversWorkMarkerFromV3Transcript() {
+        var result = validator.validate("я бэкенд разработчик работы с пайт энд джаво джавоскрипт тайпскрипт си шарп гоу пиэйчпи джанго спринг гуд эйспидот ноуджиэс экспресс эскюэл май эскьюэль эскьюла мой опыт три года хочу работать мидл джава разработчиком");
+        assertTrue(result.skills().containsAll(List.of("Java", "JavaScript", "TypeScript", "C#", "Go", "PHP", "Django", "Express", "SQL")), result.skills().toString());
+        assertEquals(36, result.experience().minMonths());
+    }
+
+    @Test void handlesReportedServer600mTranscript() {
+        String transcript = "я девопс инженер работаю с докеркувернетс сиайсиди гетхаб экшенс гид гетхаб опыт работы от одного до пяти лет желае моя должность мидл девопс инженер";
+        var result = validator.validate(transcript);
+        assertEquals(transcript, result.transcript());
+        assertEquals("DevOps-инженер", result.specialization());
+        assertEquals(List.of("Docker", "Kubernetes", "CI/CD", "GitHub Actions", "Git", "GitHub"), result.skills());
+        assertEquals(12, result.experience().minMonths());
+        assertEquals(60, result.experience().maxMonths());
+        assertEquals("Middle DevOps-инженер", result.desiredPosition());
+        assertTrue(result.issues().isEmpty(), result.issues().toString());
+    }
+
+    @Test void handlesNaturalRoleMarkersAndInflectedSpecialization() {
+        var result = validator.validate("Работаю в качестве системного аналитика. Использую эскюэль, бпм и юэмэл. Мой опыт от четырех до семи лет. Хотела бы стать сеньор аналитиком данных.");
+        assertEquals("Системный аналитик", result.specialization());
+        assertEquals(List.of("SQL", "BPMN", "UML"), result.skills());
+        assertEquals(48, result.experience().minMonths());
+        assertEquals(84, result.experience().maxMonths());
+        assertEquals("Senior Аналитик данных", result.desiredPosition());
+        assertTrue(result.issues().isEmpty(), result.issues().toString());
+    }
+
+    @Test void separatesCurrentProfessionAndFutureRoleWithDifferentStack() {
+        var result = validator.validate("Занимаю должность тестировщика. Знаю пайтон, селениум и пайтест. Опыт два года. Моя желаемая роль мидл бэкенд разработчик.");
+        assertEquals("Тестировщик", result.specialization());
+        assertEquals(List.of("Python", "Selenium", "pytest"), result.skills());
+        assertEquals("Middle Бэкенд-разработчик", result.desiredPosition());
+        assertTrue(result.issues().isEmpty(), result.issues().toString());
+    }
+
+    @Test void handlesObservedDevOpsRoleDistortionAndShortGrade() {
+        var result = validator.validate("Я девокс инженер. Работаю с докер. Стаж год. Желаю работать джун дев опс инженером.");
+        assertEquals("DevOps-инженер", result.specialization());
+        assertEquals("Junior DevOps-инженер", result.desiredPosition());
+        assertTrue(result.issues().isEmpty(), result.issues().toString());
+    }
+
+    @Test void splitsOnlyFullyRecognizedJoinedNames() {
+        var result = validator.validate("Стек джавапайтон докеркубернетсредис JavaScript ReactNative супердокер докеризация докернеизвестно.");
+        assertEquals(List.of("JavaScript", "Python", "Java", "React Native", "Redis", "Docker", "Kubernetes"), result.skills());
+        assertEquals(List.of("супердокер докеризация докернеизвестно"), result.unknownSkills());
+    }
+
+    @Test void doesNotSplitAmbiguousOrShortSkillNames() {
+        // "javafx" is one skill; "java" + "fx" must not be inferred. Short aliases such as Go are excluded.
+        var result = validator.validate("Стек JavaFX godocker докергоу.");
+        assertEquals(List.of("JavaFX"), result.skills());
+        assertEquals(List.of("godocker докергоу"), result.unknownSkills());
+    }
+
+    @Test void doesNotInferGitlabFromGenericCiCd() {
+        assertEquals(List.of("CI/CD"), validator.validate("Стек си ай си ди").skills());
+        assertEquals(List.of("GitLab CI/CD"), validator.validate("Стек гитлаб сиайсиди").skills());
+    }
+
+    @Test void excludesNegatedJoinedNamesAndRole() {
+        var result = validator.validate("Я не тестировщик а системный аналитик. Стек не докеркувернетс и Node.js а пайтон. Стаж год. Хочу стать аналитиком данных.");
+        assertEquals("Системный аналитик", result.specialization());
+        assertEquals(List.of("Python"), result.skills());
+        assertEquals("Аналитик данных", result.desiredPosition());
+        assertTrue(result.unknownSkills().isEmpty(), result.unknownSkills().toString());
+        assertTrue(result.issues().contains("NEGATION_REQUIRES_REVIEW"));
+    }
+
+    @Test void leavesAmbiguousAndNegatedDesiredRolesForReview() {
+        var ambiguous = validator.validate("Я тестировщик. Хочу стать бэкенд или фронтенд разработчиком.");
+        assertEquals("Тестировщик", ambiguous.specialization());
+        assertNull(ambiguous.desiredPosition());
+        assertTrue(ambiguous.issues().contains("DESIRED_POSITION_AMBIGUOUS"));
+        var negated = validator.validate("Я тестировщик. Хочу работать не девопс инженером.");
+        assertNull(negated.desiredPosition());
+        assertTrue(negated.issues().contains("DESIRED_POSITION_REQUIRES_REVIEW"));
+    }
+
+    @Test void understandsDeclinedNumericRangesWithoutAcceptingInvertedRanges() {
+        assertEquals(120, validator.validate("Опыт от пяти до десяти лет").experience().maxMonths());
+        assertEquals(8, validator.validate("Опыт от шести до восьми месяцев").experience().maxMonths());
+        assertNull(validator.validate("Опыт от пяти до одного года").experience());
+        assertNull(validator.validate("Опыт около пяти лет").experience());
+    }
+
+    @Test void keepsNegationAttachedToSectionMarkers() {
+        var result = validator.validate("Я фронтенд разработчик. Не работаю с Docker и Kubernetes. Использую React. Стаж год. Не хочу работать девопс инженером.");
+        assertEquals("Фронтенд-разработчик", result.specialization());
+        assertEquals(List.of("React"), result.skills());
+        assertNull(result.desiredPosition());
+        assertTrue(result.issues().contains("NEGATION_REQUIRES_REVIEW"));
+        assertTrue(result.issues().contains("DESIRED_POSITION_REQUIRES_REVIEW"));
+    }
+
+    @Test void preservesCompoundStackNamesAndEnglishRoleNames() {
+        var result = validator.validate("Я фулл стек разработчик. Мой стэк Docker Compose, GitHub Actions и ReactNative. Опыт год. Хочу быть Senior backend developer.");
+        assertEquals("Фулстек-разработчик", result.specialization());
+        assertEquals(List.of("React Native", "Docker Compose", "GitHub Actions"), result.skills());
+        assertEquals("Senior Бэкенд-разработчик", result.desiredPosition());
+        assertTrue(result.issues().isEmpty(), result.issues().toString());
     }
 }

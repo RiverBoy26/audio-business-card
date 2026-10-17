@@ -32,6 +32,8 @@ export type CardDraft = {
   musicId: string | null
   photoFile: File | null
   photoUrl: string
+  showContactEmail: boolean
+  showContactPhone: boolean
   skills: string[]
   title: string
   voiceVolume: number
@@ -52,7 +54,9 @@ export const initialCardDraft: CardDraft = {
   photoUrl: '',
   photoFile: null,
   experienceYears: 0,
-  skills: ['Python', 'FastAPI', 'PostgreSQL', 'Docker'],
+  showContactEmail: false,
+  showContactPhone: false,
+  skills: ['Python', 'FastAPI'],
   voiceVolume: 100,
   musicVolume: 30,
   musicStartSeconds: 0,

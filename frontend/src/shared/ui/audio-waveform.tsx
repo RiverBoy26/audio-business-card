@@ -54,57 +54,38 @@ export function AudioWaveform({
   }
 
   return (
-      <div
-          aria-label={onSeek ? 'Позиция аудио' : undefined}
-          aria-valuemax={onSeek ? 100 : undefined}
-          aria-valuemin={onSeek ? 0 : undefined}
-          aria-valuenow={onSeek ? Math.round(normalizedProgress * 100) : undefined}
-          className={cn(
-              'relative flex h-10 min-w-0 flex-1 items-center',
-              onSeek && 'cursor-pointer touch-none select-none',
-              className,
-          )}
-          onKeyDown={handleKeyDown}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          role={onSeek ? 'slider' : undefined}
-          tabIndex={onSeek ? 0 : undefined}
-      >
-        <div
-            className={cn(
-                'pointer-events-none flex h-full w-full items-center',
-                expanded ? 'gap-px' : 'gap-[2px]',
-            )}
-        >
-          {displayedBars.map((height, index) => (
-              <span
-                  className={cn(
-                      'min-w-0 flex-1 rounded-full bg-border',
-                  )}
-                  key={`${height}-${index}`}
-                  style={{
-                    height: `${height}%`,
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
-              >
+    <div
+      aria-label={onSeek ? 'Позиция аудио' : undefined}
+      aria-valuemax={onSeek ? 100 : undefined}
+      aria-valuemin={onSeek ? 0 : undefined}
+      aria-valuenow={onSeek ? Math.round(normalizedProgress * 100) : undefined}
+      className={cn(
+        'relative flex h-10 min-w-0 flex-1 items-center',
+        onSeek && 'cursor-pointer touch-none select-none',
+        className,
+      )}
+      onKeyDown={handleKeyDown}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      role={onSeek ? 'slider' : undefined}
+      tabIndex={onSeek ? 0 : undefined}
+    >
+      <div className={cn('pointer-events-none flex h-full w-full items-center', expanded ? 'gap-px' : 'gap-[2px]')}>
+        {displayedBars.map((height, index) => (
           <span
+            className="min-w-0 flex-1 overflow-hidden rounded-full bg-border"
+            key={`${height}-${index}`}
+            style={{ height: `${height}%`, position: 'relative' }}
+          >
+            <span
               className="absolute inset-0 bg-primary"
               style={{
-                clipPath: `inset(0 ${
-                    Math.max(
-                        0,
-                        Math.min(
-                            100,
-                            (index + 1 - normalizedProgress * displayedBars.length) * 100,
-                        ),
-                    )
-                }% 0 0)`,
+                clipPath: `inset(0 ${Math.max(0, Math.min(100, (index + 1 - normalizedProgress * displayedBars.length) * 100))}% 0 0)`,
               }}
-          />
-        </span>
-          ))}
-        </div>
+            />
+          </span>
+        ))}
       </div>
+    </div>
   )
 }
