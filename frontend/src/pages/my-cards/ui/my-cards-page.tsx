@@ -45,13 +45,13 @@ export function MyCardsPage() {
   }, [cardsQuery.data, deferredQuery])
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8 lg:py-8">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <main className="mx-auto w-full max-w-6xl px-4 py-9 sm:px-6 lg:px-8 lg:py-12">
+      <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">
             Личная коллекция
           </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 className="mt-3 text-4xl font-bold tracking-[-0.035em] sm:text-5xl">
             Мои визитки
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -66,11 +66,11 @@ export function MyCardsPage() {
         </Button>
       </header>
 
-      <label className="relative mt-7 block max-w-xl">
+      <label className="relative mt-8 block">
         <span className="sr-only">Найти визитку</span>
-        <Search aria-hidden="true" className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Search aria-hidden="true" className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-primary" />
         <input
-          className="h-10 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
+          className="h-12 w-full rounded-xl border border-border bg-card pl-12 pr-4 text-sm outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Поиск по названию и описанию"
           value={query}
@@ -89,7 +89,7 @@ export function MyCardsPage() {
           />
         </div>
       ) : visibleCards.length ? (
-        <section aria-label="Список визиток" className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <section aria-label="Список визиток" className="mt-6 grid gap-5 md:grid-cols-2">
           {visibleCards.map((card) => (
             <AudioCardItem
               card={card}

@@ -1,7 +1,7 @@
 package audio.business.card.entity;
 
-import audio.business.card.enums.CardType;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -82,15 +82,16 @@ public class AudioCard {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "card_type", nullable = false)
-    private CardType cardType;
+    @Setter(AccessLevel.NONE)
+    private String legacyCardType = "PORTFOLIO";
 
     @Column(length = 150)
     private String desiredPosition;
 
     @PrePersist
     protected void onCreate() {
+        legacyCardType = "PORTFOLIO";
         LocalDateTime now = LocalDateTime.now();
         createdAt = now;
         updatedAt = now;
@@ -98,6 +99,7 @@ public class AudioCard {
 
     @PreUpdate
     protected void onUpdate() {
+        legacyCardType = "PORTFOLIO";
         updatedAt = LocalDateTime.now();
     }
 }

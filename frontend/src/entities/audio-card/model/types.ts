@@ -1,7 +1,4 @@
-export type CardType = 'PORTFOLIO' | 'RESUME'
-
 export type AudioCard = {
-  cardType: CardType
   contactEmail: string | null
   contactPhone: string | null
   description: string | null
@@ -20,7 +17,6 @@ export type AudioCard = {
 }
 
 export type CardDraft = {
-  cardType: CardType
   contactEmail: string
   contactPhone: string
   description: string
@@ -57,7 +53,6 @@ export const initialCardDraft: CardDraft = {
   publicCode: null,
   photoUrl: '',
   photoFile: null,
-  cardType: 'RESUME',
   experienceYears: 0,
   showContactEmail: false,
   showContactPhone: false,
@@ -70,7 +65,6 @@ export const initialCardDraft: CardDraft = {
 }
 
 export type PublicAudioCard = {
-  cardType: CardType
   contactEmail: string | null
   contactPhone: string | null
   description: string | null
@@ -83,8 +77,8 @@ export type PublicAudioCard = {
   musicVolume: number
   musicStartSeconds: number
   photoUrl: string | null
-  publishedAt: string
-  publicCode: string
+  publishedAt: string | null
+  publicCode: string | null
   skills: string[]
   title: string
   voiceUrl: string | null

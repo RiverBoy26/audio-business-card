@@ -35,6 +35,15 @@ public class SecurityConfig {
 
                         .pathMatchers(HttpMethod.GET, "/public/audio-cards/**").permitAll()
 
+                        .pathMatchers(HttpMethod.GET,
+                                "/api/v1/recruitments/mine"
+                        ).authenticated()
+
+                        .pathMatchers(HttpMethod.GET,
+                                "/api/v1/recruitments",
+                                "/api/v1/recruitments/*"
+                        ).permitAll()
+
                         .pathMatchers(
                                 HttpMethod.GET,
                                 "/api/v1/auth/me"
@@ -54,6 +63,12 @@ public class SecurityConfig {
                                 "/api/voice-recordings",
                                 "/api/voice-recordings/**",
                                 "/api/voice-profile"
+                        ).hasAnyRole("USER", "ADMIN")
+
+                        .pathMatchers(
+                                "/api/v1/recruitments/**",
+                                "/api/v1/applications/**",
+                                "/api/v1/recommendations/**"
                         ).hasAnyRole("USER", "ADMIN")
 
                         .anyExchange().denyAll()

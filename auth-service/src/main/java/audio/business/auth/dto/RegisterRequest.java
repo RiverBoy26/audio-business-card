@@ -1,6 +1,7 @@
 package audio.business.auth.dto;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
@@ -36,5 +37,8 @@ public record RegisterRequest(
 
         @NotBlank(message = "Укажите пароль")
         @Size(min = 8, max = 72, message = "Пароль должен содержать от 8 до 72 символов")
-        String password
+        String password,
+
+        @AssertTrue(message = "Необходимо согласие на обработку персональных данных")
+        boolean personalDataConsent
 ) {}

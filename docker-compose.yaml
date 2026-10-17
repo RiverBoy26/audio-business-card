@@ -84,6 +84,23 @@ services:
     networks:
       - backend
 
+  hackaton-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hackaton_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - hackaton_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d hackaton_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - backend
+
   auth-service:
     build:
       context: .
@@ -169,6 +186,25 @@ services:
     networks:
       - backend
 
+  hackaton-service:
+    build:
+      context: .
+      dockerfile: hackaton-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8084
+      DB_URL: jdbc:postgresql://hackaton-db:5432/hackaton_db
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      CARD_SERVICE_URL: http://card-service:8082
+    depends_on:
+      hackaton-db:
+        condition: service_healthy
+      card-service:
+        condition: service_started
+    networks:
+      - backend
+
   gateway-service:
     build:
       context: .
@@ -181,6 +217,7 @@ services:
       AUTH_SERVICE_URL: http://auth-service:8081
       CARD_SERVICE_URL: http://card-service:8082
       SOUND_SERVICE_URL: http://sound-service:8083
+      HACKATON_SERVICE_URL: http://hackaton-service:8084
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
 
     ports:
@@ -190,6 +227,7 @@ services:
       - auth-service
       - card-service
       - sound-service
+      - hackaton-service
 
     networks:
       - backend
@@ -202,6 +240,7 @@ volumes:
   auth_db_data:
   card_db_data:
   sound_db_data:
+  hackaton_db_data:
   audio_storage:
   avatar_storage:
   card_image_storage:

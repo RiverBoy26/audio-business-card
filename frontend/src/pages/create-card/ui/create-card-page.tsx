@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { BriefcaseBusiness, FolderOpen } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -117,46 +116,18 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-[1120px] px-4 py-6 sm:px-6 lg:py-7">
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-8 lg:px-[3.55rem] lg:py-14">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">
-          {cardId ? 'Редактирование' : 'Новая визитка'}
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+        <h1 className="text-[clamp(2.8rem,5vw,4rem)] font-bold leading-none tracking-[-0.035em]">
           {cardId ? 'Изменить визитку' : 'Создать визитку'}
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Данные, голос и музыка — в одной карточке.
-        </p>
       </header>
 
-      <div className="mt-5 inline-flex overflow-hidden rounded-lg border border-border bg-card">
-        <button
-          aria-pressed={draft.cardType === 'RESUME'}
-          className={`flex h-10 items-center gap-2 border-r border-border px-4 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${draft.cardType === 'RESUME' ? 'bg-accent text-primary' : 'hover:bg-muted'}`}
-          onClick={() => setDraft((current) => ({ ...current, cardType: 'RESUME' }))}
-          type="button"
-        >
-          <BriefcaseBusiness className="size-4" />
-          Для резюме
-        </button>
-        <button
-          aria-pressed={draft.cardType === 'PORTFOLIO'}
-          className={`flex h-10 items-center gap-2 px-4 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${draft.cardType === 'PORTFOLIO' ? 'bg-accent text-primary' : 'hover:bg-muted'}`}
-          onClick={() => setDraft((current) => ({ ...current, cardType: 'PORTFOLIO' }))}
-          type="button"
-        >
-          <FolderOpen className="size-4" />
-          Для портфолио
-        </button>
-      </div>
-      <p className="mt-2 max-w-2xl text-xs leading-5 text-muted-foreground">
-        {draft.cardType === 'RESUME'
-          ? 'Для резюме укажите должность, на которую откликаетесь, и прикрепите PDF с резюме.'
-          : 'Для портфолио укажите желаемую роль внутри команды и прикрепите PDF с работами.'}
+      <p className="mt-5 max-w-2xl text-sm leading-6 text-muted-foreground">
+        Укажите желаемую роль в команде и при необходимости прикрепите PDF с работами.
       </p>
 
-      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(400px,0.92fr)]">
+      <div className="mt-3 grid items-start gap-6 xl:grid-cols-[minmax(0,1.03fr)_minmax(0,1fr)]">
         <div className="min-w-0 grid gap-4">
           <ProfileDataForm avatarUrl={user?.avatarUrl ?? null} draft={draft} onChange={setDraft} />
           <VoiceStoryEditor draft={draft} onChange={setDraft} />

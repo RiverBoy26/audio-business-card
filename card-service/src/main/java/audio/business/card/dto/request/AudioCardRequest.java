@@ -1,8 +1,7 @@
 package audio.business.card.dto.request;
 
-import audio.business.card.enums.CardType;
-import lombok.Getter;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
@@ -17,7 +16,6 @@ public class AudioCardRequest {
     private String contactPhone;
     private String description;
     private String photoUrl;
-    private CardType cardType;
     private List<String> skills;
     private UUID musicId;
     private UUID voiceRecordingId;

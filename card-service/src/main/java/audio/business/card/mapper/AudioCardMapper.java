@@ -19,7 +19,6 @@ public class AudioCardMapper {
         response.setPhotoUrl(card.getPhotoUrl());
         response.setDocumentName(card.getDocumentOriginalName());
         response.setDocumentUrl(card.getDocumentFilename() == null ? null : "/audio-cards/" + card.getId() + "/document");
-        response.setCardType(card.getCardType());
         response.setSkills(card.getSkills());
         response.setMusicId(card.getMusicId());
         response.setVoiceRecordingId(card.getVoiceRecordingId());
@@ -41,7 +40,6 @@ public class AudioCardMapper {
         card.setContactPhone(request.getContactPhone());
         card.setDescription(request.getDescription());
         card.setPhotoUrl(request.getPhotoUrl());
-        card.setCardType(request.getCardType());
         card.setMusicId(request.getMusicId());
         card.setVoiceRecordingId(request.getVoiceRecordingId());
         if (request.getSkills() != null) {

@@ -23,7 +23,6 @@ const audioCardSchema = z.object({
   musicId: z.string().uuid().nullable(),
   voiceRecordingId: z.string().uuid().nullable(),
   skills: z.array(z.string()).default([]),
-  cardType: z.enum(['PORTFOLIO', 'RESUME']),
 })
 
 const publicAudioCardSchema = z.object({
@@ -36,7 +35,6 @@ const publicAudioCardSchema = z.object({
   documentName: z.string().nullable(),
   documentUrl: z.string().nullable(),
   photoUrl: z.string().nullable(),
-  cardType: z.enum(['PORTFOLIO', 'RESUME']),
   skills: z.array(z.string()).default([]),
   experienceYears: z.number().int().min(0),
   voiceVolume: z.number().int().min(0).max(100),
@@ -44,8 +42,8 @@ const publicAudioCardSchema = z.object({
   musicStartSeconds: z.number().int().min(0).default(0),
   voiceUrl: z.string().nullable(),
   musicUrl: z.string().nullable(),
-  publishedAt: z.string(),
-  publicCode: z.string().regex(/^[A-Z0-9]{6}$/),
+  publishedAt: z.string().nullable(),
+  publicCode: z.string().regex(/^[A-Z0-9]{6}$/).nullable(),
 })
 
 const experienceSchema = z.object({
@@ -85,7 +83,6 @@ export function createAudioCard(draft: CardDraft) {
       skills: draft.skills,
       musicId: draft.musicId,
       voiceRecordingId: draft.voiceRecordingId,
-      cardType: draft.cardType,
     },
     schema: audioCardSchema,
   })
@@ -104,7 +101,6 @@ export function updateAudioCard(id: string, draft: CardDraft) {
       skills: draft.skills,
       musicId: draft.musicId,
       voiceRecordingId: draft.voiceRecordingId,
-      cardType: draft.cardType,
     },
     schema: audioCardSchema,
   })
@@ -251,6 +247,15 @@ export function getPublicAudioCardByCode(code: string) {
   })
 }
 
+export function getApplicationAudioCard(applicationId: string) {
+  return apiRequest<PublicAudioCard>(`/api/v1/applications/${applicationId}/card`, {
+    schema: publicAudioCardSchema,
+  })
+}
+
 export function getPublicCardMedia(url: string) {
-  return apiRequest<Blob>(url, { auth: false, responseType: 'blob' })
+  return apiRequest<Blob>(url, {
+    auth: url.startsWith('/api/v1/applications/'),
+    responseType: 'blob',
+  })
 }

@@ -1,5 +1,5 @@
 import { ChevronDown, Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { AuthDialog, type AuthMode } from '@/features/auth/ui/auth-dialog'
@@ -10,21 +10,21 @@ import { BrandLogo } from '@/shared/ui/brand-logo'
 import { Button } from '@/shared/ui/button'
 
 const navigation = [
-  { label: 'Создать визитку', to: '/create' },
+  { label: 'Мероприятия', to: '/events' },
   { label: 'Мои визитки', to: '/cards' },
-  { label: 'Открыть по коду', to: '/open' },
+  { label: 'Заявки', to: '/applications' },
 ]
 
 function navigationItemIsActive(pathname: string, itemTo: string) {
-  if (itemTo === '/create') return pathname === '/create'
+  if (itemTo === '/events') return pathname === '/events' || pathname.startsWith('/events/')
   if (itemTo === '/cards') return pathname === '/cards' || pathname.startsWith('/cards/')
-  if (itemTo === '/open') return pathname === '/open' || pathname.startsWith('/card/')
+  if (itemTo === '/applications') return pathname === '/applications' || pathname.startsWith('/applications/')
   return pathname === itemTo
 }
 
 const navigationLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    'relative flex h-16 items-center whitespace-nowrap px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+    'relative flex h-20 items-center whitespace-nowrap px-2 font-[Sansation] text-[1.65rem] font-normal leading-none tracking-[-0.02em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
     isActive
       ? 'text-primary after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-primary'
       : 'text-foreground/75 hover:text-foreground',
@@ -42,18 +42,22 @@ export function RootLayout() {
     ? 'login'
     : null
 
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+  }, [pathname])
+
   return (
     <div className="min-h-svh bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-6 px-4 sm:px-6 lg:px-8">
-          <BrandLogo />
+      <header className="sticky top-0 z-40 border-b border-border/80 bg-card/95 backdrop-blur-xl">
+        <div className="flex h-20 w-full items-center gap-6 px-5 sm:px-6 lg:px-8">
+          <BrandLogo imageClassName={isLanding ? 'sm:text-[3.25rem]' : undefined} />
 
           {!user ? (
-            <div className="ml-auto flex items-center gap-2">
-              <Button className="hidden sm:inline-flex" onClick={() => setAuthMode('login')} variant="outline">
+            <div className={`ml-auto flex items-center gap-3 ${isLanding ? 'sm:mr-6' : ''}`}>
+              <Button className={isLanding ? 'hidden h-12 w-60 font-[Sansation] text-[1.65rem] font-normal sm:inline-flex' : 'hidden font-[Sansation] text-base font-normal sm:inline-flex'} onClick={() => setAuthMode('login')} variant="outline">
                 Войти
               </Button>
-              <Button onClick={() => setAuthMode('register')}>
+              <Button className={isLanding ? 'h-12 px-7 font-[Sansation] text-[1.65rem] font-bold sm:w-60' : 'font-[Sansation] text-base'} onClick={() => setAuthMode('register')}>
                 Регистрация
               </Button>
             </div>
@@ -61,7 +65,7 @@ export function RootLayout() {
             <>
               <nav
                 aria-label="Основная навигация"
-                className="mx-auto hidden h-full items-center gap-7 lg:flex"
+                className="mx-auto hidden h-full items-center gap-10 xl:flex"
               >
                 {navigation.map((item) => (
                   <NavLink className={() => navigationLinkClass({ isActive: navigationItemIsActive(pathname, item.to) })} key={item.to} to={item.to}>
@@ -70,16 +74,17 @@ export function RootLayout() {
                 ))}
               </nav>
 
-              <div className="relative ml-auto hidden lg:block">
+              <div className="relative ml-auto hidden xl:block">
                 <button
                   aria-expanded={userMenuOpen}
                   aria-haspopup="menu"
-                  className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex items-center gap-2 rounded-md px-2 py-1 font-[Sansation] text-[1.5rem] font-normal leading-none tracking-[-0.02em] hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() => setUserMenuOpen((open) => !open)}
                   type="button"
                 >
                   <UserAvatar
                     avatarUrl={user.avatarUrl}
+                    className="size-[3.35rem]"
                     firstName={user.firstName}
                     lastName={user.lastName}
                     revision={avatarRevision}
@@ -90,7 +95,8 @@ export function RootLayout() {
                 {userMenuOpen ? (
                   <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-48 overflow-hidden rounded-xl border border-border bg-card py-1 shadow-lg" role="menu">
                     <Link className="block px-4 py-3 text-sm hover:bg-muted" onClick={() => setUserMenuOpen(false)} role="menuitem" to="/profile">Мой профиль</Link>
-                    <Link className="block border-t border-border px-4 py-3 text-sm hover:bg-muted" onClick={() => setUserMenuOpen(false)} role="menuitem" to="/cards">Мои визитки</Link>
+                    <Link className="block border-t border-border px-4 py-3 text-sm hover:bg-muted" onClick={() => setUserMenuOpen(false)} role="menuitem" to="/my-events">Мои мероприятия</Link>
+                    <Link className="block border-t border-border px-4 py-3 text-sm hover:bg-muted" onClick={() => setUserMenuOpen(false)} role="menuitem" to="/open">Открыть визитку по коду</Link>
                     <button
                       className="block w-full border-t border-border px-4 py-3 text-left text-sm hover:bg-muted"
                       onClick={() => void logout()}
@@ -106,7 +112,7 @@ export function RootLayout() {
               <Button
                 aria-expanded={mobileMenuOpen}
                 aria-label={mobileMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
-                className="ml-auto gap-2 px-2 lg:hidden"
+                className="ml-auto gap-2 px-2 xl:hidden"
                 onClick={() => setMobileMenuOpen((open) => !open)}
                 variant="ghost"
               >
@@ -130,7 +136,7 @@ export function RootLayout() {
         {!isLanding && mobileMenuOpen ? (
           <nav
             aria-label="Мобильная навигация"
-            className="border-t border-border bg-card px-4 py-3 lg:hidden"
+            className="border-t border-border bg-card px-4 py-3 xl:hidden"
           >
             <div className="mx-auto grid max-w-7xl gap-1">
               {navigation.map((item) => (
@@ -149,6 +155,8 @@ export function RootLayout() {
                 </NavLink>
               ))}
               <NavLink className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted" onClick={() => setMobileMenuOpen(false)} to="/profile">Мой профиль</NavLink>
+              <NavLink className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted" onClick={() => setMobileMenuOpen(false)} to="/my-events">Мои мероприятия</NavLink>
+              <NavLink className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted" onClick={() => setMobileMenuOpen(false)} to="/open">Открыть визитку по коду</NavLink>
               {user ? (
                 <button className="rounded-md px-3 py-3 text-left text-sm font-medium hover:bg-muted" onClick={() => void logout()} type="button">Выйти</button>
               ) : (
@@ -163,7 +171,11 @@ export function RootLayout() {
         mode={authMode ?? requestedAuthMode}
         onClose={() => {
           setAuthMode(null)
-          if (requestedAuthMode) navigate('/', { replace: true })
+          if (requestedAuthMode) {
+            const nextSearch = new URLSearchParams(search)
+            nextSearch.delete('login')
+            navigate({ pathname, search: nextSearch.toString() }, { replace: true })
+          }
         }}
         onModeChange={setAuthMode}
       />

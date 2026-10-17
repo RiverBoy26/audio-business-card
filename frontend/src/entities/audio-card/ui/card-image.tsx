@@ -34,7 +34,7 @@ function ProtectedCardImage({ alt, className, src }: CardImageProps) {
 }
 
 export function CardImage(props: CardImageProps) {
-  return props.src.startsWith('/audio-cards/')
+  return props.src.startsWith('/audio-cards/') || props.src.startsWith('/api/v1/applications/')
     ? <ProtectedCardImage {...props} />
     : <img {...props} />
 }

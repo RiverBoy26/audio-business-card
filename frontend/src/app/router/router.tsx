@@ -20,6 +20,20 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: 'events',
+        lazy: async () => {
+          const { EventsPage } = await import('@/pages/events/ui/events-page')
+          return { Component: EventsPage }
+        },
+      },
+      {
+        path: 'events/:recruitmentId',
+        lazy: async () => {
+          const { EventPage } = await import('@/pages/event/ui/event-page')
+          return { Component: EventPage }
+        },
+      },
+      {
         path: 'open',
         lazy: async () => {
           const { OpenCardPage } = await import('@/pages/open-card/ui/open-card-page')
@@ -36,6 +50,48 @@ export const router = createBrowserRouter([
       {
         Component: ProtectedRoute,
         children: [
+          {
+            path: 'events/new',
+            lazy: async () => {
+              const { EditEventPage } = await import('@/pages/edit-event/ui/edit-event-page')
+              return { Component: EditEventPage }
+            },
+          },
+          {
+            path: 'events/:recruitmentId/edit',
+            lazy: async () => {
+              const { EditEventPage } = await import('@/pages/edit-event/ui/edit-event-page')
+              return { Component: EditEventPage }
+            },
+          },
+          {
+            path: 'my-events',
+            lazy: async () => {
+              const { MyEventsPage } = await import('@/pages/my-events/ui/my-events-page')
+              return { Component: MyEventsPage }
+            },
+          },
+          {
+            path: 'applications',
+            lazy: async () => {
+              const { ApplicationsPage } = await import('@/pages/applications/ui/applications-page')
+              return { Component: ApplicationsPage }
+            },
+          },
+          {
+            path: 'applications/:applicationId/card',
+            lazy: async () => {
+              const { PublicCardPage } = await import('@/pages/open-card/ui/open-card-page')
+              return { Component: PublicCardPage }
+            },
+          },
+          {
+            path: 'applications/:recruitmentId',
+            lazy: async () => {
+              const { RecruitmentApplicationsPage } = await import('@/pages/applications/ui/recruitment-applications-page')
+              return { Component: RecruitmentApplicationsPage }
+            },
+          },
           {
             path: 'create',
             lazy: async () => {

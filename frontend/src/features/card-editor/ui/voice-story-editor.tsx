@@ -377,8 +377,8 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
 
   return (
     <>
-    <section className="min-w-0 rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-semibold">Аудио визитки</h2>{isRecording ? <span className="flex items-center gap-2 text-xs text-destructive"><span className="size-2 animate-pulse rounded-full bg-destructive" />Идёт запись · {formatDuration(duration)}</span> : null}</div>
+    <section className="min-w-0 rounded-[1.25rem] border border-border bg-card p-5 sm:min-h-[17.8rem] sm:p-7">
+      <div className="flex items-center justify-between gap-3"><h2 className="text-[1.75rem] font-bold">Голосовая заметка</h2>{isRecording ? <span className="flex items-center gap-2 text-xs text-destructive"><span className="size-2 animate-pulse rounded-full bg-destructive" />Идёт запись · {formatDuration(duration)}</span> : null}</div>
       <p className="mt-1 text-xs text-muted-foreground">Новые голосовые фрагменты добавляются в конец текущей записи.</p>
       <div className="mt-3 flex flex-wrap gap-0">
         <Button className="rounded-r-none" onClick={async () => { if (await startRecording()) setDialogStage('recording') }} type="button" variant="outline"><Mic className="size-4 text-primary" />Записать</Button>

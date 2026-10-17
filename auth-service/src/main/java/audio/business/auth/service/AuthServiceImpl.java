@@ -29,6 +29,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
+    private static final String PERSONAL_DATA_CONSENT_VERSION = "1.0";
+
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
@@ -66,6 +68,8 @@ public class AuthServiceImpl implements AuthService {
         user.setPhone(phone);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setRole(Role.USER);
+        user.setPersonalDataConsentAt(LocalDateTime.now());
+        user.setPersonalDataConsentVersion(PERSONAL_DATA_CONSENT_VERSION);
 
         try {
             userRepository.saveAndFlush(user);
