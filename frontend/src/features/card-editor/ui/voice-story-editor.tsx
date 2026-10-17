@@ -71,7 +71,12 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
   })
   const uploadMutation = useMutation({
     mutationFn: async ({ file, mode }: { file: File; mode: 'append' | 'replace' }) => {
-      const currentRecording = voiceQuery.data?.find((item) => item.id === draft.voiceRecordingId)
+      let currentRecording = voiceQuery.data?.find((item) => item.id === draft.voiceRecordingId)
+      if (mode === 'append' && draft.voiceRecordingId && !currentRecording) {
+        const recordings = await queryClient.fetchQuery({ queryKey: ['voice-recordings'], queryFn: getVoiceRecordings })
+        currentRecording = recordings.find((item) => item.id === draft.voiceRecordingId)
+        if (!currentRecording) throw new Error('Не удалось загрузить текущую запись для объединения. Попробуйте ещё раз.')
+      }
       const parts: Blob[] = []
       if (mode === 'append' && currentRecording) {
         parts.push(await getVoiceRecordingBlob(currentRecording))
@@ -80,15 +85,20 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
       const prepared = await joinVoiceParts(parts)
       return uploadVoiceRecording(prepared.file, prepared.durationSeconds)
     },
-    onSuccess: async (recording) => {
+    onSuccess: (recording) => {
+      queryClient.setQueryData<VoiceRecording[]>(['voice-recordings'], (current) => [
+        recording,
+        ...(current ?? []).filter((item) => item.id !== recording.id),
+      ])
       onChange((current) => ({ ...current, voiceRecordingId: recording.id }))
       setRecordedFile(null)
       setDuration(0)
+      setVoicePosition({ current: 0, duration: recording.durationSeconds })
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       setPreviewUrl(null)
       setDialogStage(null)
       setTrimOpen(false)
-      await queryClient.invalidateQueries({ queryKey: ['voice-recordings'] })
+      void queryClient.invalidateQueries({ queryKey: ['voice-recordings'] })
     },
   })
 
@@ -98,10 +108,14 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
       const prepared = await trimVoicePart(source, trimStart, trimEnd)
       return uploadVoiceRecording(prepared.file, prepared.durationSeconds)
     },
-    onSuccess: async (recording) => {
+    onSuccess: (recording) => {
+      queryClient.setQueryData<VoiceRecording[]>(['voice-recordings'], (current) => [
+        recording,
+        ...(current ?? []).filter((item) => item.id !== recording.id),
+      ])
       onChange((current) => ({ ...current, voiceRecordingId: recording.id }))
       setTrimOpen(false)
-      await queryClient.invalidateQueries({ queryKey: ['voice-recordings'] })
+      void queryClient.invalidateQueries({ queryKey: ['voice-recordings'] })
     },
   })
 
@@ -387,7 +401,7 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
       {draft.musicId && !musicDuration && !musicError ? <p className="mt-3 text-xs text-muted-foreground">Определяем длительность музыки…</p> : null}
       {musicQuery.isError || musicError || musicUploadMutation.isError ? <p className="mt-2 text-xs text-destructive">{musicError ?? (musicUploadMutation.isError ? 'Не удалось загрузить музыку. Поддерживаются MP3, WAV, OGG, M4A и AAC.' : 'Не удалось загрузить список музыки.')}</p> : null}
 
-      {recorderError || uploadMutation.isError || trimMutation.isError || voiceQuery.isError ? <p className="mt-3 text-xs text-destructive">{recorderError ?? (trimMutation.error instanceof Error ? trimMutation.error.message : 'Не удалось сохранить или загрузить запись.')}</p> : null}
+      {recorderError || uploadMutation.isError || trimMutation.isError || voiceQuery.isError ? <p className="mt-3 text-xs text-destructive">{recorderError ?? (uploadMutation.error instanceof Error ? uploadMutation.error.message : trimMutation.error instanceof Error ? trimMutation.error.message : 'Не удалось сохранить или загрузить запись.')}</p> : null}
       {latestRecording?.processingStatus === 'READY' && !recordedFile ? <p className="mt-3 text-xs text-muted-foreground">Запись сохранена и готова к последующей обработке моделью.</p> : null}
     </section>
     <Modal className="max-w-md px-8 pb-8 pt-7" onClose={cancelRecording} open={dialogStage === 'recording'} title="Идёт запись">
