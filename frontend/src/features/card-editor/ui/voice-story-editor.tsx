@@ -6,6 +6,7 @@ import type { CardDraft } from '@/entities/audio-card/model/types'
 import { getMusicBlob, getMusicFiles, uploadMusic } from '@/entities/music/api/music-api'
 import { getVoiceRecordingBlob, getVoiceRecordings, uploadVoiceRecording, type VoiceRecording } from '@/entities/voice-recording/api/voice-recording-api'
 import { joinVoiceParts, trimVoicePart } from '@/features/card-editor/lib/voice-audio'
+import { uniqueMusicFiles } from '@/features/card-editor/lib/unique-music-files'
 import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
 import { formatDuration } from '@/shared/lib/format-duration'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
@@ -57,8 +58,9 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
   const [trimEnd, setTrimEnd] = useState(0)
   const voiceQuery = useQuery({ queryKey: ['voice-recordings'], queryFn: getVoiceRecordings })
   const musicQuery = useQuery({ queryKey: ['music'], queryFn: getMusicFiles })
-  const systemMusic = musicQuery.data?.filter((file) => file.system) ?? []
-  const userMusic = musicQuery.data?.filter((file) => !file.system) ?? []
+  const availableMusic = uniqueMusicFiles(musicQuery.data ?? [], draft.musicId)
+  const systemMusic = availableMusic.filter((file) => file.system)
+  const userMusic = availableMusic.filter((file) => !file.system)
   const musicPlaying = Boolean(draft.musicId && musicPlayingId === draft.musicId)
   const musicUploadMutation = useMutation({
     mutationFn: uploadMusic,

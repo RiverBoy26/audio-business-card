@@ -33,13 +33,27 @@ public class MusicService {
                     "Не указан ID пользователя");
         }
 
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Музыкальный файл пуст");
+        }
+
+        String originalFilename = file.getOriginalFilename() == null
+                ? "music"
+                : file.getOriginalFilename();
+        var existing = musicRepository
+                .findFirstByUserIdAndOriginalFilenameIgnoreCaseAndSizeOrderByUploadedAtDesc(
+                        userId, originalFilename, file.getSize());
+        if (existing.isPresent()) {
+            return MusicResponse.from(existing.get());
+        }
+
         String storedFilename = storageService.store(file);
 
         try {
             MusicFile music = new MusicFile();
             music.setId(UUID.randomUUID());
             music.setUserId(userId);
-            music.setOriginalFilename(file.getOriginalFilename());
+            music.setOriginalFilename(originalFilename);
             music.setStoredFilename(storedFilename);
             music.setStoragePath(
                     storageService.getStoragePath(storedFilename));

@@ -10,12 +10,14 @@ import {
 import { AudioCardItem } from '@/entities/audio-card/ui/audio-card-item'
 import { AsyncState } from '@/shared/ui/async-state'
 import { Button } from '@/shared/ui/button'
+import { pluralizeRu } from '@/shared/lib/pluralize-ru'
 
 export function MyCardsPage() {
   const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
   const deferredQuery = useDeferredValue(query)
   const cardsQuery = useQuery({ queryKey: ['audio-cards'], queryFn: getAudioCards })
+  const cardCount = cardsQuery.data?.length ?? 0
   const deleteMutation = useMutation({
     mutationFn: deleteAudioCard,
     onSuccess: async () => {
@@ -43,7 +45,7 @@ export function MyCardsPage() {
             Мои визитки
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {cardsQuery.data?.length ?? 0} карточек
+            {cardCount} {pluralizeRu(cardCount, 'карточка', 'карточки', 'карточек')}
           </p>
         </div>
         <Button asChild size="lg">
