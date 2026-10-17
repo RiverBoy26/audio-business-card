@@ -36,7 +36,7 @@ export function AudioWaveform({
       aria-valuemax={onSeek ? 100 : undefined}
       aria-valuemin={onSeek ? 0 : undefined}
       aria-valuenow={onSeek ? Math.round(normalizedProgress * 100) : undefined}
-      className={cn('flex h-10 flex-1 items-center', expanded ? 'gap-px' : 'gap-[2px]', onSeek && 'cursor-pointer', className)}
+      className={cn('flex h-10 min-w-0 flex-1 items-center overflow-hidden', expanded ? 'gap-px' : 'gap-[2px]', onSeek && 'cursor-pointer', className)}
       onClick={seek}
       onKeyDown={(event) => {
         if (!onSeek) return

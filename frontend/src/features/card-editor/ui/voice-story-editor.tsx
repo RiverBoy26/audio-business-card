@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type Dispat
 import type { CardDraft } from '@/entities/audio-card/model/types'
 import { getMusicBlob, getMusicFiles, uploadMusic } from '@/entities/music/api/music-api'
 import { getVoiceRecordingBlob, getVoiceRecordings, uploadVoiceRecording, type VoiceRecording } from '@/entities/voice-recording/api/voice-recording-api'
-import { joinVoiceParts, trimVoicePart } from '@/features/card-editor/lib/voice-audio'
+import { clampTrimEnd, clampTrimStart, joinVoiceParts, trimVoicePart } from '@/features/card-editor/lib/voice-audio'
 import { uniqueMusicFiles } from '@/features/card-editor/lib/unique-music-files'
 import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
 import { formatDuration, normalizeDuration } from '@/shared/lib/format-duration'
@@ -366,8 +366,8 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
       {trimOpen && latestRecording ? (
         <div className="mt-4 rounded-lg border border-border bg-muted/50 p-4">
           <div className="flex items-center justify-between gap-3"><p className="text-sm font-medium">Обрезать голос</p><span className="text-xs tabular-nums text-muted-foreground">{formatDuration(trimStart)}–{formatDuration(trimEnd)}</span></div>
-          <label className="mt-3 grid grid-cols-[58px_1fr] items-center gap-3 text-xs"><span>Начало</span><input aria-label="Начало фрагмента" max={Math.max(0, trimEnd - 1)} min={0} onChange={(event) => setTrimStart(Number(event.target.value))} step={1} type="range" value={trimStart} /></label>
-          <label className="mt-3 grid grid-cols-[58px_1fr] items-center gap-3 text-xs"><span>Конец</span><input aria-label="Конец фрагмента" max={latestRecording.durationSeconds} min={Math.min(latestRecording.durationSeconds, trimStart + 1)} onChange={(event) => setTrimEnd(Number(event.target.value))} step={1} type="range" value={trimEnd} /></label>
+          <label className="mt-3 grid grid-cols-[58px_minmax(0,1fr)] items-center gap-3 text-xs"><span>Начало</span><input aria-label="Начало фрагмента" max={Math.max(0, trimEnd - 1)} min={0} onChange={(event) => setTrimStart(clampTrimStart(Number(event.target.value), trimEnd))} step={1} type="range" value={clampTrimStart(trimStart, trimEnd)} /></label>
+          <label className="mt-3 grid grid-cols-[58px_minmax(0,1fr)] items-center gap-3 text-xs"><span>Конец</span><input aria-label="Конец фрагмента" max={latestRecording.durationSeconds} min={Math.min(latestRecording.durationSeconds, trimStart + 1)} onChange={(event) => setTrimEnd(clampTrimEnd(Number(event.target.value), trimStart, latestRecording.durationSeconds))} step={1} type="range" value={clampTrimEnd(trimEnd, trimStart, latestRecording.durationSeconds)} /></label>
           <div className="mt-3 flex justify-end gap-2"><Button onClick={() => setTrimOpen(false)} size="sm" type="button" variant="outline">Отмена</Button><Button disabled={trimMutation.isPending || trimEnd <= trimStart} onClick={() => trimMutation.mutate(latestRecording)} size="sm" type="button">{trimMutation.isPending ? 'Обрезаем…' : 'Применить'}</Button></div>
         </div>
       ) : null}

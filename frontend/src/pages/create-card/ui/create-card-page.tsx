@@ -35,6 +35,8 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
     fullName: profileFullName || loadedDraft.fullName,
     contactEmail: loadedDraft.contactEmail || user?.email || '',
     contactPhone: loadedDraft.contactPhone || user?.phone || '',
+    showContactEmail: cardId ? loadedDraft.showContactEmail : Boolean(user?.email),
+    showContactPhone: cardId ? loadedDraft.showContactPhone : Boolean(user?.phone),
   }))
   const [saved, setSaved] = useState(false)
   const [publishedCardId, setPublishedCardId] = useState(cardId)
@@ -132,7 +134,7 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
         <button
           aria-pressed={draft.cardType === 'RESUME'}
           className={`flex h-10 items-center gap-2 border-r border-border px-4 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${draft.cardType === 'RESUME' ? 'bg-accent text-primary' : 'hover:bg-muted'}`}
-          onClick={() => setDraft({ ...draft, cardType: 'RESUME' })}
+          onClick={() => setDraft((current) => ({ ...current, cardType: 'RESUME' }))}
           type="button"
         >
           <BriefcaseBusiness className="size-4" />
@@ -141,7 +143,7 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
         <button
           aria-pressed={draft.cardType === 'PORTFOLIO'}
           className={`flex h-10 items-center gap-2 px-4 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${draft.cardType === 'PORTFOLIO' ? 'bg-accent text-primary' : 'hover:bg-muted'}`}
-          onClick={() => setDraft({ ...draft, cardType: 'PORTFOLIO' })}
+          onClick={() => setDraft((current) => ({ ...current, cardType: 'PORTFOLIO' }))}
           type="button"
         >
           <FolderOpen className="size-4" />
