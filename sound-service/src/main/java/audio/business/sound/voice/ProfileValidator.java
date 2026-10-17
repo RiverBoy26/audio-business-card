@@ -12,16 +12,20 @@ public final class ProfileValidator {
 
     private final List<Entry> roles = load("roles.tsv");
     private final List<Entry> skills = load("skills.tsv");
+    // Split glued names only using curated aliases, never arbitrary fuzzy substrings.
+    private final Map<String, Set<String>> joinedSkillNames = joinedSkillNames();
     private static final Pattern MARKER = Pattern.compile(
-            "(?iuU)(?<![\\p{L}])(?:"
+            "(?iuU)(?<![\\p{L}])(?:не\\s+)?(?:"
                     + "(?:по\\s+)?(?:мо(?:я|й|ей|ю)\\s+)?(?:специальност(?:ь|и|ью)|специальн(?:ый|ая|ое)|с?пециализаци(?:я|и|ю|ей)|сфер(?:а|е|у|ой))"
                     + "|(?:по\\s+)?(?:мо(?:я|ей)\\s+)?професси(?:я|и|ю|ей)"
-                    + "|(?:(?:в\\s+)?мо(?:й|его|ему|им|[её]м)\\s+)?(?:стек(?:а|у|ом|е)?|технологи(?:и|й|ями|ях)|навык(?:и|ов|ами|ах)?)"
-                    + "|использу(?:ю|й)|владею|работаю|работы\\s+с"
+                    + "|(?:(?:в\\s+)?мо(?:й|его|ему|им|[её]м)\\s+)?(?:ст[еэ]к(?:а|у|ом|е)?|технологи(?:и|й|ями|ях)|навык(?:и|ов|ами|ах)?)"
+                    + "|работаю\\s+(?:как|в\\s+качестве)|занимаю\\s+должность"
+                    + "|использу(?:ю|й)|владею|знаю|работаю|работы\\s+с"
                     + "|(?:мо(?:й|его|ему|им|[её]м)\\s+)(?:стаж(?:а|у|ем|е)?|сташ|опыт(?:а|у|ом|е)?(?: работы)?)"
                     + "|(?:стаж(?:а|у|ем|е)?|сташ|опыт(?: работы)?|опыте|опытом)"
-                    + "|желаем(?:ая|ой|ую|ою)\\s+(?:должност(?:ь|и|ью)|позици(?:я|и|ю|ей|е))"
-                    + "|ищу(?:\\s+(?:работу|позицию|должность))?|хочу(?:\\s+(?:работать|стать))|рассматриваю(?:\\s+(?:позицию|должность))?)(?![\\p{L}])");
+                    + "|(?:мо[яю]\\s+)?(?:желаем(?:ая|ой|ую|ою)|желае)\\s+(?:мо[яю]\\s+)?(?:должност(?:ь|и|ью)|позици(?:я|и|ю|ей|е)|роль)"
+                    + "|(?:моя|мою)\\s+(?:будущая\\s+)?(?:должность|позиция|роль)"
+                    + "|ищу(?:\\s+(?:работу|позицию|должность))?|(?:хочу|хотел(?:а)?\\s+бы|желаю)(?:\\s+(?:работать|стать|быть))|рассматриваю(?:\\s+(?:позицию|должность))?)(?![\\p{L}])");
     private static final Pattern TRAILING_HALLUCINATION = Pattern.compile(
             "(?iuU)\\s*(?:[.!?]\\s*)?(?:с вами (?:был|была)|редактор субтитров|субтитры|корректор)\\b.*$");
     private static final Pattern TRAILING_SOUND_LABEL = Pattern.compile(
@@ -36,13 +40,13 @@ public final class ProfileValidator {
         Map<String, String> sections = sections(parsingTranscript, issues);
         String roleText = sections.getOrDefault("role", "");
         if (roleText.isBlank()) roleText = sections.getOrDefault("intro", "");
-        List<Entry> matchedRoles = matches(roleText, roles);
+        List<Entry> matchedRoles = matches(normalizeRoleForms(removeNegatedPhrases(roleText)), roles);
         Entry role = matchedRoles.size() == 1 ? matchedRoles.get(0) : null;
         if (role == null)
             issues.add(matchedRoles.isEmpty() ? "SPECIALIZATION_MISSING_OR_UNKNOWN" : "SPECIALIZATION_AMBIGUOUS");
 
         String skillText = sections.getOrDefault("skills", "");
-        String positiveSkillText = removeNegatedSkills(skillText);
+        String positiveSkillText = splitJoinedSkills(removeNegatedPhrases(skillText));
         List<Entry> matchedSkills = matches(positiveSkillText, skills);
         List<String> unknown = new ArrayList<>();
         String remaining = normalize(positiveSkillText);
@@ -79,6 +83,17 @@ public final class ProfileValidator {
         } else {
             position = position.replaceFirst("(?iuU)^(?:будет|это|в|на\\s+(?:позицию|должность))\\s+", "").trim();
             position = canonicalizeTechnologies(position);
+            if (Pattern.compile("(?iuU)\\b(?:не|кроме|без)\\b").matcher(position).find()) {
+                position = null;
+                issues.add("DESIRED_POSITION_REQUIRES_REVIEW");
+                issues.add("DESIRED_POSITION_MISSING");
+            } else if (matches(normalizeRoleForms(position), roles).size() > 1) {
+                position = null;
+                issues.add("DESIRED_POSITION_AMBIGUOUS");
+                issues.add("DESIRED_POSITION_MISSING");
+            } else {
+                position = canonicalizePositionRoles(position);
+            }
         }
         if (Pattern.compile("(?iuU)\\b(?:не|кроме|без)\\b").matcher(roleText + " " + skillText).find())
             issues.add("NEGATION_REQUIRES_REVIEW");
@@ -99,19 +114,89 @@ public final class ProfileValidator {
                     + "(?![\\p{L}\\p{N}+#])");
             result = pattern.matcher(result).replaceAll(Matcher.quoteReplacement(alias.getValue()));
         }
-        return result.replaceAll("(?iuU)(?<![\\p{L}])джуниор(?![\\p{L}])", "Junior")
-                .replaceAll("(?iuU)(?<![\\p{L}])(?:мидл|мидоу)(?![\\p{L}])", "Middle")
-                .replaceAll("(?iuU)(?<![\\p{L}])сеньор(?![\\p{L}])", "Senior");
+        return result.replaceAll("(?iuU)(?<![\\p{L}])(?:джуниор|джун|junior)(?![\\p{L}])", "Junior")
+                .replaceAll("(?iuU)(?<![\\p{L}])(?:мидл|миддл|мидоу|middle)(?![\\p{L}])", "Middle")
+                .replaceAll("(?iuU)(?<![\\p{L}])(?:сеньор|синьор|сениор|senior)(?![\\p{L}])", "Senior");
     }
 
-    private String removeNegatedSkills(String text) {
-        String result = normalize(text);
-        List<String> aliases = skills.stream().flatMap(entry -> entry.aliases.stream())
-                .sorted(Comparator.comparingInt(String::length).reversed()).toList();
-        for (String alias : aliases)
-            result = Pattern.compile("(?<![\\p{L}\\p{N}+#])не\\s+(?:с\\s+)?" + Pattern.quote(alias)
-                    + "(?![\\p{L}\\p{N}+#])").matcher(result).replaceAll(" ");
-        return result;
+    private static String removeNegatedPhrases(String text) {
+        return normalize(text).replaceAll(
+                "(?U)\\b(?:не|кроме|без)\\b.*?(?=\\b(?:а|но|зато)\\b|[,;!?]|\\.(?:\\s|$)|$)", " ");
+    }
+
+    private static String normalizeRoleForms(String text) {
+        return normalize(text)
+                .replaceAll("(?U)\\b(разработчик|инженер|аналитик|тестировщик|автотестировщик|администратор|дизайнер|специалист)(?:ом|а)\\b", "$1")
+                .replaceAll("(?U)\\b(системн|кроссплатформенн)(?:ым|ого)\\b", "$1ый");
+    }
+
+    private String canonicalizePositionRoles(String text) {
+        String result = normalizeRoleForms(text);
+        record Replacement(int start, int end, String name) {}
+        List<Replacement> hits = new ArrayList<>();
+        for (Entry role : roles) for (String alias : role.aliases) {
+            String suffix = role.name.endsWith("-разработчик") ? "(?:[-\\s]+(?:разработчик|developer))?"
+                    : role.name.endsWith("-инженер") ? "(?:[-\\s]+(?:инженер|engineer))?" : "";
+            Matcher matcher = Pattern.compile("(?<![\\p{L}\\p{N}])" + Pattern.quote(alias)
+                    + suffix + "(?![\\p{L}\\p{N}])").matcher(result);
+            while (matcher.find()) hits.add(new Replacement(matcher.start(), matcher.end(), role.name));
+        }
+        // Preserve wording/inflection for positions without a catalog role (e.g. Java developer).
+        if (hits.isEmpty()) return text;
+        hits.sort(Comparator.<Replacement>comparingInt(h -> h.end - h.start).reversed());
+        Replacement hit = hits.get(0);
+        result = result.substring(0, hit.start) + hit.name + result.substring(hit.end);
+        return canonicalizeTechnologies(result);
+    }
+
+    private Map<String, Set<String>> joinedSkillNames() {
+        Map<String, Set<String>> names = new HashMap<>();
+        for (Entry entry : load("skills.tsv", false)) for (String alias : entry.aliases) {
+            String compact = alias.replaceAll("[\\s-]+", "");
+            if (compact.length() >= 4 && compact.matches("[\\p{L}\\p{N}+#]+"))
+                names.computeIfAbsent(compact, ignored -> new HashSet<>()).add(entry.name);
+        }
+        return names;
+    }
+
+    private String splitJoinedSkills(String text) {
+        Matcher tokens = Pattern.compile("[\\p{L}\\p{N}+#]+").matcher(text);
+        StringBuilder result = new StringBuilder();
+        while (tokens.find()) {
+            String token = tokens.group();
+            String replacement = token;
+            if (token.length() >= 4 && token.length() <= 80
+                    && skills.stream().noneMatch(e -> e.aliases.contains(token))) {
+                Set<List<String>> paths = splitSkillToken(token, 0, new HashMap<>());
+                if (paths.size() == 1) {
+                    List<String> path = paths.iterator().next();
+                    replacement = String.join(" ", path);
+                }
+            }
+            tokens.appendReplacement(result, Matcher.quoteReplacement(replacement));
+        }
+        tokens.appendTail(result);
+        return result.toString();
+    }
+
+    private Set<List<String>> splitSkillToken(String token, int start, Map<Integer, Set<List<String>>> memo) {
+        if (start == token.length()) return Set.of(List.of());
+        if (memo.containsKey(start)) return memo.get(start);
+        Set<List<String>> paths = new HashSet<>();
+        for (int end = start + 4; end <= token.length(); end++) {
+            for (String name : joinedSkillNames.getOrDefault(token.substring(start, end), Set.of())) {
+                for (List<String> tail : splitSkillToken(token, end, memo)) {
+                    List<String> path = new ArrayList<>();
+                    path.add(name);
+                    path.addAll(tail);
+                    paths.add(List.copyOf(path));
+                    // Two different parses already make the whole token ambiguous.
+                    if (paths.size() > 1) { memo.put(start, paths); return paths; }
+                }
+            }
+        }
+        memo.put(start, paths);
+        return paths;
     }
 
     private static String cleanTranscript(String transcript, List<String> issues) {
@@ -130,6 +215,7 @@ public final class ProfileValidator {
         return transcript
                 .replaceAll("(?iuU)\\bя?[бп][еэ]к[-\\s]?[еэ]н[дт]р?\\b", "бэкенд")
                 .replaceAll("(?iuU)\\bфронт[-\\s]?[еэ]н[дт]р?\\b", "фронтенд")
+                .replaceAll("(?iuU)\\bфулл?[-\\s]+ст[еэ]к\\b", "фулстек")
                 .replaceAll("(?iuU)\\bбез окрутой\\b", "без опыта");
     }
 
@@ -139,19 +225,23 @@ public final class ProfileValidator {
         String key = null;
         int start = 0;
         boolean found = false;
+        boolean negatedMarker = false;
         while (matcher.find()) {
             if (!found && matcher.start() > 0) put(result, "intro", text.substring(0, matcher.start()), issues);
             found = true;
-            if (key != null) put(result, key, text.substring(start, matcher.start()), issues);
+            if (key != null) put(result, key, (negatedMarker ? "не " : "") + text.substring(start, matcher.start()), issues);
             String marker = normalize(matcher.group());
-            key = marker.contains("должност") || marker.contains("позици") || marker.startsWith("ищу")
-                    || marker.startsWith("хочу") || marker.startsWith("рассматриваю") ? "position"
+            negatedMarker = marker.startsWith("не ");
+            if (negatedMarker) marker = marker.substring(3);
+            key = marker.startsWith("работаю как") || marker.startsWith("работаю в") || marker.startsWith("занимаю") ? "role"
+                    : marker.contains("должност") || marker.contains("позици") || marker.contains("роль") || marker.startsWith("ищу")
+                    || marker.startsWith("хочу") || marker.startsWith("хотел") || marker.startsWith("желаю") || marker.startsWith("рассматриваю") ? "position"
                     : marker.contains("стаж") || marker.contains("сташ") || marker.contains("опыт") ? "experience"
                     : marker.contains("специал") || marker.contains("пециал") || marker.contains("сфер")
                     || marker.contains("професс") ? "role" : "skills";
             start = matcher.end();
         }
-        if (key != null) put(result, key, text.substring(start), issues);
+        if (key != null) put(result, key, (negatedMarker ? "не " : "") + text.substring(start), issues);
         else {
             put(result, "intro", text, issues);
             issues.add("TEMPLATE_MARKERS_MISSING");
@@ -173,6 +263,9 @@ public final class ProfileValidator {
         text = text.replaceAll("(?U)\\bодного\\b|\\bодна\\b", "1")
                 .replaceAll("(?U)\\bдвух\\b|\\bдве\\b", "2")
                 .replaceAll("(?U)\\bтрех\\b", "3");
+        String[] declined = {"четырех", "пяти", "шести", "семи", "восьми", "девяти", "десяти", "одиннадцати", "двенадцати"};
+        for (int i = 0; i < declined.length; i++)
+            text = text.replaceAll("(?U)\\b" + declined[i] + "\\b", String.valueOf(i + 4));
         if (text.contains("полтора года")) text = text.replace("полтора года", "18 месяцев");
         if (text.contains("полгода")) text = text.replace("полгода", "6 месяцев");
         for (int i = 0; i < words.length; i++)
@@ -250,6 +343,10 @@ public final class ProfileValidator {
     }
 
     private static List<Entry> load(String file) {
+        return load(file, true);
+    }
+
+    private static List<Entry> load(String file, boolean expandPhonetics) {
         try (InputStream stream = ProfileValidator.class.getResourceAsStream("/voice/" + file)) {
             if (stream == null) throw new IllegalStateException("Missing voice catalog: " + file);
             List<Entry> explicitEntries = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines()
@@ -261,7 +358,7 @@ public final class ProfileValidator {
                             if (!alias.isBlank()) aliases.add(normalize(alias));
                         return new Entry(columns[0], columns[1], List.copyOf(aliases));
                     }).toList();
-            if (!file.equals("skills.tsv")) return explicitEntries;
+            if (!expandPhonetics || !file.equals("skills.tsv")) return explicitEntries;
             return addUnambiguousPhoneticAliases(explicitEntries);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
