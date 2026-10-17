@@ -9,17 +9,20 @@ const bars = [
 
 type AudioWaveformProps = {
   className?: string
+  expanded?: boolean
   progress?: number
   onSeek?: (progress: number) => void
 }
 
 export function AudioWaveform({
   className,
+  expanded = false,
   progress = 0,
   onSeek,
 }: AudioWaveformProps) {
+  const displayedBars = expanded ? [...bars, ...bars, ...bars.slice(0, 8)] : bars
   const normalizedProgress = Math.min(1, Math.max(0, progress))
-  const activeBars = Math.round(bars.length * normalizedProgress)
+  const activeBars = Math.round(displayedBars.length * normalizedProgress)
 
   function seek(event: MouseEvent<HTMLDivElement>) {
     if (!onSeek) return
@@ -33,7 +36,7 @@ export function AudioWaveform({
       aria-valuemax={onSeek ? 100 : undefined}
       aria-valuemin={onSeek ? 0 : undefined}
       aria-valuenow={onSeek ? Math.round(normalizedProgress * 100) : undefined}
-      className={cn('flex h-10 flex-1 items-center gap-[2px]', onSeek && 'cursor-pointer', className)}
+      className={cn('flex h-10 flex-1 items-center', expanded ? 'gap-px' : 'gap-[2px]', onSeek && 'cursor-pointer', className)}
       onClick={seek}
       onKeyDown={(event) => {
         if (!onSeek) return
@@ -43,10 +46,11 @@ export function AudioWaveform({
       role={onSeek ? 'slider' : undefined}
       tabIndex={onSeek ? 0 : undefined}
     >
-      {bars.map((height, index) => (
+      {displayedBars.map((height, index) => (
         <span
           className={cn(
-            'w-full min-w-[2px] max-w-1 rounded-full',
+            'w-full max-w-1 rounded-full',
+            expanded ? 'min-w-px' : 'min-w-[2px]',
             index < activeBars ? 'bg-primary' : 'bg-border',
           )}
           key={`${height}-${index}`}

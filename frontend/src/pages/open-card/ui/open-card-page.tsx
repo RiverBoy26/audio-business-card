@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Download, FileText, Mail, Pause, Phone, Play } from 'lucide-react'
+import { Download, FileText, Mail, Pause, Phone, Play, Volume2 } from 'lucide-react'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -34,6 +34,7 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
   const playbackOwnerRef = useRef(createPlaybackOwner())
   const [playing, setPlaying] = useState(false)
   const [position, setPosition] = useState({ current: 0, duration: 0 })
+  const [volume, setVolume] = useState(100)
   const [error, setError] = useState<string | null>(null)
   const canPlay = Boolean(card.voiceUrl || card.musicUrl)
 
@@ -47,9 +48,9 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
 
   useEffect(() => {
     const players = playersRef.current
-    if (players?.voice) players.voice.volume = card.voiceVolume / 100
-    if (players?.music) players.music.volume = card.musicVolume / 100
-  }, [card.musicVolume, card.voiceVolume])
+    if (players?.voice) players.voice.volume = card.voiceVolume / 100 * volume / 100
+    if (players?.music) players.music.volume = card.musicVolume / 100 * volume / 100
+  }, [card.musicVolume, card.voiceVolume, volume])
 
   useEffect(() => onOtherPlayback(playbackOwnerRef.current, () => {
     requestRef.current += 1
@@ -82,9 +83,9 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
         const musicPlayer = musicUrl ? new Audio(musicUrl) : null
         const primary = voicePlayer ?? musicPlayer
         if (!primary) return
-        if (voicePlayer) voicePlayer.volume = card.voiceVolume / 100
+        if (voicePlayer) voicePlayer.volume = card.voiceVolume / 100 * volume / 100
         if (musicPlayer) {
-          musicPlayer.volume = card.musicVolume / 100
+          musicPlayer.volume = card.musicVolume / 100 * volume / 100
           musicPlayer.loop = Boolean(voicePlayer)
         }
 
@@ -154,12 +155,17 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
 
   return (
     <div className="mt-3">
-      <div className="flex min-h-12 items-center gap-3">
+      <div className="flex min-h-12 items-center gap-2 sm:gap-3">
         <button aria-label={playing ? 'Пауза' : 'Воспроизвести'} className="flex size-9 shrink-0 items-center justify-center rounded-full border-[3px] border-primary bg-card text-primary transition hover:bg-accent disabled:border-border disabled:text-muted-foreground disabled:opacity-60" disabled={!canPlay} onClick={() => void toggle()} type="button">
           {playing ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}
         </button>
-        <AudioWaveform className="h-10 min-w-0 flex-1" onSeek={position.duration ? (progress) => seek(progress * 100) : undefined} progress={position.duration ? position.current / position.duration : 0} />
+        <AudioWaveform className="h-10 min-w-0 flex-1" expanded onSeek={position.duration ? (progress) => seek(progress * 100) : undefined} progress={position.duration ? position.current / position.duration : 0} />
         <span className="shrink-0 text-[10px] text-foreground/75">{duration(position.current)} / {duration(position.duration)}</span>
+        <label className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
+          <Volume2 aria-hidden="true" className="size-4" />
+          <span className="sr-only">Громкость аудио</span>
+          <input aria-label="Громкость аудио" className="w-12 sm:w-16" max={100} min={0} onChange={(event) => setVolume(Number(event.target.value))} type="range" value={volume} />
+        </label>
       </div>
       <input aria-label="Позиция аудио" className="sr-only" disabled={!position.duration} max={100} min={0} onChange={(event) => seek(Number(event.target.value))} type="range" value={position.duration ? position.current / position.duration * 100 : 0} />
       {!canPlay ? <p className="mt-1 text-xs text-muted-foreground">Автор пока не добавил аудио.</p> : null}
@@ -251,9 +257,9 @@ export function PublicCardPage() {
             <PublicDocument card={card} />
           </div>
 
-          <section>
+          <section className="flex h-full flex-col">
             <h2 className="text-xl font-semibold sm:text-2xl">Контакты</h2>
-            <div className="mt-3 grid gap-2 rounded-xl border border-border p-4">
+            <div className="mt-3 grid min-h-36 flex-1 content-start gap-2 rounded-xl border border-border p-4">
               {card.contactEmail ? (
                 <a className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-2 text-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={`mailto:${card.contactEmail}`}>
                   <Mail aria-hidden="true" className="size-4 shrink-0 text-primary" />
