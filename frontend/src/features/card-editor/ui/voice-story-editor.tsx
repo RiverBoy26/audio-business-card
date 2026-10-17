@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CloudUpload, Mic, Pause, Play, Scissors, Square, Upload, Volume2 } from 'lucide-react'
+import { CloudUpload, Mic, Pause, Play, Scissors, Square, Upload } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type Dispatch, type SetStateAction } from 'react'
 
 import type { CardDraft } from '@/entities/audio-card/model/types'
@@ -24,6 +24,10 @@ function extensionForMime(mimeType: string) {
 
 function musicDisplayName(filename: string) {
   return filename.replace(/\.[^.]+$/, '')
+}
+
+function moveAudioTo(player: HTMLAudioElement, seconds: number) {
+  player.currentTime = seconds
 }
 
 export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
@@ -160,9 +164,10 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          autoGainControl: true,
+          autoGainControl: false,
           channelCount: 1,
-          echoCancellation: true,
+          echoCancellation: false,
+          noiseSuppression: false,
         },
       })
       const preferredType = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/webm'].find((type) => MediaRecorder.isTypeSupported(type))
@@ -251,20 +256,29 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
         playbackUrlRef.current = source
       }
       if (!source) return
-      const audio = new Audio(source)
+      let audio = audioRef.current
+      if (!audio || audio.src !== source) {
+        audio?.pause()
+        const createdAudio = new Audio(source)
+        audio = createdAudio
+        audioRef.current = createdAudio
+        setVoicePosition({ current: 0, duration: 0 })
+        const knownDuration = recordedFile ? duration : recording?.durationSeconds ?? 0
+        createdAudio.ontimeupdate = () => setVoicePosition({
+          current: Number.isFinite(createdAudio.currentTime) ? createdAudio.currentTime : 0,
+          duration: normalizeDuration(createdAudio.duration, knownDuration),
+        })
+        createdAudio.onloadedmetadata = createdAudio.ontimeupdate
+        createdAudio.onended = () => {
+          setPlaying(false)
+          setVoicePosition((current) => ({ ...current, current: current.duration }))
+        }
+      }
       if (request !== voiceRequestRef.current) return
-      audioRef.current = audio
-      setVoicePosition({ current: 0, duration: 0 })
-      const knownDuration = recordedFile ? duration : recording?.durationSeconds ?? 0
-      audio.ontimeupdate = () => setVoicePosition({
-        current: Number.isFinite(audio.currentTime) ? audio.currentTime : 0,
-        duration: normalizeDuration(audio.duration, knownDuration),
-      })
-      audio.onloadedmetadata = audio.ontimeupdate
-      audio.addEventListener('ended', () => {
-        setPlaying(false)
-        setVoicePosition((current) => ({ ...current, current: current.duration }))
-      }, { once: true })
+      if (audio.ended) {
+        moveAudioTo(audio, 0)
+        setVoicePosition((current) => ({ ...current, current: 0 }))
+      }
       announcePlayback(playbackOwnerRef.current)
       await audio.play()
       setPlaying(true)
@@ -338,6 +352,15 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
   const latestRecording = voiceQuery.data?.find((item) => item.id === draft.voiceRecordingId)
   const shownDuration = recordedFile ? duration : latestRecording?.durationSeconds ?? 0
 
+  function seekVoice(progress: number) {
+    const audio = audioRef.current
+    const playbackDuration = voicePosition.duration || shownDuration
+    if (!audio || !playbackDuration) return
+    const next = Math.min(playbackDuration, Math.max(0, playbackDuration * progress))
+    moveAudioTo(audio, next)
+    setVoicePosition({ current: next, duration: playbackDuration })
+  }
+
   return (
     <>
     <section className="min-w-0 rounded-xl border border-border bg-card p-5">
@@ -352,16 +375,10 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
 
       <div className="mt-4 flex items-center gap-3 rounded-lg border border-border p-3">
         <button aria-label={playing ? 'Пауза' : 'Воспроизвести'} className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border text-primary disabled:opacity-40" disabled={!recordedFile && !latestRecording} onClick={() => void togglePlayback(latestRecording)} type="button">{playing ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}</button>
-        <div className="min-w-0 flex-1"><AudioWaveform className="h-8" onSeek={voicePosition.duration ? (progress) => { if (audioRef.current) audioRef.current.currentTime = voicePosition.duration * progress } : undefined} progress={voicePosition.duration ? voicePosition.current / voicePosition.duration : 0} /></div>
+        <div className="min-w-0 flex-1"><AudioWaveform className="h-8" onSeek={voicePosition.duration ? seekVoice : undefined} progress={voicePosition.duration ? voicePosition.current / voicePosition.duration : 0} /></div>
         <span className="text-[11px] tabular-nums text-muted-foreground">{formatDuration(voicePosition.current)} / {formatDuration(voicePosition.duration || shownDuration)}</span>
         <button aria-label="Обрезать голос" className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40" disabled={!latestRecording || uploadMutation.isPending || trimMutation.isPending} onClick={() => { setTrimStart(0); setTrimEnd(latestRecording?.durationSeconds ?? 0); setTrimOpen((open) => !open) }} type="button"><Scissors className="size-4" /></button>
       </div>
-
-      <label className="mt-3 grid grid-cols-[auto_1fr_auto] items-center gap-3 text-xs">
-        <span className="inline-flex items-center gap-2"><Volume2 className="size-4 text-muted-foreground" />Голос</span>
-        <input aria-label="Громкость голоса" max={100} min={0} onChange={(event) => onChange((current) => ({ ...current, voiceVolume: Number(event.target.value) }))} type="range" value={draft.voiceVolume} />
-        <span className="w-9 text-right tabular-nums text-muted-foreground">{draft.voiceVolume}%</span>
-      </label>
 
       {trimOpen && latestRecording ? (
         <div className="mt-4 rounded-lg border border-border bg-muted/50 p-4">
@@ -406,7 +423,7 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
       <h2 className="mt-12 text-center text-3xl font-semibold">Сообщение записано!</h2>
       <div className="mt-8 flex items-center gap-3">
         <button aria-label={playing ? 'Пауза' : 'Прослушать запись'} className="flex size-12 shrink-0 items-center justify-center rounded-full border-2 border-border text-primary" onClick={() => void togglePlayback()} type="button">{playing ? <Pause className="size-5 fill-current" /> : <Play className="ml-0.5 size-5 fill-current" />}</button>
-        <div className="min-w-0 flex-1"><AudioWaveform className="h-12" progress={voicePosition.duration ? voicePosition.current / voicePosition.duration : 0} /><p className="text-[11px] text-muted-foreground">{formatDuration(voicePosition.current)} / {formatDuration(voicePosition.duration || duration)}</p></div>
+        <div className="min-w-0 flex-1"><AudioWaveform className="h-12" onSeek={voicePosition.duration ? seekVoice : undefined} progress={voicePosition.duration ? voicePosition.current / voicePosition.duration : 0} /><p className="text-[11px] text-muted-foreground">{formatDuration(voicePosition.current)} / {formatDuration(voicePosition.duration || duration)}</p></div>
       </div>
       <Button className="mt-12 h-12 w-full" disabled={uploadMutation.isPending} onClick={() => void recordAgain()} type="button" variant="outline">Перезаписать</Button>
       <Button className="mt-2 h-12 w-full text-base" disabled={!recordedFile || uploadMutation.isPending} onClick={() => recordedFile && uploadMutation.mutate({ file: recordedFile, mode: 'append' })} type="button">{uploadMutation.isPending ? 'Объединяем…' : 'Добавить в визитку'}</Button>

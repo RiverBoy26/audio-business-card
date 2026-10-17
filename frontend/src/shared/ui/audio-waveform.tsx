@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react'
+import type { KeyboardEvent, PointerEvent } from 'react'
 
 import { cn } from '@/shared/lib/cn'
 
@@ -22,41 +22,89 @@ export function AudioWaveform({
 }: AudioWaveformProps) {
   const displayedBars = expanded ? [...bars, ...bars, ...bars.slice(0, 8)] : bars
   const normalizedProgress = Math.min(1, Math.max(0, progress))
-  const activeBars = Math.round(displayedBars.length * normalizedProgress)
 
-  function seek(event: MouseEvent<HTMLDivElement>) {
+  function seek(clientX: number, element: HTMLDivElement) {
     if (!onSeek) return
-    const bounds = event.currentTarget.getBoundingClientRect()
-    onSeek((event.clientX - bounds.left) / bounds.width)
+    const bounds = element.getBoundingClientRect()
+    if (bounds.width <= 0) return
+    onSeek(Math.min(1, Math.max(0, (clientX - bounds.left) / bounds.width)))
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (!onSeek) return
+    let next: number | null = null
+    if (event.key === 'ArrowRight' || event.key === 'ArrowUp') next = normalizedProgress + 0.05
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') next = normalizedProgress - 0.05
+    if (event.key === 'Home') next = 0
+    if (event.key === 'End') next = 1
+    if (next === null) return
+    event.preventDefault()
+    onSeek(Math.min(1, Math.max(0, next)))
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (!onSeek) return
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+    seek(event.clientX, event.currentTarget)
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (!onSeek || event.buttons !== 1) return
+    seek(event.clientX, event.currentTarget)
   }
 
   return (
-    <div
-      aria-label={onSeek ? 'Позиция аудио' : undefined}
-      aria-valuemax={onSeek ? 100 : undefined}
-      aria-valuemin={onSeek ? 0 : undefined}
-      aria-valuenow={onSeek ? Math.round(normalizedProgress * 100) : undefined}
-      className={cn('flex h-10 flex-1 items-center', expanded ? 'gap-px' : 'gap-[2px]', onSeek && 'cursor-pointer', className)}
-      onClick={seek}
-      onKeyDown={(event) => {
-        if (!onSeek) return
-        if (event.key === 'ArrowRight') onSeek(Math.min(1, normalizedProgress + 0.05))
-        if (event.key === 'ArrowLeft') onSeek(Math.max(0, normalizedProgress - 0.05))
-      }}
-      role={onSeek ? 'slider' : undefined}
-      tabIndex={onSeek ? 0 : undefined}
-    >
-      {displayedBars.map((height, index) => (
-        <span
+      <div
+          aria-label={onSeek ? 'Позиция аудио' : undefined}
+          aria-valuemax={onSeek ? 100 : undefined}
+          aria-valuemin={onSeek ? 0 : undefined}
+          aria-valuenow={onSeek ? Math.round(normalizedProgress * 100) : undefined}
           className={cn(
-            'w-full max-w-1 rounded-full',
-            expanded ? 'min-w-px' : 'min-w-[2px]',
-            index < activeBars ? 'bg-primary' : 'bg-border',
+              'relative flex h-10 min-w-0 flex-1 items-center',
+              onSeek && 'cursor-pointer touch-none select-none',
+              className,
           )}
-          key={`${height}-${index}`}
-          style={{ height: `${height}%` }}
-        />
-      ))}
-    </div>
+          onKeyDown={handleKeyDown}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          role={onSeek ? 'slider' : undefined}
+          tabIndex={onSeek ? 0 : undefined}
+      >
+        <div
+            className={cn(
+                'pointer-events-none flex h-full w-full items-center',
+                expanded ? 'gap-px' : 'gap-[2px]',
+            )}
+        >
+          {displayedBars.map((height, index) => (
+              <span
+                  className={cn(
+                      'min-w-0 flex-1 rounded-full bg-border',
+                  )}
+                  key={`${height}-${index}`}
+                  style={{
+                    height: `${height}%`,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+              >
+          <span
+              className="absolute inset-0 bg-primary"
+              style={{
+                clipPath: `inset(0 ${
+                    Math.max(
+                        0,
+                        Math.min(
+                            100,
+                            (index + 1 - normalizedProgress * displayedBars.length) * 100,
+                        ),
+                    )
+                }% 0 0)`,
+              }}
+          />
+        </span>
+          ))}
+        </div>
+      </div>
   )
 }
