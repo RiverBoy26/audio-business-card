@@ -1,7 +1,7 @@
 package audio.business.card.mapper;
 
-import audio.business.card.dto.response.CardSettingResponse;
 import audio.business.card.dto.request.CardSettingsRequest;
+import audio.business.card.dto.response.CardSettingResponse;
 import audio.business.card.entity.CardSettings;
 
 public class CardSettingsMapper {

@@ -1,8 +1,8 @@
 package audio.business.card.dto.request;
 
 import audio.business.card.enums.CardType;
-import lombok.Getter;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;

@@ -23,6 +23,11 @@ spring:
           predicates:
             - Path=/api/music/**,/api/music,/api/voice-recordings/**,/api/voice-recordings,/api/voice-profile
 
+        - id: hackaton-service
+          uri: ${HACKATON_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/recruitments,/api/v1/recruitments/**,/api/v1/applications/**,/api/v1/recommendations/**
+
 jwt:
   secret: ${JWT_SECRET}
   issuer: audio-business-card-auth
