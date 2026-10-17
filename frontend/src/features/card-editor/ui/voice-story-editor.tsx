@@ -7,16 +7,13 @@ import { getMusicBlob, getMusicFiles, uploadMusic } from '@/entities/music/api/m
 import { getVoiceRecordingBlob, getVoiceRecordings, uploadVoiceRecording, type VoiceRecording } from '@/entities/voice-recording/api/voice-recording-api'
 import { joinVoiceParts, trimVoicePart } from '@/features/card-editor/lib/voice-audio'
 import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
+import { formatDuration } from '@/shared/lib/format-duration'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
 import { BrandLogo } from '@/shared/ui/brand-logo'
 import { Button } from '@/shared/ui/button'
 import { Modal } from '@/shared/ui/modal'
 
 type VoiceStoryEditorProps = { draft: CardDraft; onChange: Dispatch<SetStateAction<CardDraft>> }
-
-function formatDuration(seconds: number) {
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
-}
 
 function extensionForMime(mimeType: string) {
   if (mimeType.includes('ogg')) return 'ogg'

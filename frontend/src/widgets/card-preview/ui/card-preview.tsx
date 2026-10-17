@@ -11,6 +11,7 @@ import { getVoiceRecordingBlob, getVoiceRecordings } from '@/entities/voice-reco
 import { Button } from '@/shared/ui/button'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
 import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
+import { formatDuration } from '@/shared/lib/format-duration'
 
 type CardPreviewProps = {
   cardId?: string
@@ -31,10 +32,6 @@ type CardPreviewProps = {
 function getInitials(name: string) {
   const initials = name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('')
   return initials.toUpperCase() || 'АВ'
-}
-
-function formatDuration(seconds: number) {
-  return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
 }
 
 function moveAudioTo(player: HTMLAudioElement, seconds: number) {

@@ -10,13 +10,10 @@ import { Button } from '@/shared/ui/button'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
 import { AsyncState } from '@/shared/ui/async-state'
 import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
+import { formatDuration } from '@/shared/lib/format-duration'
 
 function initials(name: string | null) {
   return (name ?? '').trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'АВ'
-}
-
-function duration(value: number) {
-  return `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`
 }
 
 function moveAudioTo(player: HTMLAudioElement, seconds: number) {
@@ -160,7 +157,7 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
           {playing ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}
         </button>
         <AudioWaveform className="h-10 min-w-0 flex-1" expanded onSeek={position.duration ? (progress) => seek(progress * 100) : undefined} progress={position.duration ? position.current / position.duration : 0} />
-        <span className="shrink-0 text-[10px] text-foreground/75">{duration(position.current)} / {duration(position.duration)}</span>
+        <span className="shrink-0 text-[10px] text-foreground/75">{formatDuration(position.current)} / {formatDuration(position.duration)}</span>
         <label className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
           <Volume2 aria-hidden="true" className="size-4" />
           <span className="sr-only">Громкость аудио</span>

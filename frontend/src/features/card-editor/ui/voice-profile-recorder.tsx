@@ -9,6 +9,7 @@ import { Button } from '@/shared/ui/button'
 import { Modal } from '@/shared/ui/modal'
 import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
+import { formatDuration } from '@/shared/lib/format-duration'
 
 type RecorderSession = {
   context: AudioContext
@@ -57,10 +58,6 @@ function experienceYears(profile: VoiceProfile) {
   const months = (profile.experience.minMonths + profile.experience.maxMonths) / 2
   if (months === 0) return 0
   return Math.min(80, Math.max(1, Math.round(months / 12)))
-}
-
-function formatDuration(value: number) {
-  return `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`
 }
 
 function VoicePreviewPlayer({ source }: { source: string }) {
