@@ -175,7 +175,6 @@ export async function getCardDraft(id: string): Promise<CardDraft> {
     photoFile: null,
     showContactEmail: Boolean(card.contactEmail),
     showContactPhone: Boolean(card.contactPhone),
-    cardType: card.cardType,
     experienceYears: experience.experienceYears,
     skills: card.skills,
     voiceVolume: settings.voiceVolume,

@@ -224,7 +224,6 @@ export function PublicCardPage() {
   if (query.isError || !query.data) return <main className="mx-auto max-w-2xl px-4 py-16"><AsyncState description={isApplicationView ? 'Заявка или визитка недоступна.' : 'Ссылка неверна, карточка удалена или ещё не опубликована.'} status="error" title="Визитка недоступна" /></main>
 
   const card = query.data
-  const positionLabel = card.cardType === 'RESUME' ? 'Желаемая должность' : 'Роль в команде'
   return (
     <main className="mx-auto min-h-[calc(100svh-4rem-1px)] w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <div className="flex items-end gap-4">
@@ -240,7 +239,7 @@ export function PublicCardPage() {
           <div className="min-w-0 self-center">
             <h2 className="break-words text-2xl font-semibold leading-tight sm:text-4xl">{card.fullName || 'Автор визитки'}</h2>
             <p className="mt-1 break-words text-base leading-6 sm:text-lg sm:leading-7">{card.description || 'Специализация не указана'}</p>
-            <p className="break-words text-base leading-6 sm:text-lg sm:leading-7">{positionLabel}: {card.title}</p>
+            <p className="break-words text-base leading-6 sm:text-lg sm:leading-7">Роль в команде: {card.title}</p>
             <p className="text-base leading-6 sm:text-lg sm:leading-7">Опыт работы: {card.experienceYears} {card.experienceYears === 1 ? 'год' : 'лет'}</p>
             <p className="text-base leading-6 sm:text-lg sm:leading-7">Стек технологий:</p>
             <div className="mt-1.5 flex flex-wrap gap-2.5">

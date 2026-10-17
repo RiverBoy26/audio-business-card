@@ -8,7 +8,6 @@ afterEach(() => vi.unstubAllGlobals())
 describe('createAudioCard', () => {
   it('sends only contacts selected for the card', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      cardType: 'RESUME',
       contactEmail: null,
       contactPhone: '+79001234567',
       description: null,
