@@ -178,7 +178,6 @@ export function VoiceProfileRecorder({ onChange }: VoiceProfileRecorderProps) {
           autoGainControl: true,
           channelCount: 1,
           echoCancellation: true,
-          noiseSuppression: true,
         },
       })
       const context = new AudioContext()

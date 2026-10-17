@@ -160,7 +160,6 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
           autoGainControl: true,
           channelCount: 1,
           echoCancellation: true,
-          noiseSuppression: true,
         },
       })
       const preferredType = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/webm'].find((type) => MediaRecorder.isTypeSupported(type))
