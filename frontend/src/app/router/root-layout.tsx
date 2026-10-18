@@ -24,7 +24,7 @@ function navigationItemIsActive(pathname: string, itemTo: string) {
 
 const navigationLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    'relative flex h-20 items-center whitespace-nowrap px-2 font-[Sansation] text-[1.65rem] font-normal leading-none tracking-[-0.02em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+    'relative flex h-[4.5rem] items-center whitespace-nowrap px-2 font-[Sansation] text-base font-normal leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
     isActive
       ? 'text-primary after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-primary'
       : 'text-foreground/75 hover:text-foreground',
@@ -37,7 +37,6 @@ export function RootLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode | null>(null)
-  const isLanding = pathname === '/'
   const requestedAuthMode: AuthMode | null = new URLSearchParams(search).has('login')
     ? 'login'
     : null
@@ -49,15 +48,15 @@ export function RootLayout() {
   return (
     <div className="min-h-svh bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-border/80 bg-card/95 backdrop-blur-xl">
-        <div className="flex h-20 w-full items-center gap-6 px-5 sm:px-6 lg:px-8">
-          <BrandLogo imageClassName={isLanding ? 'sm:text-[3.25rem]' : undefined} />
+        <div className="flex h-[4.5rem] w-full items-center gap-6 px-5 sm:px-6 lg:px-8">
+          <BrandLogo />
 
           {!user ? (
-            <div className={`ml-auto flex items-center gap-3 ${isLanding ? 'sm:mr-6' : ''}`}>
-              <Button className={isLanding ? 'hidden h-12 w-60 font-[Sansation] text-[1.65rem] font-normal sm:inline-flex' : 'hidden font-[Sansation] text-base font-normal sm:inline-flex'} onClick={() => setAuthMode('login')} variant="outline">
+            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+              <Button className="h-10 px-2 font-[Sansation] text-sm font-normal sm:px-4 sm:text-base" onClick={() => setAuthMode('login')} variant="ghost">
                 Войти
               </Button>
-              <Button className={isLanding ? 'h-12 px-7 font-[Sansation] text-[1.65rem] font-bold sm:w-60' : 'font-[Sansation] text-base'} onClick={() => setAuthMode('register')}>
+              <Button className="h-10 px-3 font-[Sansation] text-sm sm:px-4 sm:text-base" onClick={() => setAuthMode('register')}>
                 Регистрация
               </Button>
             </div>
@@ -78,13 +77,13 @@ export function RootLayout() {
                 <button
                   aria-expanded={userMenuOpen}
                   aria-haspopup="menu"
-                  className="flex items-center gap-2 rounded-md px-2 py-1 font-[Sansation] text-[1.5rem] font-normal leading-none tracking-[-0.02em] hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex items-center gap-2 rounded-md px-2 py-1 font-[Sansation] text-base font-normal leading-none hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() => setUserMenuOpen((open) => !open)}
                   type="button"
                 >
                   <UserAvatar
                     avatarUrl={user.avatarUrl}
-                    className="size-[3.35rem]"
+                    className="size-9"
                     firstName={user.firstName}
                     lastName={user.lastName}
                     revision={avatarRevision}
@@ -133,7 +132,7 @@ export function RootLayout() {
           )}
         </div>
 
-        {!isLanding && mobileMenuOpen ? (
+        {mobileMenuOpen ? (
           <nav
             aria-label="Мобильная навигация"
             className="border-t border-border bg-card px-4 py-3 xl:hidden"

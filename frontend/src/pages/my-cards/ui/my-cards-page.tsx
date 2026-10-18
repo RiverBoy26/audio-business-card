@@ -48,10 +48,7 @@ export function MyCardsPage() {
     <main className="mx-auto w-full max-w-6xl px-4 py-9 sm:px-6 lg:px-8 lg:py-12">
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">
-            Личная коллекция
-          </p>
-          <h1 className="mt-3 text-4xl font-bold tracking-[-0.035em] sm:text-5xl">
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
             Мои визитки
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">

@@ -43,10 +43,9 @@ export function ProfilePage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-6 lg:px-8 lg:py-8">
+    <main className="mx-auto w-full max-w-6xl px-4 py-9 sm:px-6 lg:px-8 lg:py-12">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">Личные данные</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Профиль</h1>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Профиль</h1>
       </header>
 
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">

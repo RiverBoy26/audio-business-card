@@ -48,15 +48,15 @@ export function MyEventsPage() {
   }, [deferredQuery, recruitmentsQuery.data])
 
   return (
-    <main className="mx-auto w-full max-w-[1080px] px-4 py-7 sm:px-6 lg:py-8">
-      <header className="text-center">
-        <h1 className="text-[clamp(2.75rem,5vw,4rem)] font-bold leading-none tracking-[-0.035em]">Мои мероприятия</h1>
+    <main className="mx-auto w-full max-w-6xl px-4 py-9 sm:px-6 lg:py-12">
+      <header>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Мои мероприятия</h1>
       </header>
 
       <label className="relative mt-8 block">
         <span className="sr-only">Поиск по мероприятиям</span>
-        <Search className="absolute left-10 top-1/2 size-6 -translate-y-1/2 text-foreground" />
-        <input className="h-11 w-full rounded-[0.7rem] border border-border bg-card pl-[4.6rem] pr-4 font-[Sansation] text-[1.45rem] outline-none placeholder:text-foreground focus:border-primary focus:ring-2 focus:ring-primary/10" onChange={(event) => setQuery(event.target.value)} placeholder="Поиск по названию" value={query} />
+        <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <input className="h-11 w-full rounded-lg border border-border bg-card pl-10 pr-4 text-sm outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/10" onChange={(event) => setQuery(event.target.value)} placeholder="Поиск по названию" value={query} />
       </label>
 
       {recruitmentsQuery.isLoading ? (
@@ -64,21 +64,20 @@ export function MyEventsPage() {
       ) : recruitmentsQuery.isError ? (
         <div className="mt-6"><AsyncState description={recruitmentsQuery.error instanceof Error ? recruitmentsQuery.error.message : 'Повторите запрос.'} onRetry={() => void recruitmentsQuery.refetch()} status="error" title="Не удалось загрузить мероприятия" /></div>
       ) : visibleRecruitments.length ? (
-        <section className="mt-7 grid gap-7 lg:grid-cols-2 lg:gap-x-10" aria-label="Мои мероприятия">
+        <section className="mt-6 grid gap-5 lg:grid-cols-2" aria-label="Мои мероприятия">
           {visibleRecruitments.map((recruitment) => (
-            <article className="flex min-h-[21rem] flex-col rounded-[1.35rem] border border-border bg-card p-5" key={recruitment.id}>
+            <article className="flex min-w-0 flex-col rounded-lg border border-border bg-card p-5" key={recruitment.id}>
               <div className="flex gap-3 sm:gap-4">
-                <RecruitmentVisual className="h-[11.6rem] w-[8.7rem] shrink-0 rounded-[1.15rem]" seed={recruitment.id} />
+                <RecruitmentVisual className="size-20" label={recruitment.eventName} />
                 <div className="min-w-0 flex-1 py-1">
                   <div className="flex items-start justify-between gap-2"><StatusBadge status={recruitment.status} /></div>
-                  <h2 className="mt-3 line-clamp-2 text-[1.7rem] font-bold leading-tight">{recruitment.eventName}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Кол-во участников: {recruitment.participantsNeeded}</p>
+                  <h2 className="mt-2 line-clamp-2 text-lg font-semibold leading-tight">{recruitment.eventName}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Участников нужно: {recruitment.participantsNeeded}</p>
                   <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">Ищем: {recruitment.title}</p>
-                  <Button asChild className="mt-12" size="sm"><Link to={`/events/${recruitment.id}`}>Открыть</Link></Button>
                 </div>
               </div>
 
-              <p className="mt-auto pt-6 text-xs">Код мероприятия: {recruitment.id.slice(0, 6).toUpperCase()}</p>
+              <p className="mt-auto pt-5 text-xs text-muted-foreground">Код мероприятия: {recruitment.id.slice(0, 6).toUpperCase()}</p>
               <div className="mt-1 grid grid-cols-2 gap-2 border-t border-border pt-3 sm:grid-cols-4">
                 <Button asChild size="sm" variant="outline"><Link to={`/events/${recruitment.id}/edit`}><Pencil className="size-3.5" />Изменить</Link></Button>
                 <Button asChild size="sm" variant="outline"><Link to={`/applications/${recruitment.id}`}><Inbox className="size-3.5" />Заявки</Link></Button>

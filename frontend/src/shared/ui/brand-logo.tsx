@@ -17,11 +17,11 @@ export function BrandLogo({ className, imageClassName }: BrandLogoProps) {
       )}
       to="/"
     >
-      <span className={cn('inline-flex items-center gap-2 text-[1.7rem] font-extrabold tracking-[-0.04em] text-foreground sm:text-[2.5rem]', imageClassName)}>
-        <svg aria-hidden="true" className="h-10 w-14 shrink-0 text-foreground sm:h-11 sm:w-16" fill="none" viewBox="0 0 54 34">
+      <span className={cn('inline-flex items-center gap-1.5 text-[1.45rem] font-extrabold tracking-[-0.04em] text-foreground sm:text-[1.75rem]', imageClassName)}>
+        <svg aria-hidden="true" className="h-8 w-10 shrink-0 text-foreground sm:h-9 sm:w-12" fill="none" viewBox="0 0 54 34">
           <path d="M2 18h6l3-8 4 18 5-25 5 29 5-20 4 12 4-9 4 5h10" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
         </svg>
-        HackSound
+        <span className="max-[380px]:sr-only">HackSound</span>
       </span>
     </Link>
   )

@@ -62,12 +62,12 @@ export function EventPage() {
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
       <Button asChild className="-ml-3" variant="ghost"><Link to="/events"><ArrowLeft className="size-4" />Все мероприятия</Link></Button>
 
-      <article className="mt-4 overflow-hidden rounded-[2rem] border border-border bg-card shadow-[0_22px_70px_rgba(13,10,51,0.07)]">
-        <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[280px_1fr] lg:p-10">
-          <RecruitmentVisual className="aspect-square w-full max-w-[280px] justify-self-center" seed={recruitment.id} />
+      <article className="mt-4 overflow-hidden rounded-lg border border-border bg-card">
+        <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[96px_1fr]">
+          <RecruitmentVisual className="size-24" label={recruitment.eventName} />
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{recruitment.eventName}</p>
-            <h1 className="mt-3 text-3xl font-bold leading-tight tracking-[-0.03em] sm:text-4xl lg:text-5xl">{recruitment.title}</h1>
+            <h1 className="mt-2 break-words text-2xl font-semibold leading-tight sm:text-3xl">{recruitment.title}</h1>
 
             <div className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
               <div className="flex items-center gap-3 rounded-xl bg-muted/55 p-3.5">

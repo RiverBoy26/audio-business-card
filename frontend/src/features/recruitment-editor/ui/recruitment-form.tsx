@@ -1,4 +1,4 @@
-import { CalendarDays, Globe2, MapPin, Save, Send } from 'lucide-react'
+import { MapPin, Save, Send } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 
 import type {
@@ -73,15 +73,10 @@ export function RecruitmentForm({
 
   return (
     <form className="grid items-start gap-5 xl:grid-cols-2" onSubmit={submit}>
-      <section className="rounded-[1.6rem] border border-border bg-card p-5 shadow-[0_14px_40px_rgba(13,10,51,0.035)] sm:p-7">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-accent text-primary">
-            <Globe2 className="size-5" />
-          </span>
-          <div>
-            <h2 className="text-lg font-bold">О хакатоне и команде</h2>
-            <p className="text-xs text-muted-foreground">Расскажите, кого вы ищете и над чем будете работать.</p>
-          </div>
+      <section className="rounded-lg border border-border bg-card p-5 sm:p-6">
+        <div>
+          <h2 className="text-lg font-bold">О хакатоне и команде</h2>
+          <p className="text-xs text-muted-foreground">Расскажите, кого вы ищете и над чем будете работать.</p>
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -145,15 +140,10 @@ export function RecruitmentForm({
         </div>
       </section>
 
-      <section className="rounded-[1.6rem] border border-border bg-card p-5 shadow-[0_14px_40px_rgba(13,10,51,0.035)] sm:p-7">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-accent text-primary">
-            <CalendarDays className="size-5" />
-          </span>
-          <div>
-            <h2 className="text-lg font-bold">Формат и сроки</h2>
-            <p className="text-xs text-muted-foreground">Эта информация поможет участникам спланировать работу.</p>
-          </div>
+      <section className="rounded-lg border border-border bg-card p-5 sm:p-6">
+        <div>
+          <h2 className="text-lg font-bold">Формат и сроки</h2>
+          <p className="text-xs text-muted-foreground">Эта информация поможет участникам спланировать работу.</p>
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">

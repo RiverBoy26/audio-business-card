@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ListFilter, Plus, Search, Sparkles } from 'lucide-react'
+import { ListFilter, Plus, Search } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -78,11 +78,7 @@ export function EventsPage() {
     <main className="mx-auto w-full max-w-7xl px-4 py-9 sm:px-6 lg:px-8 lg:py-12">
       <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-primary">
-            <Sparkles className="size-3.5" />
-            Найдите свою команду
-          </div>
-          <h1 className="mt-4 text-4xl font-bold tracking-[-0.035em] sm:text-5xl lg:text-6xl">Мероприятия</h1>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Мероприятия</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
             Открытые наборы в команды на хакатоны. Выберите проект и отправьте свою аудиовизитку.
           </p>
@@ -94,7 +90,7 @@ export function EventsPage() {
         ) : null}
       </header>
 
-      <section aria-label="Поиск и фильтры" className="mt-8 grid gap-3 rounded-[1.35rem] border border-border/80 bg-card p-3 shadow-[0_12px_35px_rgba(13,10,51,0.035)] md:grid-cols-2 xl:grid-cols-[minmax(280px,1fr)_210px_190px_auto]">
+      <section aria-label="Поиск и фильтры" className="mt-8 grid gap-3 rounded-lg border border-border bg-card p-3 md:grid-cols-2 xl:grid-cols-[minmax(280px,1fr)_210px_190px_auto]">
         <label className="relative block">
           <span className="sr-only">Поиск мероприятий</span>
           <Search className="absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-primary" />
@@ -107,9 +103,8 @@ export function EventsPage() {
         </label>
         <label className="relative block">
           <span className="sr-only">Фильтр по рекомендациям</span>
-          <Sparkles className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-primary" />
           <select
-            className="h-12 w-full rounded-xl border border-transparent bg-muted/55 pl-10 pr-8 text-sm font-medium outline-none transition focus:border-primary/35 focus:bg-card focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:text-muted-foreground"
+            className="h-12 w-full rounded-md border border-transparent bg-muted/55 px-3 text-sm font-medium outline-none transition focus:border-primary/35 focus:bg-card focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:text-muted-foreground"
             disabled={!user}
             onChange={(event) => setRecommendation(event.target.value as RecommendationFilter)}
             title={user ? undefined : 'Войдите, чтобы использовать персональные рекомендации'}
@@ -153,7 +148,6 @@ export function EventsPage() {
 
       {user && recommendationsQuery.data?.content.length ? (
         <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
-          <Sparkles className="size-4 text-primary" />
           Сначала показываем команды, которые лучше совпадают с навыками в ваших визитках.
         </p>
       ) : null}

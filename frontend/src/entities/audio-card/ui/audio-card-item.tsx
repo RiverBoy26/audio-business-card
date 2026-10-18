@@ -13,22 +13,21 @@ type AudioCardItemProps = {
 
 export function AudioCardItem({ card, deleting, onDelete }: AudioCardItemProps) {
   return (
-    <article className="flex min-w-0 flex-col rounded-[1.6rem] border border-border bg-card p-5 shadow-[0_14px_45px_rgba(13,10,51,0.04)] transition duration-300 hover:-translate-y-0.5 hover:border-primary/35">
+    <article className="flex min-w-0 flex-col rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary/35">
       <div className="flex items-start gap-4">
         {card.photoUrl ? (
-          <CardImage alt="" className="h-36 w-28 shrink-0 rounded-2xl bg-muted object-cover" src={card.photoUrl} />
+          <CardImage alt="" className="size-20 shrink-0 rounded-md bg-muted object-cover" src={card.photoUrl} />
         ) : (
-          <div className="flex h-36 w-28 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-primary/25 text-2xl font-bold text-primary">
+          <div className="flex size-20 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-lg font-semibold text-primary">
             {(card.fullName || card.title).split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'АВ'}
           </div>
         )}
         <div className="min-w-0 py-1">
           <h2 className="truncate text-xl font-bold">{card.fullName || card.title}</h2>
           <p className="mt-1 text-sm font-medium text-primary">{card.title}</p>
-          <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground">
+          <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">
             {card.description || 'Описание отсутствует.'}
           </p>
-          <p className="mt-3 text-xs text-muted-foreground">Портфолио</p>
         </div>
       </div>
 

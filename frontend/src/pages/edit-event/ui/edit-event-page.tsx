@@ -64,8 +64,7 @@ export function EditEventPage() {
     <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
       <Button asChild className="-ml-3" variant="ghost"><Link to="/my-events"><ArrowLeft className="size-4" />Мои мероприятия</Link></Button>
       <header className="mb-8 mt-4">
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">{recruitment ? 'Редактирование набора' : 'Новый набор'}</p>
-        <h1 className="mt-3 text-4xl font-bold tracking-[-0.035em] sm:text-5xl">{recruitment ? 'Изменить объявление' : 'Собрать команду'}</h1>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{recruitment ? 'Изменить объявление' : 'Собрать команду'}</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Заполните основную информацию. Объявление можно сохранить как черновик и опубликовать позже.</p>
       </header>
       <RecruitmentForm

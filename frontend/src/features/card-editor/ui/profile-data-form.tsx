@@ -70,10 +70,10 @@ export function ProfileDataForm({ avatarUrl, draft, onChange }: ProfileDataFormP
   }
 
   return (
-    <section className="min-w-0 rounded-[1.25rem] border border-border bg-card p-5 sm:p-7">
+    <section className="min-w-0 rounded-lg border border-border bg-card p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-[1.75rem] font-bold">Данные визитки</h2>
+          <h2 className="text-xl font-semibold">Данные визитки</h2>
           <p className="mt-1 text-xs text-muted-foreground">Выберите, как заполнить основную информацию.</p>
         </div>
       </div>

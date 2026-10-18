@@ -116,9 +116,9 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-8 lg:px-[3.55rem] lg:py-14">
+    <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <header>
-        <h1 className="text-[clamp(2.8rem,5vw,4rem)] font-bold leading-none tracking-[-0.035em]">
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
           {cardId ? 'Изменить визитку' : 'Создать визитку'}
         </h1>
       </header>
@@ -127,7 +127,7 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
         Укажите желаемую роль в команде и при необходимости прикрепите PDF с работами.
       </p>
 
-      <div className="mt-3 grid items-start gap-6 xl:grid-cols-[minmax(0,1.03fr)_minmax(0,1fr)]">
+      <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1.03fr)_minmax(0,1fr)]">
         <div className="min-w-0 grid gap-4">
           <ProfileDataForm avatarUrl={user?.avatarUrl ?? null} draft={draft} onChange={setDraft} />
           <VoiceStoryEditor draft={draft} onChange={setDraft} />

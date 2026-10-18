@@ -278,13 +278,13 @@ export function CardPreview({ cardId, draft, error, isDocumentDeleting, isPublis
   }
 
   return (
-    <aside className="min-w-0 rounded-[2.5rem] border border-border bg-card p-5 sm:p-7 xl:sticky xl:top-20">
+    <aside className="min-w-0 rounded-lg border border-border bg-card p-5 sm:p-6 xl:sticky xl:top-20">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[2.25rem] font-bold">Предпросмотр</h2>
+        <h2 className="text-xl font-semibold">Предпросмотр</h2>
         <span className={`rounded-lg px-3 py-1.5 text-[11px] ${draft.published ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground'}`}>{draft.published ? 'Опубликовано' : 'Черновик'}</span>
       </div>
 
-      <div className="mt-5 rounded-[1.5rem] border border-border p-5 sm:p-6">
+      <div className="mt-5 rounded-md border border-border p-4 sm:p-5">
         <div className="flex items-start gap-4">
           {draft.photoUrl ? <CardImage alt="" className="size-24 shrink-0 rounded-xl bg-muted object-cover" src={draft.photoUrl} /> : <div className="flex size-24 shrink-0 items-center justify-center rounded-xl bg-accent text-2xl font-medium text-primary">{getInitials(draft.fullName)}</div>}
           <div className="min-w-0 pt-1">

@@ -23,14 +23,14 @@ export function RecruitmentCard({ recruitment, score }: RecruitmentCardProps) {
   const placesLeft = Math.max(0, recruitment.participantsNeeded - recruitment.acceptedCount)
 
   return (
-    <article className="group flex min-w-0 flex-col rounded-[1.6rem] border border-border bg-card p-5 shadow-[0_14px_45px_rgba(13,10,51,0.04)] transition duration-300 hover:-translate-y-0.5 hover:border-primary/35">
+    <article className="group flex min-w-0 flex-col rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary/35">
       <div className="flex items-start gap-4">
-        <RecruitmentVisual className="h-36 w-28 shrink-0 rounded-2xl" seed={recruitment.id} />
+        <RecruitmentVisual className="size-16 sm:size-20" label={recruitment.eventName} />
         <div className="min-w-0 flex-1 py-1">
           <div className="flex items-start justify-between gap-3">
             <h2 className="truncate text-xl font-bold">{recruitment.eventName}</h2>
             {score !== undefined ? (
-              <span className="shrink-0 rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold text-primary">
+              <span className="shrink-0 rounded-md bg-accent px-2.5 py-1 text-[11px] font-medium text-primary">
                 {score}% мэтч
               </span>
             ) : null}

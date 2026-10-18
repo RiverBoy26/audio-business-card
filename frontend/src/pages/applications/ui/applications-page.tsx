@@ -87,12 +87,12 @@ export function ApplicationsPage() {
   const currentQuery = tab === 'incoming' ? incomingQuery : outgoingQuery
 
   return (
-    <main className="mx-auto w-full max-w-[1290px] px-4 py-6 sm:px-6 lg:py-7">
-      <header className="text-center">
-        <h1 className="text-[clamp(2.75rem,5vw,4rem)] font-bold leading-none tracking-[-0.035em]">Заявки</h1>
+    <main className="mx-auto w-full max-w-6xl px-4 py-9 sm:px-6 lg:py-12">
+      <header>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Заявки</h1>
       </header>
 
-      <div className="mx-auto mt-5 flex w-fit rounded-xl border border-border bg-card p-1" role="tablist" aria-label="Тип заявок">
+      <div className="mt-5 flex w-fit max-w-full rounded-lg border border-border bg-card p-1" role="tablist" aria-label="Тип заявок">
         <button aria-selected={tab === 'incoming'} className={`flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-bold transition ${tab === 'incoming' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`} onClick={() => setTab('incoming')} role="tab" type="button"><Inbox className="size-4" />Входящие <span className={`rounded-full px-2 py-0.5 text-[10px] ${tab === 'incoming' ? 'bg-white/20' : 'bg-muted'}`}>{incomingCount}</span></button>
         <button aria-selected={tab === 'outgoing'} className={`flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-bold transition ${tab === 'outgoing' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`} onClick={() => setTab('outgoing')} role="tab" type="button"><Send className="size-4" />Мои отклики</button>
       </div>
@@ -103,40 +103,40 @@ export function ApplicationsPage() {
         <div className="mt-6"><AsyncState description={currentQuery.error instanceof Error ? currentQuery.error.message : 'Повторите запрос.'} onRetry={() => void currentQuery.refetch()} status="error" title="Не удалось загрузить заявки" /></div>
       ) : tab === 'incoming' ? (
         incomingQuery.data?.some((item) => item.candidates.some(({ application }) => application.status !== 'WITHDRAWN')) ? (
-          <section className="mt-7 grid gap-10" aria-label="Входящие заявки">
+          <section className="mt-7 grid gap-5" aria-label="Входящие заявки">
             {incomingQuery.data.map(({ candidates, recruitment }) => {
               const activeCandidates = candidates.filter(({ application }) => application.status !== 'WITHDRAWN')
               if (!activeCandidates.length) return null
               return (
-                <article className="rounded-[1.35rem] border border-border bg-card px-5 py-7 sm:px-9" key={recruitment.id}>
+                <article className="rounded-lg border border-border bg-card p-5 sm:p-6" key={recruitment.id}>
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-                    <RecruitmentVisual className="h-40 w-[7.7rem] shrink-0" seed={recruitment.id} />
+                    <RecruitmentVisual className="size-16 sm:size-20" label={recruitment.eventName} />
                     <div className="min-w-0 flex-1">
-                      <h2 className="truncate text-[clamp(1.8rem,3vw,2.9rem)] font-bold leading-tight">{recruitment.eventName}</h2>
-                      <p className="mt-1 text-[clamp(1rem,2vw,1.9rem)] text-muted-foreground">Кол-во участников: {recruitment.participantsNeeded}</p>
-                      <p className="mt-1 text-[clamp(1rem,2vw,1.9rem)] text-muted-foreground">Ищут: {recruitment.title}</p>
+                      <h2 className="break-words text-xl font-semibold leading-tight">{recruitment.eventName}</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">Участников нужно: {recruitment.participantsNeeded}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">Ищут: {recruitment.title}</p>
                     </div>
                     <div className="shrink-0 sm:text-right">
-                      <p className="whitespace-nowrap text-[clamp(1.6rem,3vw,2.55rem)] text-primary">Количество заявок: {activeCandidates.length}</p>
-                      <Button asChild className="mt-4 h-16 rounded-xl px-6 text-[clamp(1.2rem,2vw,2rem)] font-normal"><Link to={`/applications/${recruitment.id}`}>Подробнее</Link></Button>
+                      <p className="text-sm font-medium">Заявок: {activeCandidates.length}</p>
+                      <Button asChild className="mt-3"><Link to={`/applications/${recruitment.id}`}>Все заявки</Link></Button>
                     </div>
                   </div>
 
-                  <div className="my-7 h-px bg-border" />
+                  <div className="my-5 h-px bg-border" />
                   <div className="grid gap-4" aria-label={`Список заявок на ${recruitment.eventName}`}>
                     {activeCandidates.map(({ application, card }) => (
-                      <section className="flex flex-col gap-4 rounded-[1.2rem] border border-border px-5 py-5 sm:flex-row sm:items-center" key={application.id}>
-                        {card?.photoUrl ? <CardImage alt="" className="h-[8.5rem] w-[6.9rem] shrink-0 bg-muted object-cover" src={card.photoUrl} /> : <span className="flex h-[8.5rem] w-[6.9rem] shrink-0 items-center justify-center bg-muted text-muted-foreground"><UserRound className="size-9" /></span>}
+                      <section className="flex flex-col gap-4 rounded-md border border-border p-4 sm:flex-row sm:items-center" key={application.id}>
+                        {card?.photoUrl ? <CardImage alt="" className="size-16 shrink-0 rounded-md bg-muted object-cover" src={card.photoUrl} /> : <span className="flex size-16 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"><UserRound className="size-6" /></span>}
                         <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-[clamp(1.5rem,2.5vw,2.35rem)] font-normal leading-tight">{card?.fullName || card?.title || 'Кандидат'}</h3>{application.status !== 'PENDING' ? <StatusBadge kind="application" status={application.status} /> : null}</div>
-                          <p className="mt-1 text-[clamp(1rem,1.7vw,1.75rem)] text-muted-foreground">Специальность: {card?.description || 'не указана'}</p>
-                          <p className="mt-1 text-[clamp(1rem,1.7vw,1.75rem)] text-muted-foreground">Опыт работы: {card?.experienceYears ?? 0} {card?.experienceYears === 1 ? 'год' : card?.experienceYears && card.experienceYears < 5 ? 'года' : 'лет'}</p>
+                          <div className="flex flex-wrap items-center gap-2"><h3 className="break-words text-base font-semibold leading-tight">{card?.fullName || card?.title || 'Кандидат'}</h3>{application.status !== 'PENDING' ? <StatusBadge kind="application" status={application.status} /> : null}</div>
+                          <p className="mt-1 text-sm text-muted-foreground">Специальность: {card?.description || 'не указана'}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">Опыт работы: {card?.experienceYears ?? 0} {card?.experienceYears === 1 ? 'год' : card?.experienceYears && card.experienceYears < 5 ? 'года' : 'лет'}</p>
                           {application.message ? <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{application.message}</p> : null}
                         </div>
-                        <div className="grid shrink-0 gap-3 sm:w-[25.5rem] sm:grid-cols-2">
-                          {card ? <Button asChild className="col-span-full h-14 text-xl font-normal"><Link target="_blank" to={`/applications/${application.id}/card`}><ExternalLink className="size-5" />Посмотреть визитку</Link></Button> : <Button className="col-span-full h-14" disabled variant="outline">Визитка недоступна</Button>}
-                          <Button className="h-11 text-lg font-normal" disabled={application.status !== 'PENDING' || decisionMutation.isPending} onClick={() => decisionMutation.mutate({ id: application.id, status: 'ACCEPTED' })}><Check className="size-5" />Принять</Button>
-                          <Button className="h-11 bg-muted text-lg font-normal text-foreground hover:bg-border" disabled={application.status !== 'PENDING' || decisionMutation.isPending} onClick={() => decisionMutation.mutate({ id: application.id, status: 'REJECTED' })}><X className="size-5" />Отказать</Button>
+                        <div className="grid shrink-0 gap-2 sm:w-56 sm:grid-cols-2">
+                          {card ? <Button asChild className="col-span-full" variant="outline"><Link target="_blank" to={`/applications/${application.id}/card`}><ExternalLink className="size-4" />Визитка</Link></Button> : <Button className="col-span-full" disabled variant="outline">Визитка недоступна</Button>}
+                          <Button disabled={application.status !== 'PENDING' || decisionMutation.isPending} onClick={() => decisionMutation.mutate({ id: application.id, status: 'ACCEPTED' })}><Check className="size-4" />Принять</Button>
+                          <Button disabled={application.status !== 'PENDING' || decisionMutation.isPending} onClick={() => decisionMutation.mutate({ id: application.id, status: 'REJECTED' })} variant="outline"><X className="size-4" />Отказать</Button>
                         </div>
                       </section>
                     ))}
@@ -150,7 +150,7 @@ export function ApplicationsPage() {
       ) : outgoingQuery.data?.length ? (
         <section className="mt-6 grid gap-4" aria-label="Мои отклики">
           {outgoingQuery.data.map(({ application, recruitment }) => (
-            <article className="rounded-[1.5rem] border border-border bg-card p-5" key={application.id}>
+            <article className="rounded-lg border border-border bg-card p-5" key={application.id}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-[0.1em] text-primary">{recruitment?.eventName ?? 'Хакатон'}</p>

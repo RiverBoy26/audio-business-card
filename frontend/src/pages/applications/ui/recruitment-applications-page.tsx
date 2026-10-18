@@ -70,7 +70,7 @@ export function RecruitmentApplicationsPage() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
       <Button asChild className="-ml-3" variant="ghost"><Link to="/applications"><ArrowLeft className="size-4" />Все заявки</Link></Button>
-      <header className="mt-5 rounded-[1.7rem] border border-border bg-card p-5 sm:p-7">
+      <header className="mt-5 rounded-lg border border-border bg-card p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.13em] text-primary">{recruitment.eventName}</p>
@@ -86,13 +86,13 @@ export function RecruitmentApplicationsPage() {
       {activeCandidates.length ? (
         <section className="mt-5 grid gap-4" aria-label="Кандидаты">
           {activeCandidates.map(({ application, card }) => (
-            <article className="rounded-[1.6rem] border border-border bg-card p-5 shadow-[0_12px_38px_rgba(13,10,51,0.035)] sm:p-6" key={application.id}>
+            <article className="rounded-lg border border-border bg-card p-5 sm:p-6" key={application.id}>
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
                 <div className="flex min-w-0 flex-1 gap-4">
                   {card?.photoUrl ? (
-                    <CardImage alt="" className="size-20 shrink-0 rounded-2xl bg-muted object-cover" src={card.photoUrl} />
+                    <CardImage alt="" className="size-20 shrink-0 rounded-md bg-muted object-cover" src={card.photoUrl} />
                   ) : (
-                    <span className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-accent text-primary"><UserRound className="size-8" /></span>
+                    <span className="flex size-20 shrink-0 items-center justify-center rounded-md bg-muted text-primary"><UserRound className="size-8" /></span>
                   )}
                   <div className="min-w-0 py-1">
                     <div className="flex flex-wrap items-center gap-2">
