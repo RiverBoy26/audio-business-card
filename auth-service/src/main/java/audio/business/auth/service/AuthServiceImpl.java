@@ -29,7 +29,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    private static final String PERSONAL_DATA_CONSENT_VERSION = "1.0";
+    private static final String PERSONAL_DATA_CONSENT_VERSION = "2026-10-18";
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;

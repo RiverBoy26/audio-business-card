@@ -48,6 +48,20 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: 'privacy',
+        lazy: async () => {
+          const { PrivacyPolicyPage } = await import('@/pages/legal/ui/legal-page')
+          return { Component: PrivacyPolicyPage }
+        },
+      },
+      {
+        path: 'personal-data-consent',
+        lazy: async () => {
+          const { PersonalDataConsentPage } = await import('@/pages/legal/ui/legal-page')
+          return { Component: PersonalDataConsentPage }
+        },
+      },
+      {
         Component: ProtectedRoute,
         children: [
           {

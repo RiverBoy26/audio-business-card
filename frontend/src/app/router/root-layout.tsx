@@ -46,7 +46,7 @@ export function RootLayout() {
   }, [pathname])
 
   return (
-    <div className="min-h-svh bg-background text-foreground">
+    <div className="flex min-h-svh flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-border/80 bg-card/95 backdrop-blur-xl">
         <div className="flex h-[4.5rem] w-full items-center gap-6 px-5 sm:px-6 lg:px-8">
           <BrandLogo />
@@ -166,6 +166,12 @@ export function RootLayout() {
         ) : null}
       </header>
       <Outlet />
+      <footer className="mt-auto border-t border-border bg-card px-5 py-5 text-xs text-muted-foreground sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-wrap gap-x-6 gap-y-2">
+          <Link className="hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" to="/privacy">Политика обработки персональных данных</Link>
+          <Link className="hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" to="/personal-data-consent">Согласие на обработку персональных данных</Link>
+        </div>
+      </footer>
       <AuthDialog
         mode={authMode ?? requestedAuthMode}
         onClose={() => {

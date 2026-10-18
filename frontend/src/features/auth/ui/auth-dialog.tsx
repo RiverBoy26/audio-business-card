@@ -96,6 +96,35 @@ export function AuthDialog({ mode, onClose, onModeChange }: AuthDialogProps) {
 
       <form className="mt-8 grid gap-4" onSubmit={submit}>
         {!isLogin ? (
+          <div className="rounded-lg border border-border bg-muted/35 px-4 py-3 text-sm leading-5">
+            <label className="flex cursor-pointer items-start gap-3" htmlFor="register-personal-data-consent">
+              <input
+                aria-describedby={fieldErrors.personalDataConsent
+                  ? 'register-personal-data-consent-details register-personal-data-consent-error'
+                  : 'register-personal-data-consent-details'}
+                aria-invalid={fieldErrors.personalDataConsent ? true : undefined}
+                className="mt-0.5 size-4 shrink-0 accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                id="register-personal-data-consent"
+                name="personalDataConsent"
+                onChange={() => clearFieldError('personalDataConsent')}
+                required
+                type="checkbox"
+              />
+              <span>Я согласен на обработку персональных данных</span>
+            </label>
+            <p className="mt-2 pl-7 text-xs leading-5 text-muted-foreground" id="register-personal-data-consent-details">
+              <a className="text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/personal-data-consent" rel="noopener noreferrer" target="_blank">Прочитать согласие</a>
+              <span aria-hidden="true"> · </span>
+              <a className="text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/privacy" rel="noopener noreferrer" target="_blank">Политика обработки данных</a>
+            </p>
+            {fieldErrors.personalDataConsent ? (
+              <p className="mt-1 pl-7 text-xs text-destructive" id="register-personal-data-consent-error">
+                {fieldErrors.personalDataConsent}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        {!isLogin ? (
           <div className="grid gap-4 sm:grid-cols-2">
             <Field error={fieldErrors.firstName} id="register-first-name" label="Имя" name="firstName" onChange={() => clearFieldError('firstName')} required />
             <Field error={fieldErrors.lastName} id="register-last-name" label="Фамилия" name="lastName" onChange={() => clearFieldError('lastName')} required />
@@ -165,29 +194,6 @@ export function AuthDialog({ mode, onClose, onModeChange }: AuthDialogProps) {
             type="password"
           />
         ) : null}
-        {!isLogin ? (
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-muted/35 px-4 py-3 text-sm leading-5 transition hover:border-primary/35" htmlFor="register-personal-data-consent">
-            <input
-              aria-describedby={fieldErrors.personalDataConsent ? 'register-personal-data-consent-error' : undefined}
-              aria-invalid={fieldErrors.personalDataConsent ? true : undefined}
-              className="mt-0.5 size-4 shrink-0 accent-primary"
-              id="register-personal-data-consent"
-              name="personalDataConsent"
-              onChange={() => clearFieldError('personalDataConsent')}
-              required
-              type="checkbox"
-            />
-            <span>
-              Я даю согласие на обработку персональных данных
-              {fieldErrors.personalDataConsent ? (
-                <span className="mt-1 block text-xs text-destructive" id="register-personal-data-consent-error">
-                  {fieldErrors.personalDataConsent}
-                </span>
-              ) : null}
-            </span>
-          </label>
-        ) : null}
-
         <div className="mt-4 flex items-end justify-between gap-4">
           <p className="text-sm">
             {isLogin ? 'Еще нет аккаунта?' : 'Уже есть аккаунт?'}
