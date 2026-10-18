@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 public class CardSettingsRequest {
     @Min(0)
-    @Max(100)
+    @Max(200)
     private Integer voiceVolume;
 
     @Min(0)

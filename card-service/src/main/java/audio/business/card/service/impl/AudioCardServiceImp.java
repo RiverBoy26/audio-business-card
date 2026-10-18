@@ -218,7 +218,7 @@ public class AudioCardServiceImp implements AudioCardService {
         response.setExperienceYears(experience == null ? 0 : experience.getExperienceYears());
         CardSettings settings = card.getSettings();
         response.setVoiceVolume(settings == null ? 100 : settings.getVoiceVolume());
-        response.setMusicVolume(settings == null ? 30 : settings.getMusicVolume());
+        response.setMusicVolume(settings == null ? 100 : settings.getMusicVolume());
         response.setMusicStartSeconds(settings == null ? 0 : settings.getMusicStartSeconds());
         response.setVoiceUrl(card.getVoiceRecordingId() == null
                 ? null

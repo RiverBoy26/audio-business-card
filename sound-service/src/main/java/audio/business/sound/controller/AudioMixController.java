@@ -33,7 +33,7 @@ public class AudioMixController {
             @RequestParam("voiceFile") MultipartFile voiceFile,
             @RequestParam("musicId") UUID musicId,
             @RequestParam(defaultValue = "100") int voiceVolume,
-            @RequestParam(defaultValue = "30") int musicVolume
+            @RequestParam(defaultValue = "100") int musicVolume
     ) throws IOException {
 
         Path mixedFile = audioMixService.mix(

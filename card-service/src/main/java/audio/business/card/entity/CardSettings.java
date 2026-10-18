@@ -23,14 +23,14 @@ public class CardSettings {
     private AudioCard audioCard;
 
     @Min(0)
-    @Max(100)
+    @Max(200)
     @Column(name = "voice_volume", nullable = false)
     private Integer voiceVolume = 100;
 
     @Min(0)
     @Max(100)
     @Column(name = "music_volume", nullable = false)
-    private Integer musicVolume = 30;
+    private Integer musicVolume = 100;
 
     @Min(0)
     @Column(name = "music_start_seconds", nullable = false, columnDefinition = "integer default 0")

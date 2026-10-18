@@ -11,6 +11,7 @@ import { getVoiceRecordingBlob, getVoiceRecordings } from '@/entities/voice-reco
 import { Button } from '@/shared/ui/button'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
 import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
+import { createVoiceGain, musicPlaybackVolume, voiceGainValue, type VoiceGain } from '@/shared/lib/audio-volume'
 import { formatDuration } from '@/shared/lib/format-duration'
 
 type CardPreviewProps = {
@@ -47,6 +48,7 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
     primary: HTMLAudioElement
     urls: string[]
     voice: HTMLAudioElement | null
+    voiceGain: VoiceGain | null
   } | null>(null)
   const requestRef = useRef(0)
   const playbackOwnerRef = useRef(createPlaybackOwner())
@@ -66,6 +68,7 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
     const players = playersRef.current
     players?.voice?.pause()
     players?.music?.pause()
+    players?.voiceGain?.close()
     players?.urls.forEach((url) => URL.revokeObjectURL(url))
     playersRef.current = null
     return () => {
@@ -73,6 +76,7 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
       const currentPlayers = playersRef.current
       currentPlayers?.voice?.pause()
       currentPlayers?.music?.pause()
+      currentPlayers?.voiceGain?.close()
       currentPlayers?.urls.forEach((url) => URL.revokeObjectURL(url))
       playersRef.current = null
     }
@@ -88,8 +92,9 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
   useEffect(() => {
     const players = playersRef.current
     if (!players || players.key !== key) return
-    if (players.voice) players.voice.volume = draft.voiceVolume / 100
-    if (players.music) players.music.volume = draft.musicVolume / 100
+    if (players.voiceGain) players.voiceGain.setVolume(voiceGainValue(draft.voiceVolume))
+    else if (players.voice) players.voice.volume = Math.min(1, voiceGainValue(draft.voiceVolume))
+    if (players.music) players.music.volume = musicPlaybackVolume(draft.musicVolume)
   }, [draft.voiceVolume, draft.musicVolume, key, recording, music])
 
   useEffect(() => {
@@ -113,23 +118,41 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
     }
     setError(null)
     const request = ++requestRef.current
+    let pendingVoiceGain: VoiceGain | null = null
     try {
       let players = playersRef.current
       if (!players || players.key !== key) {
+        pendingVoiceGain = recording ? createVoiceGain() : null
+        pendingVoiceGain?.resume()
         const [voiceBlob, musicBlob] = await Promise.all([
           recording ? getVoiceRecordingBlob(recording) : Promise.resolve(null),
           music ? getMusicBlob(music) : Promise.resolve(null),
         ])
-        if (request !== requestRef.current) return
+        if (request !== requestRef.current) {
+          pendingVoiceGain?.close()
+          return
+        }
         const voiceUrl = voiceBlob ? URL.createObjectURL(voiceBlob) : null
         const musicUrl = musicBlob ? URL.createObjectURL(musicBlob) : null
         const voicePlayer = voiceUrl ? new Audio(voiceUrl) : null
         const musicPlayer = musicUrl ? new Audio(musicUrl) : null
         const primary = voicePlayer ?? musicPlayer
-        if (!primary) return
-        if (voicePlayer) voicePlayer.volume = draft.voiceVolume / 100
+        if (!primary) {
+          pendingVoiceGain?.close()
+          return
+        }
+        if (!voicePlayer) {
+          pendingVoiceGain?.close()
+          pendingVoiceGain = null
+        }
+        if (voicePlayer) {
+          if (pendingVoiceGain) {
+            pendingVoiceGain.attach(voicePlayer)
+            pendingVoiceGain.setVolume(voiceGainValue(draft.voiceVolume))
+          } else voicePlayer.volume = Math.min(1, voiceGainValue(draft.voiceVolume))
+        }
         if (musicPlayer) {
-          musicPlayer.volume = draft.musicVolume / 100
+          musicPlayer.volume = musicPlaybackVolume(draft.musicVolume)
           musicPlayer.loop = Boolean(voicePlayer)
         }
         const setMusicTime = (voiceTime: number) => {
@@ -151,9 +174,12 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
           primary,
           urls: [voiceUrl, musicUrl].filter((url): url is string => url !== null),
           voice: voicePlayer,
+          voiceGain: pendingVoiceGain,
         }
         playersRef.current = players
+        pendingVoiceGain = null
       }
+      players.voiceGain?.resume()
       if (players.primary.ended || (Number.isFinite(players.primary.duration) && players.primary.currentTime >= players.primary.duration)) {
         moveAudioTo(players.primary, 0)
         if (players.music && Number.isFinite(players.music.duration) && players.music.duration > 0) {
@@ -178,6 +204,7 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
       }
       setPlayingKey(key)
     } catch {
+      pendingVoiceGain?.close()
       playersRef.current?.voice?.pause()
       playersRef.current?.music?.pause()
       setPlayingKey(null)
@@ -207,7 +234,7 @@ function CardAudioPreview({ draft, onChange }: { draft: CardDraft; onChange: Dis
       <p className="mt-1 text-[11px] text-muted-foreground">{recording && music ? 'Голос и музыка' : recording ? 'Только голос' : music ? 'Только фоновая музыка' : 'Выберите музыку или добавьте голос'}</p>
       {recording || music ? (
         <div className="mt-3 grid gap-2 rounded-lg bg-muted/60 p-3">
-          {recording ? <label className="grid grid-cols-[70px_1fr_34px] items-center gap-2 text-[11px]"><span className="inline-flex items-center gap-1"><Volume2 className="size-3.5" />Голос</span><input aria-label="Громкость голоса в предпросмотре" max={100} min={0} onChange={(event) => onChange((currentDraft) => ({ ...currentDraft, voiceVolume: Number(event.target.value) }))} type="range" value={draft.voiceVolume} /><span className="text-right tabular-nums text-muted-foreground">{draft.voiceVolume}%</span></label> : null}
+          {recording ? <label className="grid grid-cols-[70px_1fr_34px] items-center gap-2 text-[11px]"><span className="inline-flex items-center gap-1"><Volume2 className="size-3.5" />Голос</span><input aria-label="Громкость голоса в предпросмотре" max={200} min={0} onChange={(event) => onChange((currentDraft) => ({ ...currentDraft, voiceVolume: Number(event.target.value) }))} type="range" value={draft.voiceVolume} /><span className="text-right tabular-nums text-muted-foreground">{draft.voiceVolume}%</span></label> : null}
           {music ? <label className="grid grid-cols-[70px_1fr_34px] items-center gap-2 text-[11px]"><span className="inline-flex items-center gap-1"><Volume2 className="size-3.5" />Музыка</span><input aria-label="Громкость музыки в предпросмотре" max={100} min={0} onChange={(event) => onChange((currentDraft) => ({ ...currentDraft, musicVolume: Number(event.target.value) }))} type="range" value={draft.musicVolume} /><span className="text-right tabular-nums text-muted-foreground">{draft.musicVolume}%</span></label> : null}
         </div>
       ) : null}

@@ -10,6 +10,7 @@ import { Button } from '@/shared/ui/button'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
 import { AsyncState } from '@/shared/ui/async-state'
 import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
+import { createVoiceGain, musicPlaybackVolume, voiceGainValue, type VoiceGain } from '@/shared/lib/audio-volume'
 import { formatDuration } from '@/shared/lib/format-duration'
 
 function initials(name: string | null) {
@@ -26,6 +27,7 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
     primary: HTMLAudioElement
     urls: string[]
     voice: HTMLAudioElement | null
+    voiceGain: VoiceGain | null
   } | null>(null)
   const requestRef = useRef(0)
   const playbackOwnerRef = useRef(createPlaybackOwner())
@@ -39,14 +41,16 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
     const players = playersRef.current
     players?.voice?.pause()
     players?.music?.pause()
+    players?.voiceGain?.close()
     players?.urls.forEach(URL.revokeObjectURL)
     playersRef.current = null
   }, [])
 
   useEffect(() => {
     const players = playersRef.current
-    if (players?.voice) players.voice.volume = card.voiceVolume / 100 * volume / 100
-    if (players?.music) players.music.volume = card.musicVolume / 100 * volume / 100
+    if (players?.voiceGain) players.voiceGain.setVolume(voiceGainValue(card.voiceVolume, volume))
+    else if (players?.voice) players.voice.volume = Math.min(1, voiceGainValue(card.voiceVolume, volume))
+    if (players?.music) players.music.volume = musicPlaybackVolume(card.musicVolume, volume)
   }, [card.musicVolume, card.voiceVolume, volume])
 
   useEffect(() => onOtherPlayback(playbackOwnerRef.current, () => {
@@ -66,23 +70,41 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
     }
     setError(null)
     const request = ++requestRef.current
+    let pendingVoiceGain: VoiceGain | null = null
     try {
       let state = playersRef.current
       if (!state) {
+        pendingVoiceGain = card.voiceUrl ? createVoiceGain() : null
+        pendingVoiceGain?.resume()
         const [voice, music] = await Promise.all([
           card.voiceUrl ? getPublicCardMedia(card.voiceUrl) : Promise.resolve(null),
           card.musicUrl ? getPublicCardMedia(card.musicUrl) : Promise.resolve(null),
         ])
-        if (request !== requestRef.current) return
+        if (request !== requestRef.current) {
+          pendingVoiceGain?.close()
+          return
+        }
         const voiceUrl = voice ? URL.createObjectURL(voice) : null
         const musicUrl = music ? URL.createObjectURL(music) : null
         const voicePlayer = voiceUrl ? new Audio(voiceUrl) : null
         const musicPlayer = musicUrl ? new Audio(musicUrl) : null
         const primary = voicePlayer ?? musicPlayer
-        if (!primary) return
-        if (voicePlayer) voicePlayer.volume = card.voiceVolume / 100 * volume / 100
+        if (!primary) {
+          pendingVoiceGain?.close()
+          return
+        }
+        if (!voicePlayer) {
+          pendingVoiceGain?.close()
+          pendingVoiceGain = null
+        }
+        if (voicePlayer) {
+          if (pendingVoiceGain) {
+            pendingVoiceGain.attach(voicePlayer)
+            pendingVoiceGain.setVolume(voiceGainValue(card.voiceVolume, volume))
+          } else voicePlayer.volume = Math.min(1, voiceGainValue(card.voiceVolume, volume))
+        }
         if (musicPlayer) {
-          musicPlayer.volume = card.musicVolume / 100 * volume / 100
+          musicPlayer.volume = musicPlaybackVolume(card.musicVolume, volume)
           musicPlayer.loop = Boolean(voicePlayer)
         }
 
@@ -104,9 +126,12 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
           primary,
           urls: [voiceUrl, musicUrl].filter((url): url is string => url !== null),
           voice: voicePlayer,
+          voiceGain: pendingVoiceGain,
         }
         playersRef.current = state
+        pendingVoiceGain = null
       }
+      state.voiceGain?.resume()
       if (state.primary.ended || (Number.isFinite(state.primary.duration) && state.primary.currentTime >= state.primary.duration)) {
         moveAudioTo(state.primary, 0)
         if (state.music && Number.isFinite(state.music.duration) && state.music.duration > 0) {
@@ -131,6 +156,7 @@ function PublicAudioPlayer({ card }: { card: PublicAudioCard }) {
       }
       setPlaying(true)
     } catch {
+      pendingVoiceGain?.close()
       playersRef.current?.voice?.pause()
       playersRef.current?.music?.pause()
       setPlaying(false)

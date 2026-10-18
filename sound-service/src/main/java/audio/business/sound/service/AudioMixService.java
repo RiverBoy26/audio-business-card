@@ -54,11 +54,11 @@ public class AudioMixService {
             );
         }
 
-        if (voiceVolume < 0 || voiceVolume > 100
+        if (voiceVolume < 0 || voiceVolume > 200
                 || musicVolume < 0 || musicVolume > 100) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Громкость должна находиться в диапазоне от 0 до 100"
+                    "Громкость голоса должна быть от 0 до 200, музыки — от 0 до 100"
             );
         }
 
@@ -92,7 +92,7 @@ public class AudioMixService {
                             "[voice][music]amix=inputs=2:" +
                             "duration=first:dropout_transition=2[out]",
                     voiceVolume / 100.0,
-                    musicVolume / 100.0
+                    musicVolume / 200.0
             );
 
             Process process = new ProcessBuilder(

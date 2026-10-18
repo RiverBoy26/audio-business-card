@@ -37,7 +37,7 @@ const publicAudioCardSchema = z.object({
   photoUrl: z.string().nullable(),
   skills: z.array(z.string()).default([]),
   experienceYears: z.number().int().min(0),
-  voiceVolume: z.number().int().min(0).max(100),
+  voiceVolume: z.number().int().min(0).max(200),
   musicVolume: z.number().int().min(0).max(100),
   musicStartSeconds: z.number().int().min(0).default(0),
   voiceUrl: z.string().nullable(),
@@ -53,7 +53,7 @@ const experienceSchema = z.object({
 
 const settingsSchema = z.object({
   cardId: z.string().uuid(),
-  voiceVolume: z.number().int().min(0).max(100),
+  voiceVolume: z.number().int().min(0).max(200),
   musicVolume: z.number().int().min(0).max(100),
   musicStartSeconds: z.number().int().min(0).default(0),
 })

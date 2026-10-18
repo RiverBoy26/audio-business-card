@@ -8,6 +8,7 @@ import { getVoiceRecordingBlob, getVoiceRecordings, uploadVoiceRecording, type V
 import { clampTrimEnd, clampTrimStart, joinVoiceParts, trimVoicePart } from '@/features/card-editor/lib/voice-audio'
 import { uniqueMusicFiles } from '@/features/card-editor/lib/unique-music-files'
 import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
+import { musicPlaybackVolume } from '@/shared/lib/audio-volume'
 import { formatDuration, normalizeDuration } from '@/shared/lib/format-duration'
 import { AudioWaveform } from '@/shared/ui/audio-waveform'
 import { BrandLogo } from '@/shared/ui/brand-logo'
@@ -155,7 +156,7 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
   }, [draft.musicId])
 
   useEffect(() => {
-    if (musicAudioRef.current) musicAudioRef.current.volume = draft.musicVolume / 100
+    if (musicAudioRef.current) musicAudioRef.current.volume = musicPlaybackVolume(draft.musicVolume)
   }, [draft.musicVolume])
 
   useEffect(() => {
@@ -308,7 +309,7 @@ export function VoiceStoryEditor({ draft, onChange }: VoiceStoryEditorProps) {
     if (request !== musicRequestRef.current) return null
     const url = URL.createObjectURL(blob)
     const audio = new Audio(url)
-    audio.volume = draft.musicVolume / 100
+    audio.volume = musicPlaybackVolume(draft.musicVolume)
     audio.onloadedmetadata = () => {
       const nextDuration = normalizeDuration(audio.duration)
       setMusicDuration(nextDuration)

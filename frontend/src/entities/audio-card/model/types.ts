@@ -58,7 +58,7 @@ export const initialCardDraft: CardDraft = {
   showContactPhone: false,
   skills: ['Python', 'FastAPI'],
   voiceVolume: 100,
-  musicVolume: 30,
+  musicVolume: 100,
   musicStartSeconds: 0,
   musicId: null,
   voiceRecordingId: null,
