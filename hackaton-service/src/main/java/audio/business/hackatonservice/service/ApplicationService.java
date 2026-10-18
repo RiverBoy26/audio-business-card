@@ -73,7 +73,7 @@ public class ApplicationService {
         CardClient.SharedCard card = cardClient.findSharedCard(application.getAudioCardId());
         String base = "/api/v1/applications/" + applicationId + "/card";
         return new CardClient.SharedCard(card.id(), card.fullName(), card.contactEmail(), card.contactPhone(),
-                card.title(), card.description(), card.photoUrl() == null ? null : base + "/photo",
+                card.title(), card.description(), applicationPhotoUrl(base, card.photoUrl()),
                 card.documentName(), card.documentUrl() == null ? null : base + "/document", card.skills(),
                 card.experienceYears(), card.voiceVolume(), card.musicVolume(), card.musicStartSeconds(),
                 card.voiceUrl() == null ? null : base + "/voice",
@@ -86,6 +86,13 @@ public class ApplicationService {
         }
         TeamApplication application = findOwnedApplication(ownerId, applicationId);
         return cardClient.getSharedMedia(application.getAudioCardId(), media);
+    }
+
+    private String applicationPhotoUrl(String base, String photoUrl) {
+        if (photoUrl == null) return null;
+        if (photoUrl.startsWith("/api/v1/auth/users/")) return photoUrl;
+        int versionStart = photoUrl.indexOf("?v=");
+        return base + "/photo" + (versionStart < 0 ? "" : photoUrl.substring(versionStart));
     }
 
     @Transactional

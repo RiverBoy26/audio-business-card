@@ -7,3 +7,4 @@ frontend/dist
 models
 uploads
 *.log
+sound-before-*.tar

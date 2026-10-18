@@ -73,6 +73,8 @@ function CardEditor({ cardId, initialDraft: loadedDraft }: CardEditorProps) {
         documentFile: null,
         documentName: card.documentName,
         documentUrl: card.documentUrl,
+        photoFile: null,
+        photoUrl: card.photoUrl ?? '',
         published: true,
         publicCode: card.publicCode,
       }))

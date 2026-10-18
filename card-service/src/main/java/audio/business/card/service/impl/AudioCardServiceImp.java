@@ -110,6 +110,7 @@ public class AudioCardServiceImp implements AudioCardService {
         AudioCard card = audioCardRepository.findByIdAndUserId(audioCardId, userId).
                 orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Аудиовизитка не найдена!"));
+        String previousPhotoFilename = null;
 
         if (newAudioCard.getTitle() != null) {
             card.setTitle(newAudioCard.getTitle());
@@ -133,6 +134,11 @@ public class AudioCardServiceImp implements AudioCardService {
 
         if (newAudioCard.getPhotoUrl() != null) {
             card.setPhotoUrl(newAudioCard.getPhotoUrl());
+            if (isProfileAvatar(card)) {
+                previousPhotoFilename = card.getPhotoFilename();
+                card.setPhotoFilename(null);
+                card.setPhotoContentType(null);
+            }
         }
 
         if (newAudioCard.getSkills() != null) {
@@ -151,6 +157,7 @@ public class AudioCardServiceImp implements AudioCardService {
         }
 
         AudioCard updateCard = audioCardRepository.save(card);
+        imageStorage.delete(previousPhotoFilename);
 
         return AudioCardMapper.toResponse(updateCard);
     }
@@ -208,7 +215,7 @@ public class AudioCardServiceImp implements AudioCardService {
         response.setContactPhone(card.getContactPhone());
         response.setTitle(card.getTitle());
         response.setDescription(card.getDescription());
-        response.setPhotoUrl(card.getPhotoFilename() == null
+        response.setPhotoUrl(card.getPhotoFilename() == null || isProfileAvatar(card)
                 ? card.getPhotoUrl()
                 : versionedPhotoUrl("/public/audio-cards/" + card.getId() + "/photo", card.getPhotoFilename()));
         response.setSkills(card.getSkills());
@@ -308,6 +315,10 @@ public class AudioCardServiceImp implements AudioCardService {
 
     private String versionedPhotoUrl(String photoUrl, String filename) {
         return photoUrl + "?v=" + filename;
+    }
+
+    private boolean isProfileAvatar(AudioCard card) {
+        return ("/api/v1/auth/users/" + card.getUserId() + "/avatar").equals(card.getPhotoUrl());
     }
 
     @Override
