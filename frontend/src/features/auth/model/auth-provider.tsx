@@ -57,12 +57,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
       },
       logout: async () => {
         const refreshToken = getRefreshToken()
-
-        try {
-          if (refreshToken) await logoutRequest(refreshToken)
-        } finally {
-          clearTokens()
-          setUser(null)
+        clearTokens()
+        setUser(null)
+        if (refreshToken) {
+          try {
+            await logoutRequest(refreshToken)
+          } catch {
+            // A failed server request must not restore the local session.
+          }
         }
       },
     }),

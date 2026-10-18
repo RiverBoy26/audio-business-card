@@ -45,6 +45,13 @@ export function RootLayout() {
     window.scrollTo({ top: 0 })
   }, [pathname])
 
+  function handleLogout() {
+    setUserMenuOpen(false)
+    setMobileMenuOpen(false)
+    void logout()
+    navigate('/', { replace: true })
+  }
+
   return (
     <div className="flex min-h-svh flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-border/80 bg-card/95 backdrop-blur-xl">
@@ -98,7 +105,7 @@ export function RootLayout() {
                     <Link className="block border-t border-border px-4 py-3 text-sm hover:bg-muted" onClick={() => setUserMenuOpen(false)} role="menuitem" to="/open">Открыть визитку по коду</Link>
                     <button
                       className="block w-full border-t border-border px-4 py-3 text-left text-sm hover:bg-muted"
-                      onClick={() => void logout()}
+                      onClick={handleLogout}
                       role="menuitem"
                       type="button"
                     >
@@ -157,7 +164,7 @@ export function RootLayout() {
               <NavLink className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted" onClick={() => setMobileMenuOpen(false)} to="/my-events">Мои мероприятия</NavLink>
               <NavLink className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted" onClick={() => setMobileMenuOpen(false)} to="/open">Открыть визитку по коду</NavLink>
               {user ? (
-                <button className="rounded-md px-3 py-3 text-left text-sm font-medium hover:bg-muted" onClick={() => void logout()} type="button">Выйти</button>
+                <button className="rounded-md px-3 py-3 text-left text-sm font-medium hover:bg-muted" onClick={handleLogout} type="button">Выйти</button>
               ) : (
                 <button className="rounded-md px-3 py-3 text-left text-sm font-medium hover:bg-muted" onClick={() => { setAuthMode('login'); setMobileMenuOpen(false) }} type="button">Войти</button>
               )}
