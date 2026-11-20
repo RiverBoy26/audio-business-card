@@ -1,0 +1,282 @@
+import { useMutation } from '@tanstack/react-query'
+import { AlertCircle, CheckCircle2, Mic, Pause, Play, RotateCcw, Square, WandSparkles } from 'lucide-react'
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
+
+import type { CardDraft } from '@/entities/audio-card/model/types'
+import { processVoiceProfile, type VoiceProfile } from '@/entities/voice-profile/api/voice-profile-api'
+import { getVoiceProfileFeedback } from '@/features/card-editor/lib/voice-profile-feedback'
+import { BrandLogo } from '@/shared/ui/brand-logo'
+import { Button } from '@/shared/ui/button'
+import { Modal } from '@/shared/ui/modal'
+import { announcePlayback, createPlaybackOwner, onOtherPlayback } from '@/shared/lib/audio-playback'
+import { AudioWaveform } from '@/shared/ui/audio-waveform'
+import { formatDuration, normalizeDuration } from '@/shared/lib/format-duration'
+
+type RecorderSession = {
+  context: AudioContext
+  processor: ScriptProcessorNode
+  source: MediaStreamAudioSourceNode
+  stream: MediaStream
+}
+
+type VoiceProfileRecorderProps = {
+  onChange: Dispatch<SetStateAction<CardDraft>>
+}
+
+function encodeWav(chunks: Float32Array[], sampleRate: number) {
+  const length = chunks.reduce((sum, chunk) => sum + chunk.length, 0)
+  const buffer = new ArrayBuffer(44 + length * 2)
+  const view = new DataView(buffer)
+  const write = (offset: number, value: string) => {
+    for (let index = 0; index < value.length; index++) view.setUint8(offset + index, value.charCodeAt(index))
+  }
+  write(0, 'RIFF')
+  view.setUint32(4, 36 + length * 2, true)
+  write(8, 'WAVE')
+  write(12, 'fmt ')
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
+  view.setUint16(22, 1, true)
+  view.setUint32(24, sampleRate, true)
+  view.setUint32(28, sampleRate * 2, true)
+  view.setUint16(32, 2, true)
+  view.setUint16(34, 16, true)
+  write(36, 'data')
+  view.setUint32(40, length * 2, true)
+  let offset = 44
+  for (const chunk of chunks) {
+    for (const sample of chunk) {
+      const normalized = Math.max(-1, Math.min(1, sample))
+      view.setInt16(offset, normalized < 0 ? normalized * 0x8000 : normalized * 0x7fff, true)
+      offset += 2
+    }
+  }
+  return new Blob([buffer], { type: 'audio/wav' })
+}
+
+function experienceYears(profile: VoiceProfile) {
+  if (!profile.experience) return null
+  const months = (profile.experience.minMonths + profile.experience.maxMonths) / 2
+  if (months === 0) return 0
+  return Math.min(80, Math.max(1, Math.round(months / 12)))
+}
+
+function VoicePreviewPlayer({ duration, source }: { duration: number; source: string }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const ownerRef = useRef(createPlaybackOwner())
+  const [playing, setPlaying] = useState(false)
+  const [position, setPosition] = useState({ current: 0, duration: 0 })
+
+  useEffect(() => {
+    const audio = new Audio(source)
+    audioRef.current = audio
+    audio.ontimeupdate = () => setPosition({
+      current: Number.isFinite(audio.currentTime) ? audio.currentTime : 0,
+      duration: normalizeDuration(audio.duration, duration),
+    })
+    audio.onloadedmetadata = audio.ontimeupdate
+    audio.onended = () => setPlaying(false)
+    const unsubscribe = onOtherPlayback(ownerRef.current, () => {
+      audio.pause()
+      setPlaying(false)
+    })
+    return () => {
+      unsubscribe()
+      audio.pause()
+      audioRef.current = null
+    }
+  }, [duration, source])
+
+  async function toggle() {
+    const audio = audioRef.current
+    if (!audio) return
+    if (!audio.paused) {
+      audio.pause()
+      setPlaying(false)
+      return
+    }
+    announcePlayback(ownerRef.current)
+    try {
+      await audio.play()
+      setPlaying(true)
+    } catch {
+      setPlaying(false)
+    }
+  }
+
+  function seek(progress: number) {
+    const audio = audioRef.current
+    if (!audio || !position.duration) return
+    audio.currentTime = position.duration * progress
+    setPosition((current) => ({ ...current, current: audio.currentTime }))
+  }
+
+  return (
+    <div className="mt-3 flex min-h-14 items-center gap-3 rounded-lg border border-border bg-card px-3 py-2">
+      <button aria-label={playing ? 'Поставить запись на паузу' : 'Прослушать запись'} className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" onClick={() => void toggle()} type="button">
+        {playing ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}
+      </button>
+      <AudioWaveform className="h-8 min-w-0" onSeek={position.duration ? seek : undefined} progress={position.duration ? position.current / position.duration : 0} />
+      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{formatDuration(position.current)} / {formatDuration(position.duration)}</span>
+    </div>
+  )
+}
+
+export function VoiceProfileRecorder({ onChange }: VoiceProfileRecorderProps) {
+  const sessionRef = useRef<RecorderSession | null>(null)
+  const chunksRef = useRef<Float32Array[]>([])
+  const sampleRateRef = useRef(48000)
+  const [recording, setRecording] = useState(false)
+  const [seconds, setSeconds] = useState(0)
+  const [file, setFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [result, setResult] = useState<VoiceProfile | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [instructionOpen, setInstructionOpen] = useState(false)
+  const mutation = useMutation({
+    mutationFn: processVoiceProfile,
+    onSuccess: (profile) => {
+      const years = experienceYears(profile)
+      onChange((current) => ({
+        ...current,
+        description: profile.specialization ?? current.description,
+        experienceYears: years ?? current.experienceYears,
+        skills: profile.skills.length ? profile.skills : current.skills,
+        title: profile.desiredPosition ?? current.title,
+      }))
+      setResult(profile)
+    },
+  })
+  const feedback = result ? getVoiceProfileFeedback(result) : []
+
+  useEffect(() => {
+    if (!recording) return
+    const timer = window.setInterval(() => setSeconds((value) => value + 1), 1000)
+    return () => window.clearInterval(timer)
+  }, [recording])
+
+  useEffect(() => {
+    if (recording && seconds >= 120) void stopRecording()
+  }, [recording, seconds])
+
+  useEffect(() => () => {
+    const session = sessionRef.current
+    session?.processor.disconnect()
+    session?.source.disconnect()
+    session?.stream.getTracks().forEach((track) => track.stop())
+    void session?.context.close()
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+  }, [previewUrl])
+
+  async function startRecording() {
+    setError(null)
+    setResult(null)
+    if (!navigator.mediaDevices?.getUserMedia || !window.AudioContext) {
+      setError('Браузер не поддерживает запись с микрофона.')
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          autoGainControl: false,
+          channelCount: 1,
+          echoCancellation: false,
+          noiseSuppression: false,
+        },
+      })
+      const context = new AudioContext()
+      const source = context.createMediaStreamSource(stream)
+      const processor = context.createScriptProcessor(4096, 1, 1)
+      chunksRef.current = []
+      sampleRateRef.current = context.sampleRate
+      processor.onaudioprocess = (event) => chunksRef.current.push(new Float32Array(event.inputBuffer.getChannelData(0)))
+      source.connect(processor)
+      processor.connect(context.destination)
+      sessionRef.current = { context, processor, source, stream }
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      setPreviewUrl(null)
+      setFile(null)
+      setSeconds(0)
+      setRecording(true)
+    } catch (cause) {
+      setError(cause instanceof DOMException && cause.name === 'NotAllowedError'
+        ? 'Разрешите доступ к микрофону в настройках браузера.'
+        : 'Не удалось начать запись.')
+    }
+  }
+
+  async function stopRecording() {
+    const session = sessionRef.current
+    if (!session) return
+    sessionRef.current = null
+    session.processor.disconnect()
+    session.source.disconnect()
+    session.stream.getTracks().forEach((track) => track.stop())
+    await session.context.close()
+    const blob = encodeWav(chunksRef.current, sampleRateRef.current)
+    const recordingFile = new File([blob], `profile-${Date.now()}.wav`, { type: 'audio/wav' })
+    setFile(recordingFile)
+    setPreviewUrl(URL.createObjectURL(blob))
+    setRecording(false)
+  }
+
+  function reset() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPreviewUrl(null)
+    setFile(null)
+    setResult(null)
+    setSeconds(0)
+    setError(null)
+  }
+
+  return (
+    <>
+      <div className="mt-3 rounded-lg bg-muted p-3">
+        <p className="text-xs text-muted-foreground">Запишите короткий текст, и мы заполним специальность, технологии, опыт и желаемую должность или роль.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {!recording && !file ? <Button onClick={() => setInstructionOpen(true)} size="sm" type="button"><Mic className="size-4" />Начать запись</Button> : null}
+          {recording ? <Button onClick={() => void stopRecording()} size="sm" type="button"><Square className="size-4 fill-current" />Остановить · {seconds} с</Button> : null}
+          {file ? <Button disabled={mutation.isPending} onClick={() => mutation.mutate(file)} size="sm" type="button"><WandSparkles className="size-4" />{mutation.isPending ? 'Распознаём…' : 'Распознать и заполнить'}</Button> : null}
+          {file ? <Button disabled={mutation.isPending} onClick={reset} size="sm" type="button" variant="outline"><RotateCcw className="size-4" />Перезаписать</Button> : null}
+        </div>
+        {previewUrl ? <VoicePreviewPlayer duration={seconds} key={previewUrl} source={previewUrl} /> : null}
+        {result ? (
+          <div className="mt-3 rounded-lg border border-border bg-card p-3 text-xs">
+            <div className="flex items-start gap-2">
+              {feedback.length ? <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-amber-600" /> : <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />}
+              <div className="min-w-0">
+                <p className="font-medium">{feedback.length ? `Нужно уточнить: ${feedback.length}` : 'Данные заполнены по записи'}</p>
+                {feedback.length ? <ul className="mt-1.5 grid gap-1 text-muted-foreground">{feedback.map((message) => <li key={message}>{message}</li>)}</ul> : <p className="mt-1 text-muted-foreground">Проверьте заполненные поля перед сохранением.</p>}
+              </div>
+            </div>
+            <details className="mt-2 text-muted-foreground">
+              <summary className="w-fit cursor-pointer select-none hover:text-foreground">Распознанный текст</summary>
+              <p className="mt-1 leading-5">{result.transcript}</p>
+            </details>
+          </div>
+        ) : null}
+        {error || mutation.isError ? <p className="mt-2 text-xs text-destructive">{error ?? (mutation.error instanceof Error ? mutation.error.message : 'Не удалось обработать запись.')}</p> : null}
+      </div>
+
+      <Modal className="max-w-xl px-6 pb-7 pt-6 sm:px-8" onClose={() => setInstructionOpen(false)} open={instructionOpen} title="Как продиктовать данные">
+        <BrandLogo className="mb-7" imageClassName="w-52 sm:w-60" />
+        <h2 className="text-2xl font-semibold">Как продиктовать данные</h2>
+        <div className="mt-6 grid gap-5 text-sm leading-6">
+          <div>
+            <p className="font-semibold">Шаблон</p>
+            <p className="mt-2 border-l-[3px] border-primary pl-4 text-muted-foreground">
+              Я [специальность]. Работаю с [технологии]. Мой опыт — [срок]. Хочу работать [желаемая должность или роль].
+            </p>
+          </div>
+          <div>
+            <p className="font-semibold">Пример</p>
+            <p className="mt-2 border-l-[3px] border-border pl-4 text-muted-foreground">
+              Я бэкенд-разработчик. Работаю с Java, Spring Boot, PostgreSQL и Docker. Мой опыт — два года. Хочу работать Middle Java-разработчиком.
+            </p>
+          </div>
+        </div>
+        <Button className="mt-7 h-11 w-full" onClick={() => { setInstructionOpen(false); void startRecording() }} type="button">Начать запись</Button>
+      </Modal>
+    </>
+  )
+}

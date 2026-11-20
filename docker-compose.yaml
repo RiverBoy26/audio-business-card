@@ -1,0 +1,246 @@
+
+name: audio-business-card
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:80"
+
+    depends_on:
+      gateway-service:
+        condition: service_started
+
+    networks:
+      - backend
+
+  auth-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - backend
+
+  card-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: card_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+
+    volumes:
+      - card_db_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d card_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - backend
+
+  sound-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: sound_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+
+    volumes:
+      - sound_db_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d sound_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - backend
+
+  hackaton-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hackaton_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - hackaton_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d hackaton_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - backend
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+
+    restart: unless-stopped
+
+    environment:
+      SERVER_PORT: 8081
+
+      DB_URL: jdbc:postgresql://auth-db:5432/auth_db
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      APP_AVATAR_STORAGE_DIR: /app/storage/avatars
+
+    volumes:
+      - avatar_storage:/app/storage
+
+    depends_on:
+      auth-db:
+        condition: service_healthy
+
+    networks:
+      - backend
+
+  card-service:
+    build:
+      context: .
+      dockerfile: card-service/Dockerfile
+
+    restart: unless-stopped
+
+    environment:
+      SERVER_PORT: 8082
+
+      SPRING_DATASOURCE_URL: jdbc:postgresql://card-db:5432/card_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      APP_CARD_IMAGE_STORAGE_DIR: /app/storage/card-images
+      APP_CARD_DOCUMENT_STORAGE_DIR: /app/storage/card-documents
+      SOUND_SERVICE_URL: http://sound-service:8083
+
+    volumes:
+      - card_image_storage:/app/storage
+
+    depends_on:
+      card-db:
+        condition: service_healthy
+      sound-service:
+        condition: service_started
+
+    networks:
+      - backend
+
+  sound-service:
+    build:
+      context: .
+      dockerfile: sound-service/Dockerfile
+
+    restart: unless-stopped
+
+    environment:
+      SERVER_PORT: 8083
+
+      SPRING_DATASOURCE_URL: jdbc:postgresql://sound-db:5432/sound_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+
+      APP_MUSIC_STORAGE_DIR: /app/storage/music
+      APP_VOICE_STORAGE_DIR: /app/storage/voice
+      VOICE_MODEL_DIRECTORY: /app/models/gigaam-600m
+
+    volumes:
+      - audio_storage:/app/storage
+      - ./models/gigaam-600m:/app/models/gigaam-600m:ro
+
+    depends_on:
+      sound-db:
+        condition: service_healthy
+
+    networks:
+      - backend
+
+  hackaton-service:
+    build:
+      context: .
+      dockerfile: hackaton-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8084
+      DB_URL: jdbc:postgresql://hackaton-db:5432/hackaton_db
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      CARD_SERVICE_URL: http://card-service:8082
+    depends_on:
+      hackaton-db:
+        condition: service_healthy
+      card-service:
+        condition: service_started
+    networks:
+      - backend
+
+  gateway-service:
+    build:
+      context: .
+      dockerfile: gateway-service/Dockerfile
+
+    restart: unless-stopped
+
+    environment:
+      SERVER_PORT: 8080
+      AUTH_SERVICE_URL: http://auth-service:8081
+      CARD_SERVICE_URL: http://card-service:8082
+      SOUND_SERVICE_URL: http://sound-service:8083
+      HACKATON_SERVICE_URL: http://hackaton-service:8084
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      - auth-service
+      - card-service
+      - sound-service
+      - hackaton-service
+
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  auth_db_data:
+  card_db_data:
+  sound_db_data:
+  hackaton_db_data:
+  audio_storage:
+  avatar_storage:
+  card_image_storage:

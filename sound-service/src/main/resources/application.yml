@@ -1,0 +1,41 @@
+
+server:
+  port: 8083
+
+app:
+  music:
+    storage-dir: uploads/music
+
+  voice:
+    storage-dir: uploads/voice
+  ffmpeg:
+    path: ffmpeg
+  audio:
+    output-dir: uploads/mixed
+
+spring:
+  application:
+    name: sound-service
+
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 26MB
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/audio_sound_db
+    username: postgres
+    password: admin
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+voice:
+  model-directory: ${VOICE_MODEL_DIRECTORY:models/gigaam-600m}
+  ffmpeg: ${VOICE_FFMPEG:ffmpeg}
+  max-seconds: 120
